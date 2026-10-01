@@ -14,13 +14,11 @@ An overview
 
 ## IDK
 
-...
+Your explanation here
 
 ## Libraries/Dependencies
 
-The main external dependencies we depend on are:
-- CMSIS
-- freeRTOS
+List them
 
 ## License
 
