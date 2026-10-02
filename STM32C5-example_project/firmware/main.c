@@ -16,6 +16,7 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "mx_freertos_app.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -43,11 +44,10 @@ int main(void)
     /*
       * You can start your application code here
       */
-
+    app_synctasks_init();
+    vTaskStartScheduler();
     while (1) {
-      HAL_GPIO_TogglePin(HAL_GPIOA, HAL_GPIO_PIN_5);
-      HAL_Delay(1000);
+
     }
   }
 } /* end main */
-

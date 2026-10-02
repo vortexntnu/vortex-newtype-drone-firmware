@@ -64,6 +64,9 @@ static void function1(void *pvParameters)
   for(;;)
   {
     /* Infinite loop executing Task1 functionality. */
+    
+    HAL_GPIO_TogglePin(HAL_GPIOA, HAL_GPIO_PIN_5);
+    vTaskDelay(1000);
   }
 }
 
