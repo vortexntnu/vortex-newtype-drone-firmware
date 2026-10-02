@@ -18,10 +18,18 @@
 #include "mx_freertos_app.h"
 
 /* Private define ------------------------------------------------------------*/
+#define Task1_stack_size  128U
 /* Private typedef -----------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+/*-------------------- Tasks definition --------------------------------------*/
+/* Definitions for Task1 */
+static TaskHandle_t Task1_Handle;
+
 /* Private functions prototype -----------------------------------------------*/
+/* Tasks entry function ------------------------------------------------------*/
+static void function1(void *pvParameters);
+
 /**
   * @brief Initializes FreeRTOS kernel objects.
   * @param None
@@ -29,6 +37,33 @@
   */
 int32_t app_synctasks_init (void)
 {
+  BaseType_t ret;
+
+  /* Task1 creation-------------------------------------*/
+  ret = xTaskCreate(function1, "Task1", Task1_stack_size,
+                    (void*) NULL, 0, &Task1_Handle);
+
+  if (ret != pdPASS)
+  {
+      return -1;
+  }
+
   return 0;
+}
+
+/* Tasks entry function ------------------------------------------------------*/
+/**
+  * @brief Function implementing the Task1 thread.
+  * @param pvParameters: A pointer to the parameters passed to the task.
+  * @retval None
+  */
+static void function1(void *pvParameters)
+{
+  ( void ) pvParameters;
+
+  for(;;)
+  {
+    /* Infinite loop executing Task1 functionality. */
+  }
 }
 

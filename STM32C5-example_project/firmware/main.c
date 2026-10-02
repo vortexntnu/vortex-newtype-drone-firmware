@@ -43,9 +43,11 @@ int main(void)
     /*
       * You can start your application code here
       */
+
+    while (1) {
       HAL_GPIO_TogglePin(HAL_GPIOA, HAL_GPIO_PIN_5);
       HAL_Delay(1000);
-    while (1) {}
+    }
   }
 } /* end main */
 

@@ -1,7 +1,7 @@
 {
   "disclaimer": "Do not modify this file as it is used by STM32CubeMX2 to determine what and how to update your project with new configuration",
   "version": "1.0.0",
-  "timestamp": "2026-10-02T00:56:09.472Z",
+  "timestamp": "2026-10-02T18:33:19.295Z",
   "files": [
     {
       "fileGroup": "project_file",
@@ -39,7 +39,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "c9bc20e3b06450fd87058bddde189e1c19f77976f696be5aa75f13d7313b48fb"
+        "digest": "b4111813930f4bb7b71c8e4fe2858583149e11eb403c7c4ba33afb62eca37fb9"
       },
       "file": "cmake/components.cmake"
     },
@@ -79,7 +79,7 @@
       "fileGroup": "project_file",
       "checksum": {
         "algo": "sha256",
-        "digest": "8edd503c731e0b2b457699d746ac15e516122a465625296e60702b394d2071b7"
+        "digest": "1c1a9bf9f9eb7a45d15c12a2d509ce2b61f35065289f6e3ce5990cc980c8261d"
       },
       "file": "stm32c5xx_dfp/CMakeLists.txt"
     },
@@ -103,7 +103,7 @@
       "fileGroup": "pack",
       "checksum": {
         "algo": "sha256",
-        "digest": "23a6cd6dec61f4feca7b05a8851aea7f6c0a3a530c6c872b95767ac8f0fc3901"
+        "digest": "253316e5a48335df29db61a884d2a49834d74784130e486bbb7bc0b5f3152dd1"
       },
       "file": "stm32c5xx_dfp/RTE_Components.h"
     },
@@ -247,7 +247,23 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "b02944869675c54cf2dd7d45cbad64f916de510f24aca49384df4feca81cbcc8"
+        "digest": "5c350a9851886bff5220e697ab81cef15d84fd04c86c9ad61e5bb399e66d0623"
+      },
+      "file": "generated/hal/mx_gpio_default.c"
+    },
+    {
+      "fileGroup": "generated",
+      "checksum": {
+        "algo": "sha256",
+        "digest": "7ed41365628ca9bb817da513a97c16fe56a67bbe3a47333397e0c07691291a8d"
+      },
+      "file": "generated/hal/mx_gpio_default.h"
+    },
+    {
+      "fileGroup": "generated",
+      "checksum": {
+        "algo": "sha256",
+        "digest": "994f713fd511bfc7ef57a410d1d161ebcb0c7085707507ce372145f6063990ca"
       },
       "file": "generated/hal/mx_hal_def.h"
     },
@@ -295,7 +311,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "9ea0bc7f1d9677b0cad7734e0883996c690fba31a1be98a7f50b24650415372f"
+        "digest": "7c81fdd6a6d98eb62b09c3dc803a9bcec4c4aaeff8be5e4569d3f746cf9332d7"
       },
       "file": "generated/hal/mx_system.c"
     },
@@ -367,7 +383,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "c2f0e1c5c22c23df4aeb7f02bbabf500211b5f3b7707d8b782f15a106aa8d499"
+        "digest": "e8fe213320267d6dcb83333eff87117a013998618b9e05c56c4ab249fba0025e"
       },
       "file": "generated/hal/STM32_HAL_Driver_codegen.cmake"
     },
@@ -375,7 +391,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "6678eae8d097c3fd059ac33694786c32866d23e5422a494864b56fe4093b0831"
+        "digest": "61be4ee5e14d4315c7c701ade5df87dad607d69c7eea378225efe1e00609176d"
       },
       "file": "generated/hal/STM32_HAL_Driver_codegen.gpdsc"
     },
@@ -407,7 +423,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "9895ce917d9079ee4f48567d2dbc85a2ecb044f2f3c13643c175412ef4089169"
+        "digest": "a5aec66d8827ef42afb1029eb64f6f5b4c3fd89b4b8a0a6341200408dd02419b"
       },
       "file": "generated/middleware/mx_freertos_app.c"
     },

@@ -509,7 +509,7 @@
     },
     "HAL_GPIO_PROJECT_USE_HAL": {
       "name": "HAL_GPIO_PROJECT_USE_HAL",
-      "value": 8,
+      "value": 9,
       "originator": "sw-config-semaphore"
     },
     "HAL_PCD_PROJECT_USE_HAL": {
@@ -1027,7 +1027,29 @@
 {
   "version": 10,
   "pinout-configuration": {
-    "userConfigurations": [],
+    "userConfigurations": [
+      {
+        "pin": {
+          "name": "PA5",
+          "position": "21",
+          "type": "gpio",
+          "powerSource": "VDD",
+          "ioStructureOptions": [
+            "a"
+          ],
+          "ioType": "I/O",
+          "ioStructure": "TT",
+          "index": 5,
+          "port": "A"
+        },
+        "signal": {
+          "instance": "GPIOA",
+          "name": "GPIO",
+          "type": "user_gpio"
+        },
+        "pinned": true
+      }
+    ],
     "needConfigurations": [
       {
         "id": "e4d55634-e44b-4ca9-bdb7-525c12e690df",
@@ -1223,12 +1245,33 @@
   },
   "pinout-excluded-pins": [],
   "pinout-labels": [],
-  "pinout-gpio-assignations": [],
+  "pinout-gpio-assignations": [
+    {
+      "gpioGroupId": "default_gpio_group_id",
+      "softwareProjectId": "221b8ddd-b2b7-4a03-94c0-e5989cd20a84",
+      "swInstanceId": "c9a496b1-68ff-41e9-9d61-82955fc403a0",
+      "instanceName": "GPIO"
+    }
+  ],
   "pinout-gpio-groups": [
     {
       "id": "default_gpio_group_id",
       "name": "gpio_default",
-      "pins": []
+      "pins": [
+        {
+          "name": "PA5",
+          "position": "21",
+          "type": "gpio",
+          "powerSource": "VDD",
+          "ioStructureOptions": [
+            "a"
+          ],
+          "ioType": "I/O",
+          "ioStructure": "TT",
+          "index": 5,
+          "port": "A"
+        }
+      ]
     }
   ],
   "pinout-gpio-needs": [
@@ -1846,6 +1889,14 @@ solution:
         "label": "STM32 LL:TIM",
         "expanded": true,
         "userAdded": false
+      },
+      {
+        "$type": "http://st.com/schema/sw-composer#//MultiInstanceSWComponent",
+        "id": "b247c7b8-78a1-4f2a-b854-57d175eda4a4",
+        "componentDescriptionId": "STMicroelectronics.stm32c5xx_hal_drivers.2.1.0$STMicroelectronics::Device:STM32CubeMX2 Config:GPIO@2.1.0#HAL GPIO Init",
+        "label": "STM32CubeMX2 Config:GPIO",
+        "expanded": true,
+        "userAdded": true
       }
     ]
   },
@@ -2742,6 +2793,17 @@ solution:
                   "mode": "",
                   "name": "mx_tim1_init",
                   "peripheral": "TIM"
+                },
+                {
+                  "_foreignKey": "gpio_default",
+                  "_rank": 4,
+                  "callable": true,
+                  "generated": true,
+                  "hw_instance": "gpio_default",
+                  "layer": "HAL",
+                  "mode": "",
+                  "name": "mx_gpio_default_init",
+                  "peripheral": "GPIO"
                 }
               ],
               "code_generation": {
@@ -3171,7 +3233,16 @@ solution:
                   }
                 },
                 "applicative": {
-                  "tasks": [],
+                  "tasks": [
+                    {
+                      "stack_size": 128,
+                      "task_priority": 0,
+                      "parameter": 0,
+                      "memory_allocation": "DYNAMIC",
+                      "entry_function": "function1",
+                      "task_name": "Task1"
+                    }
+                  ],
                   "mutexes": [],
                   "binary_semaphores": [],
                   "counting_semaphores": [],
@@ -3241,6 +3312,37 @@ solution:
                   }
                 }
               }
+            }
+          }
+        }
+      ],
+      "STMicroelectronics.stm32c5xx_hal_drivers.2.1.0$STMicroelectronics::Device:STM32CubeMX2 Config:GPIO@2.1.0#HAL GPIO Init": [
+        {
+          "index": 12,
+          "instanceId": "c9a496b1-68ff-41e9-9d61-82955fc403a0",
+          "entity": "gpio.groups",
+          "settings": {
+            "parameters": {
+              "info": {
+                "labels": [],
+                "layer": "HAL",
+                "init_type": "called"
+              },
+              "pins": [
+                {
+                  "_foreignKey": "PA5",
+                  "basic": {
+                    "mode": "OUTPUT",
+                    "pull": "NO",
+                    "enable_exti": false,
+                    "output_active_state": "SET",
+                    "output_init_state": "RESET",
+                    "output_type": "PUSHPULL",
+                    "speed": "LOW"
+                  },
+                  "label_name": []
+                }
+              ]
             }
           }
         }
@@ -3625,6 +3727,7 @@ project:
     - component: STMicroelectronics::Device:STM32CubeMX2 Config:CORTEX NVIC@2.1.0
     - component: STMicroelectronics::Device:STM32CubeMX2 Config:CORTEX SYSTICK@2.1.0
     - component: STMicroelectronics::Device:STM32CubeMX2 Config:FDCAN@2.1.0
+    - component: STMicroelectronics::Device:STM32CubeMX2 Config:GPIO@2.1.0
     - component: STMicroelectronics::Device:STM32CubeMX2 Config:ICACHE@2.1.0
     - component: STMicroelectronics::Device:STM32CubeMX2 Config:PCD@2.1.0
     - component: STMicroelectronics::Device:STM32CubeMX2 Config:RCC@2.1.0

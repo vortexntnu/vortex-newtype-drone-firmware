@@ -584,6 +584,13 @@
         <file category="header" name="mx_fdcan1.h" />
       </files>
     </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="GPIO"   Cversion="2.1.0" condition="HAL GPIO Init">
+      <description>TO BE DEFINED</description>
+      <files>
+        <file category="source" name="mx_gpio_default.c" />
+        <file category="header" name="mx_gpio_default.h" />
+      </files>
+    </component>
     <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="ICACHE"   Cversion="2.1.0" condition="HAL CORE Init and ICACHE">
       <description>TO BE DEFINED</description>
       <files>
