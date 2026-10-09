@@ -1,4 +1,4 @@
-# Your project name
+# Motorcontroller
 
 <p align="center">
   <img src="../common/Vortex Logo/Vortex-Logo-3.png" alt="Logo" width="100%"/>
