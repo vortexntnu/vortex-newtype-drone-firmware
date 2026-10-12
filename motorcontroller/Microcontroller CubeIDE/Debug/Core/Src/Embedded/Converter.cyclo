@@ -1,0 +1,6 @@
+../Core/Src/Embedded/Converter.c:10:6:IsCharacterNumber	3
+../Core/Src/Embedded/Converter.c:15:6:IsCharacterIntSeparator	4
+../Core/Src/Embedded/Converter.c:20:6:WillOverflow	1
+../Core/Src/Embedded/Converter.c:29:9:Converter_UIntToStringLength	3
+../Core/Src/Embedded/Converter.c:41:9:Converter_UIntToString	5
+../Core/Src/Embedded/Converter.c:67:9:Converter_StringToUInt	9

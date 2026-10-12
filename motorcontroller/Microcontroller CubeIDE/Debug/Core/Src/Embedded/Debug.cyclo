@@ -1,0 +1,10 @@
+../Core/Src/Embedded/Debug.c:18:6:String_IsEmpty	3
+../Core/Src/Embedded/Debug.c:26:6:ConcatinateWithinBounds	3
+../Core/Src/Embedded/Debug.c:49:6:UART_Transmit	1
+../Core/Src/Embedded/Debug.c:58:6:Command_WriteTerminal	2
+../Core/Src/Embedded/Debug.c:78:6:Command_AppendCharacter	2
+../Core/Src/Embedded/Debug.c:87:6:Command_RemoveCharacter	2
+../Core/Src/Embedded/Debug.c:95:6:Command_Enter	1
+../Core/Src/Embedded/Debug.c:108:6:Debug_PrintRaw	1
+../Core/Src/Embedded/Debug.c:113:6:Debug_Print	6
+../Core/Src/Embedded/Debug.c:143:6:Debug_ReadUART	8

@@ -1,0 +1,2 @@
+../Core/Src/Embedded/PWM.c:7:6:PWM_Init	1
+../Core/Src/Embedded/PWM.c:11:6:PWM_SetDuty	2

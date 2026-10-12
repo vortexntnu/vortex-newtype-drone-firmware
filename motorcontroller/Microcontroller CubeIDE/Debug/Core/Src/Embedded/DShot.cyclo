@@ -1,0 +1,4 @@
+../Core/Src/Embedded/DShot.c:99:17:DShot_BuildPacket	1
+../Core/Src/Embedded/DShot.c:106:13:DShot_Encode	3
+../Core/Src/Embedded/DShot.c:119:6:DShot_Update	1
+../Core/Src/Embedded/DShot.c:133:6:DShot_SetDuty	1
