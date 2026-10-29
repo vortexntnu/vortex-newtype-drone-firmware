@@ -16,7 +16,7 @@ include(cmake/components.cmake)
 
 # Stubs to be able to add compiler flag overrides, e.g. -Os
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-  # Add additional source files here
+  usb_cdc.c
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC

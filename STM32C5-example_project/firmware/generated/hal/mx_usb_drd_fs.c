@@ -43,7 +43,7 @@ hal_pcd_handle_t *mx_usb_drd_fs_device_init(void)
   /* Peripheral USB clock enable */
   HAL_RCC_USB_EnableClock();
 
-  if (HAL_RCC_CK48_SetKernelClkSource(HAL_RCC_CK48_CLK_SRC_HSIDIV3) != HAL_OK)
+  if (HAL_RCC_CK48_SetKernelClkSource(HAL_RCC_CK48_CLK_SRC_PSIDIV3) != HAL_OK)
   {
     return NULL;
   }
@@ -59,6 +59,10 @@ hal_pcd_handle_t *mx_usb_drd_fs_device_init(void)
   HAL_PCD_SetConfig(&hUSB_DRD_FS_PCD, &pcd_config);
 
   HAL_PCD_PMAConfig(&hUSB_DRD_FS_PCD, 0x80, HAL_PCD_SNG_BUF, 0x20);
+  HAL_PCD_PMAConfig(&hUSB_DRD_FS_PCD, 0x0, HAL_PCD_SNG_BUF, 0x60);
+  HAL_PCD_PMAConfig(&hUSB_DRD_FS_PCD, 0x81, HAL_PCD_SNG_BUF, 0xA0);
+  HAL_PCD_PMAConfig(&hUSB_DRD_FS_PCD, 0x2, HAL_PCD_SNG_BUF, 0xE0);
+  HAL_PCD_PMAConfig(&hUSB_DRD_FS_PCD, 0x83, HAL_PCD_SNG_BUF, 0x120);
 
   /* No GPIO configuration required for USB */
 
