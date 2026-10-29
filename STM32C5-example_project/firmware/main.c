@@ -16,7 +16,9 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "mx_freertos_app.h"
+#include "my_freeRTOS_app.h"
+#include "stm32c5xx_hal_gpio.h"
+#include "usb_cdc.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -41,13 +43,19 @@ int main(void)
   }
   else
   {
+    usb_cdc_init();
+
+    //app_synctasks_init();
+    //vTaskStartScheduler();
+
     /*
       * You can start your application code here
       */
-    app_synctasks_init();
-    vTaskStartScheduler();
     while (1) {
-
+      HAL_GPIO_TogglePin(HAL_GPIOA, HAL_GPIO_PIN_5);
+      HAL_Delay(100U);
+      printf("Hello World!\n");
+      HAL_Delay(500U);
     }
   }
 } /* end main */
