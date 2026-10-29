@@ -18,6 +18,7 @@ RM := rm -rf
 -include Drivers/BSP/STM32H7xx_Nucleo/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/Embedded/subdir.mk
+-include Core/Src/Control/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk
 
@@ -67,8 +68,8 @@ all: main-build
 main-build: Microcontroller\ CubeIDE.elf secondary-outputs
 
 # Tool invocations
-Microcontroller\ CubeIDE.elf Microcontroller\ CubeIDE.map: $(OBJS) $(USER_OBJS) /home/sickle/Desktop/STM32/Microcontroller\ CubeIDE/STM32H753ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Microcontroller CubeIDE.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"/home/sickle/Desktop/STM32/Microcontroller CubeIDE/STM32H753ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Microcontroller CubeIDE.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Microcontroller\ CubeIDE.elf Microcontroller\ CubeIDE.map: $(OBJS) $(USER_OBJS) C:\Users\Sickle\Documents\GitHub\vortex-newtype-drone-firmware\motorcontroller\Microcontroller\ CubeIDE\STM32H753ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Microcontroller CubeIDE.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\Sickle\Documents\GitHub\vortex-newtype-drone-firmware\motorcontroller\Microcontroller CubeIDE\STM32H753ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Microcontroller CubeIDE.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
