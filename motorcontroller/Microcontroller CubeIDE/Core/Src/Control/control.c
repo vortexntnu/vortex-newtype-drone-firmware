@@ -1,41 +1,23 @@
 #include "Control/control.h"
-
-
 //
 
 
-typedef enum
-{
-	SUCCESS,
 
-	// control init errorkoder
-	FAILED_TO_INIT,
-
-	// control regulator errorkoder
-	REGULATOR_FAILED_TO_START,
-} CONTROL_ERROR_CODE;
-
-typedef float Temperature;
-
-
-
-void Control_Foo()
+// Kjøres en gang under oppstart
+CONTROL_ERROR_CODE Control_Init()
 {
 	Debug_Print("Hello, world!");
 }
 
 
-CONTROL_ERROR_CODE control_Init()
+// Kjøres hver gang vi får ny wrench melding
+CONTROL_ERROR_CODE control_allocate_thrust(float wrench[6], float output_thrust[8])
 {
 
 }
 
-CONTROL_ERROR_CODE control_NewWrench(WrenchData wrench)
+// Kjøres med en bestemt frekvens
+CONTROL_ERROR_CODE control_regulator_step(float deltaSeconds, ThrusterMeasurements* measurements, float reference_thrust[4], int16_t output_throttle[4])
 {
 
-}
-
-CONTROL_ERROR_CODE control_RegulatorStep(float deltaSeconds)
-{
-	return REGULATOR_FAILED_TO_START;
 }
