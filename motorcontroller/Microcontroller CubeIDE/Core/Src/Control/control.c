@@ -12,7 +12,7 @@ ControlErrorCode control_init()
 	return ControlErrorCode.SUCCESS;
 }
 
-ControlErrorCode control_allocate_thrust(float wrench[6])
+ControlErrorCode control_allocate_thrust(float wrench[6], float max_thrust[8], float output_thrust[8])
 {
 	reference_thrust[0] = 101;
 	return ControlErrorCode.SUCCESS;
