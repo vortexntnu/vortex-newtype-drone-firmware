@@ -16,7 +16,7 @@ ControlErrorCode control_init();
 
 
 // Kjøres hver gang vi får ny wrench melding
-ControlErrorCode control_allocate_thrust(float wrench[6]);
+ControlErrorCode control_allocate_thrust(float wrench[6], float max_thrust[8], float output_thrust[8]);
 
 // Kjøres med en bestemt frekvens
 ControlErrorCode control_regulator_step(float deltaSeconds, ThrusterMeasurements* measurements, int16_t output_throttle[4]);
