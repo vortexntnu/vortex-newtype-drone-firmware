@@ -12,8 +12,8 @@
 #include "flash.h"
 #include "boot.h"
 
-#define TX_BUFFER_SIZE 8
-static uint8_t BufferA[TX_BUFFER_SIZE] = {0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE};
+//#define TX_BUFFER_SIZE 8
+//static uint8_t BufferA[TX_BUFFER_SIZE] = {0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE};
 //static const uint8_t BufferB[TX_BUFFER_SIZE*2] =
 //{0x04, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
 
@@ -48,24 +48,22 @@ int (*boot_recvfns[])(void) =
 
 int boot_can_senderror(uint32_t code)
 {
-	uint32_t errsig = 0xdeadbeef;
-	memcpy(BufferA, &errsig, 4);
-	memcpy(&BufferA[4], &code, 4);
-	can_senddata(BufferA, 8, BOOT_SEND_PING);
+	uint64_t errsig = 0xdeadbeef + ((uint64_t)code << 32);
+	can_senddata((uint8_t*)&errsig, 8, BOOT_SEND_PING);
 	err(2);
 	return 1;
 }
 int boot_can_resendfrom(uint32_t idx)
 {
-	((uint64_t*)BufferA)[0] = idx;
-	can_senddata(BufferA, 8, BOOT_SEND_RESEND);
+	uint64_t send = idx;
+	can_senddata((uint8_t*)&send, 8, BOOT_SEND_RESEND);
 	noerr(2);
 	return 0;
 }
 int boot_can_readyfor(uint32_t idx)
 {
-	((uint64_t*)BufferA)[0] = idx;
-	can_senddata(BufferA, 8, BOOT_SEND_READY);
+	uint64_t send = idx;
+	can_senddata((uint8_t*)&send, 8, BOOT_SEND_READY);
 	return 0;
 }
 
@@ -82,20 +80,19 @@ uint32_t curaddr = 0x8020000;// + (FLASH_SIZE/2);
 // set to number of erases on init, decremented by one for every one done;
 int erasesleft = 0;
 
-// number of progs, that is, number of prog messages to receive;
+// number of progs, that is, number of pages left to prog;
 int progsleft = 0;
 
-
-uint16_t lastidx = 0xffff;
-int pageidx = 0;
-int progcallsleft = 0;
-int getsleft = 0;
+// number of messages left to get
+uint64_t getsleft = 0;
 #define NUMBER_OF_BYTES_PER_PAGE_AND_THEN_SOME 0x2026 // this, as well as NUMBER_OF_BYTES_PER_PAGE, will probably differ on the H7
 char progbuf[NUMBER_OF_BYTES_PER_PAGE_AND_THEN_SOME]; // must be at least large enough for 8KiB, plus some for misalignment when sending 6 bytes at a time
 int boot_ping(void)
 {
-	((uint64_t*)BufferA)[0] = ((uint64_t*)recvbuf)[0] + 1;
-	can_senddata(BufferA, 8, BOOT_SEND_PING);
+	uint64_t resend = 0;
+	memcpy(&resend, recvbuf, 8);
+	++resend;
+	can_senddata((uint8_t*)&resend, 8, BOOT_SEND_PING);
 	noerr(1);
 	return 0;
 }
@@ -111,9 +108,8 @@ int boot_init(void)
 #define LOG_2_OF_NUMBER_OF_BYTES_PER_PAGE 13
 #define NUMBER_OF_BYTES_PER_GET 6
 #define NUMBER_OF_BYTES_PER_PAGE 0x2000
-	getsleft = ((int32_t*)recvbuf)[0];
+	memcpy(&getsleft, recvbuf, 4);
 	progsleft = (getsleft*NUMBER_OF_BYTES_PER_GET + NUMBER_OF_BYTES_PER_PAGE - 1) >> LOG_2_OF_NUMBER_OF_BYTES_PER_PAGE; // this basically clamps upwards and then divides by NUMBER_OF_BYTES_PER_PAGE
-	progcallsleft = progsleft;
 	erasesleft = progsleft;
 	flash_erase_addr(curaddr, NUMBER_OF_BYTES_PER_PAGE);
 	return 0;
@@ -134,6 +130,10 @@ int boot_reset(void) // this is not really implemented, but it's not implemented
 }
 int boot_data(void)
 {
+	// this is checked to see if the packet really is the next one
+	static uint16_t lastidx = 0xffff;
+	// where on the page buffer to copy to
+	static int pageidx = 0;
 	if(bootstate != BOOTSTATE_ERASE_DONE)
 	{
 		boot_can_senderror(3);
@@ -154,7 +154,6 @@ int boot_data(void)
 	{
 		pageidx -= NUMBER_OF_BYTES_PER_PAGE;
 		flash_prog_addr(curaddr, NUMBER_OF_BYTES_PER_PAGE, (uint32_t*)progbuf);
-		--progcallsleft;
 		curaddr += NUMBER_OF_BYTES_PER_PAGE;
 	}
 	else if(!getsleft)
@@ -167,8 +166,7 @@ int boot_data(void)
 	}
 	else
 	{
-		((uint32_t*)BufferA)[0] = getsleft;
-		can_senddata(BufferA, 8, BOOT_SEND_READY);
+		can_senddata((uint8_t*)&getsleft, 8, BOOT_SEND_READY);
 	}
 	return 0;
 }
@@ -207,7 +205,7 @@ int boot_can_errcallback(void* unused)
 	return 1;//HandleTransferError(0, 0);
 }
 
-int erasesdone = 0;
+uint64_t erasesdone = 0;
 // erased flashmem page
 int boot_flash_erasedcallback(void* unused)
 {
@@ -219,8 +217,7 @@ int boot_flash_erasedcallback(void* unused)
 	{
 		curaddr = FLASH_BASE + FLASH_SIZE/2;
 		bootstate = BOOTSTATE_ERASE_DONE;
-		BufferA[0] = erasesdone;
-		can_senddata(BufferA, 8, BOOT_SEND_READY);
+		can_senddata((uint8_t*)&erasesdone, 8, BOOT_SEND_READY);
 //		noerr(2);
 		return 0;
 	}
@@ -236,15 +233,14 @@ int boot_flash_progdcallback(void* unused)
 	--progsleft;
 	if(!progsleft)
 	{
-		((uint32_t*)BufferA)[0] = getsleft;
-		can_senddata(BufferA, 8, BOOT_SEND_FINISH);
+		can_senddata((uint8_t*)&getsleft, 8, BOOT_SEND_FINISH);
 		bootstate = BOOTSTATE_PROGGED;
 		return 0;
 	}
 	else
 	{
-		BufferA[0] = 0x67; // just a status code
-		can_senddata(BufferA, 8, BOOT_SEND_READY);
+		uint64_t status = 0x67; // just a status code;
+		can_senddata((uint8_t*)&status, 8, BOOT_SEND_READY);
 	}
 //	noerr(1);
 //	noerr(*(char*)(FLASH_BASE + FLASH_SIZE - 0x2000));
