@@ -2,6 +2,8 @@
 #define EXAMPLE_H_
 
 #include <stdint.h>
+#include <Interface/Bridge.h>
+#include <Embedded/Debug.h>
 
 typedef enum
 {
@@ -9,26 +11,8 @@ typedef enum
 	FAILED_TO_INITIALIZE,
 } CONTROL_ERROR_CODE;
 
-typedef struct {
-	float eRPM;
-	float current;
-	float voltage;
-	float temp;
-} ThrusterMeasurement;
-
-typedef struct {
-	float total_current_draw;
-	float common_voltage;
-	float total_consumption;
-	ThrusterMeasurement thruster_measurements[4];
-} ThrusterMeasurements;
-
-
-
-#include <Embedded/Debug.h>
-
-// Kjøres en gang under oppstart
-CONTROL_ERROR_CODE Control_Init();
+// Kjøres én gang under oppstart
+CONTROL_ERROR_CODE control_init();
 
 
 // Kjøres hver gang vi får ny wrench melding
