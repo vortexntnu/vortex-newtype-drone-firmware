@@ -5,5 +5,6 @@
 
 void DShot_SetDuty(uint16_t duty, bool telemetry);
 void DShot_Update();
+void DShot_Init();
 
 #endif

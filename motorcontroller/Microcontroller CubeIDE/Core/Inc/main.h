@@ -62,6 +62,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define SPI5_MOSI___WEIGHT_CELL_AMPLIFIER_Pin GPIO_PIN_9
+#define SPI5_MOSI___WEIGHT_CELL_AMPLIFIER_GPIO_Port GPIOF
 #define MOTORCONTROLLER_4___SPI4_MOSI_Pin GPIO_PIN_14
 #define MOTORCONTROLLER_4___SPI4_MOSI_GPIO_Port GPIOE
 #define SPI2_MOSI___MOTORCONTROLLER_2_Pin GPIO_PIN_15
