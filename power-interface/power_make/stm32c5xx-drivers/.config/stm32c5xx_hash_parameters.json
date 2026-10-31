@@ -1,0 +1,542 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:HASH",
+  "grammarVersion": "3.8",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/hash_helpers.js",
+      "accessor": "common"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels let you create aliases (init, deinit, getHandle). These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": "",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ]
+              }
+            },
+            "layer": {
+              "type": "string",
+              "title": "Software layer",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_HASH_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "basic": {
+          "type": "object",
+          "title": "Main features",
+          "properties": {
+            "data_swapping": {
+              "type": "string",
+              "title": "Data swapping",
+              "description": "Specifies the type of data swapping to apply during processing. Options include no swapping, swapping by half-word (16 bits), byte (8 bits), or bit (1 bit).",
+              "default": "NO",
+              "oneOf": [
+                {
+                  "title": "None",
+                  "const": "NO"
+                },
+                {
+                  "title": "Half word",
+                  "const": "HALFWORD"
+                },
+                {
+                  "title": "Byte",
+                  "const": "BYTE"
+                },
+                {
+                  "title": "Bit",
+                  "const": "BIT"
+                }
+              ]
+            },
+            "algo": {
+              "title": "Algorithm",
+              "type": "string",
+              "description": "Specifies the cryptographic hash algorithm to be used. The available options include various algorithms.",
+              "default": "SHA1",
+              "oneOf": [
+                {
+                  "title": "SHA1",
+                  "const": "SHA1"
+                },
+                {
+                  "title": "MD5",
+                  "const": "MD5",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.g_md5 > 0"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA2-224",
+                  "const": "SHA224"
+                },
+                {
+                  "title": "SHA2-256",
+                  "const": "SHA256"
+                },
+                {
+                  "title": "SHA2-384",
+                  "const": "SHA384",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha2_512 > 0) || ($resource.features.g_sha512 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha2_512 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA2-512/224",
+                  "const": "SHA512224",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha2_512 > 0) || ($resource.features.g_sha512 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha2_512 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA2-512/256",
+                  "const": "SHA512256",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha2_512 > 0) || ($resource.features.g_sha512 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha2_512 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA2-512",
+                  "const": "SHA512",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha2_512 > 0) || ($resource.features.g_sha512 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha2_512 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA3-224",
+                  "const": "SHA3224",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha3 > 0) || ($resource.features.g_sha3 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha3 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA3-256",
+                  "const": "SHA3256",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha3 > 0) || ($resource.features.g_sha3 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha3 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA3-384",
+                  "const": "SHA3384",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha3 > 0) || ($resource.features.g_sha3 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha3 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHA3-512",
+                  "const": "SHA3512",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha3 > 0) || ($resource.features.g_sha3 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha3 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHAKE128",
+                  "const": "SHAKE128",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha3 > 0) || ($resource.features.g_sha3 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha3 > 0))"
+                    }
+                  ]
+                },
+                {
+                  "title": "SHAKE256",
+                  "const": "SHAKE256",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.features && (($resource.features.g_hash_sha3 > 0) || ($resource.features.g_sha3 > 0))) || ($resource.parentDescription && $resource.parentDescription.features && ($resource.parentDescription.features.g_hash_sha3 > 0))"
+                    }
+                  ]
+                }
+              ]
+            },
+            "use_hmac_feature": {
+              "type": "boolean",
+              "title": "Activate HMAC feature",
+              "description": "Activate the HMAC feature.",
+              "default": false
+            },
+            "key_settings": {
+              "type": "object",
+              "title": "HMAC key",
+              "actions": [
+                {
+                  "type": "enable",
+                  "condition": "$basic.use_hmac_feature"
+                },
+                {
+                  "type": "exclude",
+                  "condition": "$basic.use_hmac_feature == false"
+                }
+              ],
+              "properties": {
+                "hmac_key": {
+                  "type": "string",
+                  "title": "Input key",
+                  "default": "",
+                  "description": "The HMAC key can be provided as a hex string or a regular string.",
+                  "actions": [
+                    {
+                      "type": "error",
+                      "condition": "!/^([0-9a-fA-F]{2})+$/.test($value)",
+                      "message": "HMAC key must be a hex string with an even number of digits (0-9, a-f, A-F)."
+                    }
+                  ]
+                },
+                "key_size": {
+                  "type": "integer",
+                  "title": "Input key size (byte)",
+                  "description": "Automatically computed input key size in bytes based on the configured HMAC key. This field is read-only and reflects the actual key size used internally.",
+                  "default": 0,
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$common.helper_hash_calculatekeysize($basic.key_settings.hmac_key)"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security_privilege": {
+          "title": "Security and privilege",
+          "description": "Manage security and privileged access levels attributes.",
+          "#comment": "Use for instance for HASH",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+          "properties": {
+            "security": {
+              "type": "string",
+              "title": "Security attribute",
+              "description": "Set the security attribute of the securable peripheral.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "SEC"
+                  },
+                  "condition": "$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "NSEC"
+                  },
+                  "condition": "!$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', $resource.id)",
+                  "message": "The security attribute of the peripheral is automatically set to secure when the peripheral is bound to a secure resource and to non-secure when it is not. Manual configuration is not allowed."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-sec-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Secure",
+                  "const": "SEC"
+                },
+                {
+                  "title": "Non-secure",
+                  "const": "NSEC"
+                }
+              ],
+              "default": "NSEC"
+            },
+            "privilege": {
+              "type": "string",
+              "title": "Privileged attribute",
+              "description": "Manage the privileged attribute of a securable RISC peripheral.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-priv-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Privileged",
+                  "const": "PRIV"
+                },
+                {
+                  "title": "Unprivileged",
+                  "const": "NPRIV"
+                }
+              ],
+              "default": "PRIV"
+            },
+            "lock": {
+              "type": "boolean",
+              "title": "Lock",
+              "description": "Optional. Lock security and privilege attributes to prevent changes.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-lock-attr",
+                "custom": "$resource.id"
+              },
+              "default": false
+            },
+            "illegal_access": {
+              "title": "Illegal access interrupt",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure-only')",
+                  "message": "Secure-only mode: Illegal access interrupt is forced to disabled."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-iac-peripheral",
+                "custom": "$resource.id"
+              },
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "description": "HASH Global Configuration Structure definition.",
+          "properties": {
+            "dma": {
+              "title": "DMA",
+              "type": "object",
+              "properties": {
+                "enable_dma": {
+                  "type": "boolean",
+                  "title": "Event DMA request",
+                  "default": false
+                },
+                "dma_config": {
+                  "title": "DMA IN",
+                  "type": "object",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma"
+                    }
+                  ],
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IN",
+                      "constraints": {
+                        "direction": {
+                          "const": "MEMORY_TO_PERIPH"
+                        },
+                        "src_inc": {
+                          "const": "INCREMENTED"
+                        },
+                        "dest_inc": {
+                          "const": "FIXED"
+                        },
+                        "src_data_width": {
+                          "const": "WORD"
+                        },
+                        "dest_data_width": {
+                          "const": "WORD"
+                        },
+                        "priority": {
+                          "const": "LOW_WEIGHT_LOW"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "title": "NVIC",
+              "type": "object",
+              "properties": {
+                "enable_interruption": {
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Interrupt"
+                },
+                "irq_handler_generation": {
+                  "title": "IRQ handler generation",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "irq_config": {
+                  "title": "IRQ line priority",
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,426 @@
+{{~helper_rcc_init_codegen @root~}}
+{{!
+  * @file Partial provided by RCC, visible by other PPP
+  * @license
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * @detail
+  * The partial provides the following functions, called in ppp:
+  * - include_rcc
+  * - generate_kernel_clock
+  * - kernel_clock_deinit
+  * - generate_peripheral_clock_activation
+  * - generate_peripheral_clock_deactivation
+  * - generate_peripheral_clock_reset
+  * - generate_peripheral_kernel_clock_activation
+  * - generate_peripheral_kernel_clock_deactivation
+  * - generate_backup_domain_reset
+~}}
+
+
+{{~#if (eq fct 'include_rcc')}}
+{{!     Generate the mx_rcc.h include inside mx_pppi.h ~}}
+{{!> RCC fct='include_rcc'~}}
+  {{~assign 'rcc_ctx' (helper_rcc_get_rcc_context) ~}}
+  {{#if (helper_rcc_has_kernel_clock_mux hw_resource)}}
+    {{#if (helper_rcc_is_controlled_by_periph @root.rcc_ctx)}}
+#include "mx_rcc.h"
+    {{/if}}
+  {{/if~}}
+
+{{~else if (eq fct 'generate_kernel_clock')}}
+{{!     Generate the set kernel clock source function for a given peripheral, in all modes~}}
+{{!> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource~}}
+  {{~assign 'rcc_ctx' (helper_rcc_get_rcc_context) ~}}
+  {{#if (helper_rcc_is_controlled_by_periph @root.rcc_ctx)}}
+  if (mx_rcc_{{lowercase hw_resource}}_clock_config() != SYSTEM_OK)
+  {
+    {{#if (helper_rcc_is_instantiable_periph hw_resource)}}
+    return NULL;
+    {{else}}
+    return SYSTEM_PERIPHERAL_ERROR;
+    {{/if}}
+  }
+  {{else}}
+{{>RCC fct='generate_kernel_clock_with_return'}}
+  {{/if~}}
+
+{{~else if (eq fct 'generate_kernel_clock_with_return')}}
+{{!     Generate the code to set kernel clock source function for a given peripheral . A special return can be specified ~}}
+{{!> RCC fct='generate_kernel_clock_controlled' hw_resource=@root.current_resource return='SYSTEM_CLOCK_ERROR'~}}
+  {{~log "RCC_partial generate_kernel_clock_with_return: hw_resource =" hw_resource ", return =" return~}}
+  {{#if (helper_rcc_has_kernel_clock_mux hw_resource)}}
+    {{~assign 'clock_source_object' (helper_rcc_get_clock_source_object hw_resource)~}}
+    {{#if @root.clock_source_object}}
+      {{~assign 'clock_source' (helper_rcc_remap_clock_source @root.clock_source_object.value @root.current_layer)~}}
+      {{~assign 'ppp_name' (helper_rcc_remap_kernel_clock_source hw_resource)~}}
+      {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_RCC_{{@root.ppp_name}}_SetKernelClkSource(HAL_RCC_{{@root.ppp_name}}_CLK_SRC_{{@root.clock_source}}) != HAL_OK)
+  {
+        {{#if return}}
+    return {{return}};
+        {{else}}
+          {{#if (helper_rcc_is_instantiable_periph hw_resource)}}
+    return NULL;
+          {{else}}
+    return SYSTEM_PERIPHERAL_ERROR;
+          {{/if}}
+        {{/if}}
+  }
+
+      {{else}}
+  {{helper_common_gen_ll_code (concat 'LL_RCC_Set' (helper_rcc_get_ppp_name hw_resource) 'ClockSource') (concat 'LL_RCC_' @root.ppp_name '_CLKSOURCE_' @root.clock_source)}}
+      {{/if}}
+    {{/if}}
+  {{/if~}}
+
+  {{! DACSH generation if needed ~}}
+  {{#if (helper_rcc_is_dacsh_needed hw_resource)}}
+    {{~assign 'dac_sh_clock' (helper_rcc_get_dac_sh_clock hw_resource)~}}
+
+    {{#unless (eq @root.dac_sh_clock '')}}
+      {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_RCC_{{hw_resource}}_SetSampleHoldClkSource(HAL_RCC_{{hw_resource}}_SH_CLK_SRC_{{@root.dac_sh_clock}}) != HAL_OK)
+  {
+        {{#if return}}
+    return {{return}};
+        {{else}}
+    return NULL;
+        {{/if}}
+  }
+
+      {{else}}
+  {{helper_common_gen_ll_code 'LL_RCC_SetDACSHClockSource' (concat 'LL_RCC_DAC1SH_CLKSOURCE_' @root.dac_sh_clock)}}
+
+      {{/if}}
+    {{/unless}}
+  {{/if}}
+
+  {{! If resource is ETH1, other clock source setting generation ~}}
+  {{#if (eq hw_resource 'ETH1')}}
+    {{~assign 'eth1_ref_clock' (helper_rcc_get_eth1_ref_clock hw_resource)~}}
+
+    {{#unless (eq @root.eth1_ref_clock '')}}
+      {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_RCC_ETH1REF_SetKernelClkSource(HAL_RCC_ETH1REF_CLK_SRC_{{helper_rcc_remap_clock_source @root.eth1_ref_clock}}) != HAL_OK)
+  {
+        {{#if return}}
+    return {{return}};
+        {{else}}
+    return NULL;
+        {{/if}}
+  }
+
+      {{else}}
+  {{helper_common_gen_ll_code 'LL_RCC_SetETH1ClockSource' (concat 'LL_RCC_ETH1REF_CLKSOURCE_' (helper_rcc_remap_clock_source @root.eth1_ref_clock))}}
+
+      {{/if}}
+    {{/unless}}
+
+    {{#if (helper_rcc_is_eth1ptp_needed)}}
+
+      {{~assign 'eth1_ptp_clock' (helper_rcc_get_eth1_ptp_clock hw_resource)~}}
+
+      {{#unless (eq @root.eth1_ptp_clock '')}}
+        {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_RCC_ETH1PTP_SetKernelClkSource(HAL_RCC_ETH1PTP_CLK_SRC_{{@root.eth1_ptp_clock}}) != HAL_OK)
+  {
+        {{#if return}}
+    return {{return}};
+        {{else}}
+    return NULL;
+        {{/if}}
+  }
+
+        {{else}}
+  {{helper_common_gen_ll_code 'LL_RCC_SetETH1ClockSource' (concat 'LL_RCC_ETH1PTP_CLKSOURCE_' @root.eth1_ptp_clock)}}
+
+        {{/if}}
+      {{/unless}}
+    {{/if}}
+  {{/if~}}
+
+  {{! If resource is SAES or PKA, RNG clock source setting generation ~}}
+  {{#if (or (eq hw_resource 'SAES') (eq hw_resource 'PKA') (eq hw_resource 'CCB'))}}
+{{>RCC fct='generate_kernel_clock_with_return' hw_resource='RNG'}}
+  {{/if~}}
+
+
+{{~else if (eq fct 'kernel_clock_deinit')}}
+{{!     Generate the kernel clock deinit for a resource ~}}
+{{!> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource~}}
+
+  {{~log "RCC_partial kernel_clock_deinit: hw_resource=" hw_resource~}}
+    {{~assign 'rcc_ctx' (helper_rcc_get_rcc_context) ~}}
+    {{#if (helper_rcc_is_controlled_by_periph @root.rcc_ctx)}}
+  (void)mx_rcc_{{lowercase hw_resource}}_clock_deactivate();
+
+    {{/if}}
+
+{{~else if (eq fct 'generate_peripheral_clock_activation')}}
+{{!     Generate the bus clock activation function for a given peripheral~}}
+{{!> RCC fct='generate_peripheral_clock_activation' hw_resource='SPI1' [is_child=true]~}}
+  {{~log "RCC_partial generate_peripheral_clock_activation: hw_resource="hw_resource ", is_child=" is_child~}}
+
+{{!> Child PPP bus enable BEFORE requested PPP - enabled once at parent call ~}}
+  {{#if (not is_child)}}
+    {{~#if (or (eq hw_resource 'SAES') (eq hw_resource 'PKA'))~}}
+{{>RCC fct='generate_peripheral_clock_activation' hw_resource='RNG' is_child=true~}}
+    {{/if~}}
+    {{~#if (eq hw_resource 'CCB')}}{{!> RNG, then PKA, then SAES, then CCB bus clock enable ~}}
+{{>RCC fct='generate_peripheral_clock_activation' hw_resource='RNG' is_child=true~}}
+{{>RCC fct='generate_peripheral_clock_activation' hw_resource='PKA' is_child=true~}}
+{{>RCC fct='generate_peripheral_clock_activation' hw_resource='SAES' is_child=true~}}
+    {{/if}}
+  {{/if~}}
+
+{{!> Requested PPP bus enable ~}}
+  {{#if (or (eq (helper_rcc_get_clk_enable_mode hw_resource) 0) (eq is_child true))}}
+    {{#if (helper_rcc_has_enable hw_resource)}}
+      {{#if (eq @root.current_layer 'HAL')}}
+  HAL_RCC_{{helper_rcc_remap_hw_resource hw_resource}}_EnableClock();
+
+{{!> Requested PPP side clock enable (belonging to this PPP) ~}}
+        {{#if (or (eq hw_resource 'RTC') (eq hw_resource 'TAMP'))}}
+  HAL_RCC_RTC_EnableKernelClock();
+        {{else if (eq hw_resource 'ETH1')}}
+  HAL_RCC_ETH1TX_EnableClock();
+  HAL_RCC_ETH1RX_EnableClock();
+  HAL_RCC_ETH1CK_EnableClock();
+        {{/if}}
+      {{else}}
+        {{~assign "periph_bus" (helper_rcc_get_bus_group hw_resource)}}
+  LL_{{@root.periph_bus}}_EnableClock(LL_{{@root.periph_bus}}_PERIPH_{{helper_rcc_remap_hw_resource hw_resource}});
+        {{#if (or (eq hw_resource 'RTC') (eq hw_resource 'TAMP'))}}
+  LL_RCC_EnableRTC();
+        {{else if (eq hw_resource 'ETH1')}}
+  LL_{{@root.periph_bus}}_EnableClock(LL_{{@root.periph_bus}}_PERIPH_ETH1TX);
+  LL_{{@root.periph_bus}}_EnableClock(LL_{{@root.periph_bus}}_PERIPH_ETH1RX);
+  LL_{{@root.periph_bus}}_EnableClock(LL_{{@root.periph_bus}}_PERIPH_ETH1CK);
+        {{/if}}
+      {{/if}}
+    {{/if}}
+  {{/if~}}
+
+{{!> Child PPP bus enable AFTER requested PPP. Enabled once at parent call ~}}
+  {{#if (not is_child)}}
+    {{~#if (helper_rcc_is_sbs_enable_required hw_resource)}}
+
+{{>RCC fct='generate_peripheral_clock_activation' hw_resource='SBS' is_child=true~}}
+    {{/if}}
+  {{/if~}}
+
+{{else if (eq fct 'generate_peripheral_clock_deactivation')}}
+{{!     Generate the bus clock deactivation function for a given peripheral~}}
+{{!> RCC fct='generate_peripheral_clock_deactivation' hw_resource='SPI1'~}}
+  {{~log "RCC_partial generate_peripheral_clock_deactivation: hw_resource="hw_resource~}}
+  {{#and (helper_rcc_has_enable hw_resource) (helper_rcc_is_not_shared_ppp hw_resource)}}
+    {{#if (eq @root.current_layer 'HAL')}}
+      {{#if (or (eq hw_resource 'RTC') (eq hw_resource 'TAMP'))}}
+  HAL_RCC_RTC_DisableKernelClock();
+      {{else if (eq hw_resource 'ETH1')}}
+  HAL_RCC_ETH1CK_DisableClock();
+  HAL_RCC_ETH1RX_DisableClock();
+  HAL_RCC_ETH1TX_DisableClock();
+      {{/if}}
+
+  HAL_RCC_{{helper_rcc_remap_hw_resource hw_resource}}_DisableClock();
+
+    {{else}}
+      {{~assign "periph_bus" (helper_rcc_get_bus_group hw_resource)}}
+      {{#if (or (eq hw_resource 'RTC') (eq hw_resource 'TAMP'))}}
+  LL_RCC_DisableRTC();
+      {{else if (eq hw_resource 'ETH1')}}
+  LL_{{@root.periph_bus}}_DisableClock(LL_{{@root.periph_bus}}_PERIPH_ETH1CK);
+  LL_{{@root.periph_bus}}_DisableClock(LL_{{@root.periph_bus}}_PERIPH_ETH1RX);
+  LL_{{@root.periph_bus}}_DisableClock(LL_{{@root.periph_bus}}_PERIPH_ETH1TX);
+      {{/if}}
+  LL_{{@root.periph_bus}}_DisableClock(LL_{{@root.periph_bus}}_PERIPH_{{helper_rcc_remap_hw_resource hw_resource}});
+    {{/if}}
+  {{/and}}
+
+  {{~#if (or (eq hw_resource 'SAES') (eq hw_resource 'PKA'))}}
+{{>RCC fct='generate_peripheral_clock_deactivation' hw_resource='RNG'}}
+  {{/if~}}
+
+{{~else if (eq fct 'generate_peripheral_clock_reset')}}
+{{!     Generate the bus clock reset function for a given peripheral~}}
+{{!> RCC fct='generate_peripheral_clock_reset' hw_resource='SPI1'~}}
+  {{~log "RCC_partial generate_peripheral_clock_reset: hw_resource="hw_resource @root.current_layer~}}
+  {{#and (helper_rcc_has_reset hw_resource) (helper_rcc_is_not_shared_ppp hw_resource)}}
+    {{#if (eq @root.current_layer 'HAL')}}
+  HAL_RCC_{{helper_rcc_remap_hw_resource hw_resource}}_Reset();
+    {{else}}
+      {{#if (eq hw_resource 'PLAY1')}}
+  LL_APB2_GRP1_ForceReset(LL_APB2_GRP1_PERIPH_PLAY1GLOBAL);
+  LL_APB2_GRP1_ReleaseReset(LL_APB2_GRP1_PERIPH_PLAY1GLOBAL);
+      {{else}}
+      {{~assign "periph_bus" (helper_rcc_get_bus_group hw_resource)}}
+  LL_{{@root.periph_bus}}_ForceReset(LL_{{@root.periph_bus}}_PERIPH_{{helper_rcc_remap_hw_resource hw_resource}});
+  LL_{{@root.periph_bus}}_ReleaseReset(LL_{{@root.periph_bus}}_PERIPH_{{helper_rcc_remap_hw_resource hw_resource}});
+      {{/if}}
+
+    {{/if}}
+  {{/and}}
+
+  {{#if (or (eq hw_resource 'SAES') (eq hw_resource 'PKA'))}}
+{{>RCC fct='generate_peripheral_clock_reset' hw_resource='RNG'}}
+  {{/if~}}
+
+{{~else if (eq fct 'generate_peripheral_kernel_clock_activation')}}
+{{!     Generate the kernel clock activation function for a given peripheral~}}
+{{!> RCC fct='generate_peripheral_kernel_clock_activation' hw_resource='PLAY1'~}}
+
+
+{{~else if (eq fct 'generate_peripheral_kernel_clock_deactivation')}}
+{{!     Generate the kernel clock activation function for a given peripheral~}}
+{{!> RCC fct='generate_peripheral_kernel_clock_deactivation' hw_resource='PLAY1'~}}
+
+{{~else if (eq fct 'generate_enable_lse_with_write_protection')}}
+{{!  Generate the enable of the LSE with the write protection enable / disable code ~}}
+{{!> RCC fct='generate_enable_lse_with_write_protection' wp_disable=true wp_enable=true css=false~}}
+  {{#if (not @root.rcc_ctx.basic.lse) }}
+#warning "LSE not available on this package - Change mux clock source selection"
+
+  {{else if  (eq @root.rcc_ctx.basic.lse.state 'OFF')}}
+#warning "Configure a LSE source in CubeMx RCC panel"
+
+  {{else}}
+    {{~#if (eq @root.current_layer 'HAL')}}
+      {{~#if wp_disable}}
+{{>PWR_HAL fct='generate_write_protection_disable'}}
+      {{/if}}
+  if (HAL_RCC_LSE_Enable(HAL_RCC_LSE_{{@root.rcc_ctx.basic.lse.state}}, HAL_RCC_LSE_DRIVE_{{@root.rcc_ctx.basic.lse.drive_capability}}) != HAL_OK)
+  {
+  {{>PWR_HAL fct='generate_write_protection_enable'}}
+    return SYSTEM_CLOCK_ERROR;
+  }
+      {{#if css}}
+  HAL_RCC_LSE_EnableCSS();
+      {{/if}}
+
+      {{~#if wp_enable}}
+{{>PWR_HAL fct='generate_write_protection_enable'}}
+      {{/if}}
+
+    {{~else}}
+      {{~#if wp_disable}}
+{{>PWR_LL fct='generate_write_protection_disable'}}
+      {{/if}}
+      {{#if (eq @root.rcc_ctx.basic.lse.state "BYPASS")}}
+  LL_RCC_LSE_ConfigBypass(LL_RCC_LSE_ANALOG_MODE);
+      {{else if (eq @root.rcc_ctx.basic.lse.state "BYPASS_DIGITAL")}}
+  LL_RCC_LSE_ConfigBypass(LL_RCC_LSE_DIGITAL_MODE);
+      {{/if}}
+  {{helper_common_gen_ll_code "LL_RCC_LSE_SetDriveCapability" (concat 'LL_RCC_LSEDRIVE_' @root.rcc_ctx.basic.lse.drive_capability)}}
+  LL_RCC_LSE_Enable();
+  while(LL_RCC_LSE_IsReady() != 1U)
+  {
+  }
+      {{#if css}}
+  LL_RCC_LSE_EnableCSS();
+      {{/if}}
+      {{~#if wp_enable}}
+{{>PWR_LL fct='generate_write_protection_enable'}}
+      {{/if}}
+    {{/if}}
+  {{/if~}}
+
+{{~else if (eq fct 'generate_backup_domain_reset')}}
+{{!  Generate the Backup Domain Reset function(s)~}}
+{{!  PWR_HAL fct='generate_write_protection_enable is called in case of LSE re-abling error ~}}
+{{!> RCC fct='generate_backupdomain_reset'~}}
+{{!> If this partial was already called, it is not called again (avoid to reset TAMP if RTC also bound)'~}}
+{{!> If LSE was enabled, it is re-abled'~}}
+  {{~log "RCC_partial generate_backup_domain_reset"~}}
+  {{#if (not (helper_rcc_is_resource_enabled 'backup_domain_reset'))}}
+    {{~helper_rcc_set_resource_enabled 'backup_domain_reset'}}
+    {{~assign 'all_resources' (helper_rcc_get_all_resources) ~}}
+    {{~assign 'all_ppp_clock_configs' (helper_rcc_get_all_perifs_clock_config @root.all_resources) ~}}
+    {{~assign 'rcc_ctx' (helper_rcc_get_rcc_context) ~}}
+    {{~assign 'system_config' (helper_rcc_get_system_config @root.rcc_ctx) ~}}
+    {{~assign 'used_oscillators' (helper_rcc_get_used_osc @root.system_config @root.all_ppp_clock_configs) ~}}
+    {{#if (eq @root.current_layer 'HAL')}}
+  /* Reset RTC domain */
+  HAL_RCC_ResetRTCDomain();
+    {{else}}
+  /* Reset RTC domain */
+  LL_RCC_ForceRTCDomainReset();
+  LL_RCC_ReleaseRTCDomainReset();
+    {{/if}}
+
+    {{#inArray @root.used_oscillators 'LSE'}}
+{{>RCC fct='generate_enable_lse_with_write_protection' wp_disable=false wp_enable=false css=true}}
+    {{/inArray~}}
+  {{/if}}
+
+{{~else if (eq fct 'generate_systick_frequency_computation')}}
+{{!  Generate the SysTick frequency computation function~}}
+{{!  external: boolean indicating if systick source is external or not. If not provided, internal code generated ~}}
+{{!> RCC fct='generate_systick_frequency_computation' external='false'~}}
+  {{~assign 'rcc_ctx' (helper_rcc_get_rcc_context) ~}}
+  {{~assign 'system_config' (helper_rcc_get_system_config @root.rcc_ctx) ~}}
+  {{~assign 'freq_value' "error" ~}}
+  {{~assign 'divider' "none" ~}}
+  {{~assign 'hclk_needed' false ~}}
+
+  {{~#if external~}}
+    {{~#if @root.system_config.systick_source.LSE~}}
+      {{~assign 'freq_value' "LSE_VALUE" ~}}
+    {{~else if @root.system_config.systick_source.LSI~}}
+      {{~assign 'freq_value' "LSI_VALUE" ~}}
+    {{~else~}}
+      {{~assign 'hclk_needed' true ~}}
+    {{~/if~}}
+  {{~else~}}
+      {{~assign 'hclk_needed' true ~}}
+  {{~/if~}}
+
+  {{~#if @root.hclk_needed~}}
+    {{~assign 'divider' (helper_rcc_get_systick_divider @root.system_config external) ~}}
+    {{~#if @root.system_config.clock_source.HSIS~}}
+      {{~assign 'freq_value' "HSI_VALUE" ~}}
+    {{~else if @root.system_config.clock_source.HSIDIV3~}}
+      {{~assign 'freq_value' "(HSI_VALUE / 3U)" ~}}
+    {{~else if @root.system_config.clock_source.HSIDIV4~}}
+      {{~assign 'freq_value' "(HSI_VALUE / 4U)" ~}}
+    {{~else if @root.system_config.clock_source.HSE~}}
+    {{~assign 'freq_value' "HSE_VALUE" ~}}
+    {{~else if @root.system_config.clock_source.PSIS~}}
+      {{~#if (eq @root.system_config.psi_config.source_to_enable 'LSE')~}}
+        {{~#if (eq @root.system_config.psi_config.fy '100MHZ')~}}
+          {{~assign 'freq_value' "100016000U" ~}}
+        {{~else if (eq @root.system_config.psi_config.fy '144MHZ')~}}
+          {{~assign 'freq_value' "144015000U" ~}}
+        {{~else if (eq @root.system_config.psi_config.fy '160MHZ')~}}
+          {{~assign 'freq_value' "160006000U" ~}}
+        {{~/if~}}
+      {{~else~}}
+        {{~#if (eq @root.system_config.psi_config.fy '100MHZ')~}}
+          {{~assign 'freq_value' "100000000U" ~}}
+        {{~else if (eq @root.system_config.psi_config.fy '144MHZ')~}}
+          {{~assign 'freq_value' "144000000U" ~}}
+        {{~else if (eq @root.system_config.psi_config.fy '160MHZ')~}}
+          {{~assign 'freq_value' "160006000U" ~}}
+        {{~/if~}}
+      {{~/if~}}
+    {{~/if~}}
+  {{~/if~}}
+
+  {{~#if (eq @root.freq_value 'error')~}}
+  0U
+  {{~else}}
+    {{~#if (or (eq @root.divider 'none') (eq @root.divider 0))~}}
+  {{@root.freq_value}}
+    {{~else~}}
+  ({{@root.freq_value}} >> {{@root.divider}}U)
+    {{~/if~}}
+  {{~/if~}}
+
+{{~else}}
+#warning "RCC partial called but wrong step {{fct}}"
+{{/if~}}

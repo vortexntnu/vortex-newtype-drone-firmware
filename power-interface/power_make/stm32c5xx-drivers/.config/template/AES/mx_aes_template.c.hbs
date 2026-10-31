@@ -1,0 +1,274 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_aes_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'AES' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "AES template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+{{assign 'aes_cxt' config~}}
+{{log "AES template aes_cxt:" (toJSON @root.aes_cxt)~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.aes_cxt.info.layer~}}
+{{log "AES template current_resource:" @root.current_resource~}}
+{{#if (eq @root.current_layer 'HAL')}}
+static hal_aes_handle_t h{{@root.current_resource}};
+{{/if}}
+{{/each}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.current_resource}}
+{{assign 'hal_handle_exist' 0~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+{{assign 'aes_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'name' @root.aes_cxt.name~}}
+{{assign 'current_layer' @root.aes_cxt.info.layer~}}
+{{#with @root.aes_cxt}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#with additional}}
+{{#if (and activate_key key_settings (eq key_settings.aes_key 1))}}
+{{#if (eq key_settings.key_size 128)}}
+{{assign 'key_128' (helper_aes_string_to_vector key_settings.key_128)}}
+const uint32_t {{@root.current_resource}}Key[4] ={{@root.key_128}};
+{{else}}
+{{assign 'key_256' (helper_aes_string_to_vector key_settings.key_256)}}
+const uint32_t {{@root.current_resource}}Key[8] ={{@root.key_256}};
+{{/if}}
+{{/if~}}
+{{/with}}
+{{#with basic}}
+{{#if (eq aes_standard 2)}}
+{{assign 'cbc_iv' (helper_aes_string_to_vector init_vect)}}
+uint32_t {{@root.current_resource}}IV[4] ={{@root.cbc_iv}};
+{{else if (eq aes_standard 3)}}
+{{assign 'ctr_iv' (helper_aes_string_to_vector init_vect)~}}
+uint32_t {{@root.current_resource}}IV[4] ={{@root.ctr_iv}};
+{{else if (eq aes_standard 4)}}
+{{assign 'gcm_iv' (helper_aes_string_to_vector init_vect)~}}
+uint32_t {{@root.current_resource}}InitVector[4] ={{@root.gcm_iv}};
+{{assign 'gcm_header' (helper_aes_string_to_vector header)~}}
+{{assign 'gcm_heder_size' (helper_aes_size_header_msg header)~}}
+uint32_t {{@root.current_resource}}HeaderMessage[{{@root.gcm_heder_size}}] ={{@root.gcm_header}};
+{{else if (eq aes_standard 5)}}
+{{assign 'ccm_iv' (helper_aes_string_to_vector init_vect)~}}
+uint32_t {{@root.current_resource}}BlockB0[4] ={{@root.ccm_iv}};
+{{assign 'ccm_header' (helper_aes_string_to_vector header)~}}
+{{assign 'ccm_heder_size' (helper_aes_size_header_msg header)~}}
+uint32_t {{@root.current_resource}}BlockHeader[{{@root.ccm_heder_size}}] ={{@root.ccm_header}};
+{{/if}}
+{{/with}}
+{{/if}}
+{{/with}}
+
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.aes_cxt}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_aes_handle_t *{{@root.fct_name}}_init(void)
+{
+  if (HAL_AES_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource sw_resource='AES'}}
+{{#with basic}}
+{{#if algorithm}}
+{{#if (eq aes_standard 4)}}
+  hal_aes_gcm_config_t p_gcm_config;
+{{else if (eq aes_standard 5)}}
+  hal_aes_ccm_config_t p_ccm_config;
+{{/if}}
+{{#if (eq aes_standard 1)}}
+  HAL_AES_ECB_SetConfig(&h{{@root.current_resource}});
+{{else if (eq aes_standard 2)}}
+  if (HAL_AES_CBC_SetConfig(&h{{@root.current_resource}}, {{@root.current_resource}}IV) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else if (eq aes_standard 3)}}
+  if (HAL_AES_CTR_SetConfig(&h{{@root.current_resource}}, {{@root.current_resource}}IV) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else if (eq aes_standard 4)}}
+  p_gcm_config.p_init_vect          = {{@root.current_resource}}InitVector;
+  p_gcm_config.p_header             = {{@root.current_resource}}HeaderMessage;
+  p_gcm_config.header_size_byte     = {{header_size_byte}};
+
+  if (HAL_AES_GCM_GMAC_SetConfig(&h{{@root.current_resource}}, &p_gcm_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else if (eq aes_standard 5)}}
+  p_ccm_config.p_b0                 = {{@root.current_resource}}BlockB0;
+  p_ccm_config.p_header             = {{@root.current_resource}}BlockHeader;
+  p_ccm_config.header_size_byte     = {{header_size_byte}};
+
+  if (HAL_AES_CCM_SetConfig(&h{{@root.current_resource}}, &p_ccm_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{/if}}
+{{/with}}
+{{#with additional}}
+{{#if activate_key}}
+{{#with key_settings}}
+{{#if (eq aes_key 1)}}
+
+  HAL_AES_SetNormalKey(&h{{@root.current_resource}}, HAL_AES_KEY_SIZE_{{key_size}}BIT, {{@root.current_resource}}Key);
+{{else if (eq aes_key 2)}}
+
+  HAL_AES_SetSharedKey(&h{{@root.current_resource}}, HAL_AES_KEY_SIZE_{{key_size}}BIT);
+{{else if (eq aes_key 3)}}
+
+  HAL_AES_SetHWKey(&h{{@root.current_resource}}, HAL_AES_KEY_SIZE_{{key_size}}BIT, HAL_AES_KEY_SELECT_{{key_select}}, HAL_AES_KEY_MODE_{{hw_mode}});
+{{/if}}
+{{#if enable_key_protection}}
+  HAL_AES_EnableKeyProtection(&h{{@root.current_resource}});
+{{/if}}
+{{/with}}
+{{/if}}
+{{#if swapping}}
+  HAL_AES_SetDataSwapping(&h{{@root.current_resource}}, HAL_AES_DATA_SWAPPING_{{data_swapping}});
+{{/if}}
+{{/with}}
+{{#if system.dma.enable_dma}}
+  /* Configure the DMA OUT */
+{{assign 'found_aes_dma' true~}}
+{{#> DMA_HAL fct='init' needs=system.dma.dma_config_out.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Output DMA handle to the {{@root.current_resource}} handle */
+  if (HAL_AES_SetOutDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  /* Configure the DMA IN */
+{{#> DMA_HAL fct='init' needs=system.dma.dma_config_in.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Input DMA handle to the {{@root.current_resource}} handle */
+  if (HAL_AES_SetInDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! EnableDMA~}}
+
+{{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  /* Enable the interruption for AES */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.irq_config.needs @root.current_resource system.nvic.irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.irq_config.needs}}
+{{/if}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_interruption}}
+  /* Disable the interruption for {{@root.current_resource}} */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+
+{{/if}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+  (void)HAL_AES_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma}}
+{{> DMA_HAL fct='deinit' needs=dma_config_in.needs}}
+{{> DMA_HAL fct='deinit' needs=dma_config_out.needs}}
+{{/if}}
+{{/with}}
+{{/with}}
+}
+
+{{else}}
+{{assign 'nvic_generate_handler' false~}}
+{{!
+    No LL driver
+~}}
+{{/if}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if (eq @root.hal_handle_exist 0)}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_aes_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{#with security_privilege}}
+
+{{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/******************************************************************************/
+/*                      Privileged attribute management                       */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_privilege(void)
+{{else}}
+/******************************************************************************/
+/*                Security and privileged attributes management               */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+{{/if}}
+{
+{{> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}
+
+{{> DMA_HAL fct='dma_config_security' resource=@root.current_resource}}
+
+  return SYSTEM_OK;
+}
+{{/with}}
+{{/with}}
+{{/each}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='AES'}}
+{{/helper_common_beautifier}}

@@ -1,0 +1,191 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_ramcfg_template.h.hbs
+  * @brief          : Header for mx_ramcfg_template.c.cbs file.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{~assign "strategy" (@root.EnvVarAPI.getVariableValue 'SYSTEM_PROJECT_CODEGEN_STRATEGY')~}}
+{{~log "strategy" @root.strategy~}}
+{{#if (eq @root.strategy "SW")}}
+  {{~assign 'instances' (@root.SWConfigurationAPI.getInstances 'STMicroelectronics::Device:STM32CubeMX2 Config:RAMCFG')~}}
+{{else}}
+  {{~assign "strategy" 'HW'~}}
+  {{~assign 'parent_resource' (get 'peripheral')~}}
+  {{~assign 'instances' (get 'context')~}}
+{{/if}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.parent_resource}}.h
+  * @brief          : Header for mx_{{lowercase @root.parent_resource}}.h file.
+{{> LICENSE}}
+
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef MX_{{@root.parent_resource}}_H
+#define MX_{{@root.parent_resource}}_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Includes ------------------------------------------------------------------*/
+{{~assign 'only_ll' true~}}
+{{~assign 'generate_global_handler' false~}}
+{{#each @root.instances}}
+  {{#if (eq @root.strategy "SW")}}
+    {{~assign 'ramcfg_cxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~assign 'current_resource' (@root.peripheralsResourceManagerAPI.getPeripheralBoundToSoftwareInstance this)~}}
+    {{~assign 'current_layer' @root.ramcfg_cxt.info.layer~}}
+  {{else}}
+    {{~assign 'configs' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+    {{#each @root.configs~}}
+      {{~assign 'config' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+      {{~log "RAMCFG template config:" @root.config~}}
+      {{#with @root.config}}
+        {{~assign 'current_layer' info.layer~}}
+        {{#if (eq @root.current_layer 'HAL')}}
+          {{~assign 'only_ll' false~}}
+        {{/if}}
+      {{/with }}
+    {{/each }}
+  {{/if}}
+{{/each}}
+
+{{#if @root.only_ll}}
+#include "stm32_ll.h"
+{{else}}
+#include "stm32_hal.h"
+{{/if}}
+#include "mx_def.h"
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+{{#each @root.instances}}
+  {{#if (eq @root.strategy "SW")}}
+    {{~assign 'ramcfg_cxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~assign 'current_resource' (@root.peripheralsResourceManagerAPI.getPeripheralBoundToSoftwareInstance this)~}}
+    {{~assign 'current_layer' @root.ramcfg_cxt.info.layer~}}
+  {{else}}
+    {{~assign 'current_resource' (append 'RAMCFG_' (replace this 'RAMCFG.' ''))~}}
+    {{#with @root.config}}
+      {{~assign 'current_layer' info.layer~}}
+    {{/with }}
+  {{/if}}
+  {{#if (eq @root.current_layer 'LL')}}
+#define USE_{{uppercase @root.current_resource}}
+  {{/if}}
+{{/each}}
+
+/* Exported macros -----------------------------------------------------------*/
+/* Exported variables --------------------------------------------------------*/
+/* Exported functions ------------------------------------------------------- */
+{{helper_common_initialize_index~}}
+{{#each @root.instances}}
+  {{#if (eq @root.strategy "SW")}}
+    {{~assign 'ramcfg_cxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~assign 'current_resource' (@root.peripheralsResourceManagerAPI.getPeripheralBoundToSoftwareInstance this)~}}
+    {{~assign 'name' @root.ramcfg_cxt.name~}}
+    {{~assign 'current_layer' @root.ramcfg_cxt.info.layer~}}
+    {{~assign 'configs' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+  {{else}}
+    {{~assign 'name' name~}}
+    {{~assign 'current_resource' (append 'RAMCFG_' (replace this 'RAMCFG.' ''))~}}
+    {{~log "RAMCFG template current_resource:" @root.current_resource~}}
+    {{~assign 'configs' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+    {{~log "RAMCFG template configs:" @root.configs~}}
+  {{/if}}
+
+  {{#each @root.configs~}}
+    {{~assign 'config' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~log "RAMCFG template config:" @root.config~}}
+    {{#with @root.config}}
+      {{~assign 'current_layer' info.layer~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+      {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)}}
+      {{#if system.nvic.irq_handler_generation }}
+        {{~assign 'generate_global_handler' true}}
+      {{/if}}
+/**
+  * @brief {{@root.fct_name}} init function
+  * This function configures the hardware resources used in this example
+  * @retval pointer to handle or NULL in case of failure
+  */
+      {{#if (eq @root.current_layer 'HAL')}}
+hal_ramcfg_t {{@root.fct_name}}_init(void);
+      {{else}}
+RAMCFG_TypeDef *{{@root.fct_name}}_init(void);
+      {{/if}}
+void {{@root.fct_name}}_deinit(void);
+
+{{#with security_privilege}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/**
+  * @brief Peripheral privilege configuration function
+  * @retval system_status_t
+  */
+system_status_t {{@root.fct_name}}_config_privilege(void);
+{{else}}
+/**
+  * @brief Peripheral security and privilege configuration function
+  * @retval system_status_t
+  */
+system_status_t {{@root.fct_name}}_config_security_privilege(void);
+{{/if}}
+{{/with}}
+
+      {{#if @root.only_ll}}
+        {{~assign 'generate_global_handler' false~}}
+      {{/if}}
+
+    {{/with}}
+  {{/each}}
+{{/each}}
+
+{{#if (eq @root.generate_global_handler true)}}
+/******************************************************************************/
+/* RAMCFG global interrupt (Grouping interrupts of all active RAMCFG instances)*/
+/******************************************************************************/
+void RAMCFG_IRQHandler(void);
+{{else}}
+/******************************************************************************/
+/* RAMCFG global interrupt (Grouping interrupts of all active RAMCFG instances)*/
+/******************************************************************************/
+/* void RAMCFG_IRQHandler(void); */
+{{/if}}
+
+{{#withFirst @root.nmi_irq_info_list}}
+/******************************************************************************/
+/* {{description}} */
+/******************************************************************************/
+{{/withFirst}}
+{{#each @root.nmi_irq_info_list}}
+  {{#if generate_handler}}
+system_status_t {{resource_hw}}_NMI_IRQHandler(void);
+  {{else}}
+__WEAK system_status_t {{resource_hw}}_NMI_IRQHandler(void);
+  {{/if}}
+{{/each}}
+
+
+
+
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* MX_{{@root.parent_resource}}_H */
+{{/helper_common_beautifier}}

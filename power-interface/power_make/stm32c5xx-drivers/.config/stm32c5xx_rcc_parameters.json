@@ -1,0 +1,1254 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "componentid": "::Device:STM32CubeMX2 Config:RCC",
+  "grammarVersion": "3.7",
+  "version": "1.0.0",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/rcc_helpers.js",
+      "accessor": "rcc_helpers"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "title": "General information",
+          "type": "object",
+          "properties": {
+            "labels": {
+              "title": "Add a label",
+              "type": "array",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": "",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ]
+              }
+            },
+            "layer": {
+              "title": "Software layer",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "LL",
+                  "const": "LL"
+                }
+              ],
+              "default": "HAL",
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_RCC_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ]
+            },
+            "init_type": {
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "basic": {
+          "title": "Main features",
+          "type": "object",
+          "properties": {
+            "periph_clocks_init": {
+              "title": "Peripherals clock strategy",
+              "description": "Choose where the initialization code for peripheral clock sources is generated and called.",
+              "type": "integer",
+              "oneOf": [
+                {
+                  "title": "Central",
+                  "description": "One single function (mx_rcc_peripherals_clock_config) contains clock source configuration and activation for all peripherals. This function is automatically called at system global initialization (in mx_system_init).",
+                  "const": 0
+                },
+                {
+                  "title": "Controlled by peripherals",
+                  "description": "One function per peripheral (mx_rcc_pppi_clock_config) contains the clock source configuration and activation for that peripheral. These functions are automatically called at peripheral initialization (in mx_pppi_init).",
+                  "const": 1
+                },
+                {
+                  "title": "Controlled by user",
+                  "description": "One function per peripheral (mx_rcc_pppi_clock_config) is generated but not called. You must call this function before using the peripheral.",
+                  "const": 2
+                }
+              ],
+              "default": 0
+            },
+            "system_clock_frequency": {
+              "title": "System clock frequency",
+              "type": "string",
+              "readOnly": true,
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "true",
+                  "computed": {
+                    "const": "$rcc_helpers.helper_rcc_display_frequency($get('clock.frequency','System_Clock_Frequency'))"
+                  }
+                }
+              ]
+            },
+            "flash_latency": {
+              "title": "Flash latency wait states",
+              "description": "Select the number of wait states required for the chosen system clock frequency. This ensures reliable flash memory access at different speeds.",
+              "type": "integer",
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "flash_latency",
+                "component": "HAL-FLASH"
+              },
+              "actions": [
+                {
+                  "type": "error",
+                  "condition": "($value === undefined) || (($rcc_helpers.helper_rcc_get_optimal_latency($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'))) > $value)",
+                  "message": "Increase value. The flash wait states must be at least the recommended value for the current system clock. Using a lower value can lead to system malfunction."
+                },
+                {
+                  "type": "info",
+                  "condition": "(($rcc_helpers.helper_rcc_get_optimal_latency($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'))) < $value)",
+                  "message": "Decrease value. Using a non-optimal value can affect performances."
+                }
+              ],
+              "default": 1,
+              "oneOf": [
+                {
+                  "const": 0,
+                  "title": "0",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'0 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 0))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 0)"
+                    }
+                  ]
+                },
+                {
+                  "const": 1,
+                  "title": "1",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'1 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 1))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 1)"
+                    }
+                  ]
+                },
+                {
+                  "const": 2,
+                  "title": "2",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'2 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 2))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 2)"
+                    }
+                  ]
+                },
+                {
+                  "const": 3,
+                  "title": "3",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'3 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 3))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 3)"
+                    }
+                  ]
+                },
+                {
+                  "const": 4,
+                  "title": "4",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'4 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 4))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 4)"
+                    }
+                  ]
+                },
+                {
+                  "const": 5,
+                  "title": "5",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'5 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 5))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 5)"
+                    }
+                  ]
+                },
+                {
+                  "const": 6,
+                  "title": "6",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'6 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 6))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 6)"
+                    }
+                  ]
+                },
+                {
+                  "const": 7,
+                  "title": "7",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'7 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 7))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 7)"
+                    }
+                  ]
+                },
+                {
+                  "const": 8,
+                  "title": "8",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'8 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 8))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 8)"
+                    }
+                  ]
+                },
+                {
+                  "const": 9,
+                  "title": "9",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'9 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 9))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 9)"
+                    }
+                  ]
+                },
+                {
+                  "const": 10,
+                  "title": "10",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'10 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 10))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 10)"
+                    }
+                  ]
+                },
+                {
+                  "const": 11,
+                  "title": "11",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'11 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 11))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 11)"
+                    }
+                  ]
+                },
+                {
+                  "const": 12,
+                  "title": "12",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'12 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 12))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 12)"
+                    }
+                  ]
+                },
+                {
+                  "const": 13,
+                  "title": "13",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'13 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 13))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 13)"
+                    }
+                  ]
+                },
+                {
+                  "const": 14,
+                  "title": "14",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'14 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 14))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 14)"
+                    }
+                  ]
+                },
+                {
+                  "const": 15,
+                  "title": "15",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'15 ('+($rcc_helpers.helper_rcc_get_latency_max_freq($resource.features.flash.latency_max_frequency, 15))+' MHz max)'"
+                      }
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_latency_possible($resource.features.flash.latency_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 15)"
+                    }
+                  ]
+                }
+              ]
+            },
+            "flash_programming_delay": {
+              "title": "Flash programming delay",
+              "description": "Select the flash programming delay value required for the chosen system clock frequency. This ensures reliable flash memory operations at different speeds.",
+              "type": "integer",
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "flash_programming_delay",
+                "component": "HAL-FLASH"
+              },
+              "actions": [
+                {
+                  "type": "error",
+                  "condition": "($value === undefined) || (($rcc_helpers.helper_rcc_get_optimal_programming_delay($resource.features.flash.programming_delay_max_frequency, $get('clock.frequency','System_Clock_Frequency'))) > $value)",
+                  "message": "Increase value. The flash programming delay must be at least the recommended value for the current system clock. Using a lower value can lead to system malfunction."
+                },
+                {
+                  "type": "info",
+                  "condition": "($rcc_helpers.helper_rcc_get_optimal_programming_delay($resource.features.flash.programming_delay_max_frequency, $get('clock.frequency','System_Clock_Frequency')) < $value)",
+                  "message": "Decrease value. Using a non-optimal value can affect performances."
+                }
+              ],
+              "oneOf": [
+                {
+                  "const": 0,
+                  "title": "0",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_programming_delay_possible($resource.features.flash.programming_delay_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 0)"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'0 ('+($rcc_helpers.helper_rcc_get_programming_delay_max_freq($resource.features.flash.programming_delay_max_frequency, 0))+' MHz max)'"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "const": 1,
+                  "title": "1",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_programming_delay_possible($resource.features.flash.programming_delay_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 1)"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'1 ('+($rcc_helpers.helper_rcc_get_programming_delay_max_freq($resource.features.flash.programming_delay_max_frequency, 1))+' MHz max)'"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "const": 2,
+                  "title": "2",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_programming_delay_possible($resource.features.flash.programming_delay_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 2)"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'2 ('+($rcc_helpers.helper_rcc_get_programming_delay_max_freq($resource.features.flash.programming_delay_max_frequency, 2))+' MHz max)'"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "const": 3,
+                  "title": "3",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_programming_delay_available($resource.features.flash.programming_delay_max_frequency, 3)"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$rcc_helpers.helper_rcc_is_flash_programming_delay_possible($resource.features.flash.programming_delay_max_frequency, $get('clock.frequency','System_Clock_Frequency'), 3)"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'3 ('+($rcc_helpers.helper_rcc_get_programming_delay_max_freq($resource.features.flash.programming_delay_max_frequency, 3))+' MHz max)'"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "default": 1
+            },
+            "hse": {
+              "title": "HSE",
+              "description": "High Speed External clock.",
+              "type": "object",
+              "properties": {
+                "state": {
+                  "title": "Source",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Disabled",
+                      "const": "OFF"
+                    },
+                    {
+                      "title": "Crystal/ceramic resonator",
+                      "description": "External crystal or ceramic resonator between OSC_IN and OSC_OUT pins.",
+                      "const": "ON",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC_IN') === true) && ($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC_OUT') === true)"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Bypass",
+                      "description": "External analog clock on OSC_IN pin.",
+                      "const": "BYPASS",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC_IN') === true)"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Digital bypass",
+                      "description": "External digital clock on OSC_IN pin.",
+                      "const": "BYPASS_DIGITAL",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC_IN') === true)"
+                        }
+                      ]
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "condition": "$value !== 'OFF'",
+                      "name": "RCC_PROJECT_HSE",
+                      "value": true
+                    }
+                  ],
+                  "default": "OFF"
+                },
+                "startup_time": {
+                  "title": "Startup timeout value",
+                  "type": "integer",
+                  "unit": "ms",
+                  "minimum": 1,
+                  "maximum": 10000,
+                  "default": 100,
+                  "variables": [
+                    {
+                      "on": "enable",
+                      "name": "RCC_PROJECT_HSE_STARTUP_TIME",
+                      "computed_value": "$value"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "($basic.hse.state==='OFF') || (($get('hwPlatform.hse_startup_time') !== undefined) && ($get('hwPlatform.hse_startup_time').value != 0))",
+                      "message": "This value comes from your hardware profile and cannot be changed here."
+                    },
+                    {
+                      "type": "set",
+                      "condition": "($get('hwPlatform.hse_startup_time') !== undefined) && ($get('hwPlatform.hse_startup_time').value != 0)",
+                      "attributes": {
+                        "title": "Startup timeout value set by board profile"
+                      },
+                      "computed": {
+                        "const": "$get('hwPlatform.hse_startup_time').value"
+                      }
+                    }
+                  ]
+                },
+                "enable_css": {
+                  "title": "Clock Security System",
+                  "description": "CSS detects HSE failures. If a failure occurs, the system automatically switches to default clock. You must handle additional corrective actions.",
+                  "type": "boolean",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$basic.hse.state==='OFF'"
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "condition": "($value === true) || ($basic.lse.enable_css)",
+                      "name": "NMI_RCC_IRQ_HANDLER",
+                      "value": true
+                    }
+                  ],
+                  "default": false
+                }
+              },
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC_IN') === true)"
+                }
+              ]
+            },
+            "lse": {
+              "title": "LSE",
+              "description": "Low Speed External clock.",
+              "type": "object",
+              "properties": {
+                "state": {
+                  "title": "Source",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Disabled",
+                      "const": "OFF"
+                    },
+                    {
+                      "title": "Crystal/ceramic resonator",
+                      "description": "External crystal or ceramic resonator between OSC32_IN and OSC32_OUT pins.",
+                      "const": "ON",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC32_IN') === true) && ($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC32_OUT') === true)"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Bypass",
+                      "description": "External analog clock on OSC32_IN pin.",
+                      "const": "BYPASS",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC32_IN') === true)"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Digital bypass",
+                      "description": "External digital clock on OSC32_IN pin.",
+                      "const": "BYPASS_DIGITAL",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC32_IN') === true)"
+                        }
+                      ]
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "condition": "$value !== 'OFF'",
+                      "name": "RCC_PROJECT_LSE",
+                      "value": true
+                    }
+                  ],
+                  "default": "OFF"
+                },
+                "startup_time": {
+                  "title": "Startup timeout value",
+                  "type": "integer",
+                  "unit": "ms",
+                  "minimum": 1,
+                  "maximum": 50000,
+                  "default": 5000,
+                  "variables": [
+                    {
+                      "on": "enable",
+                      "name": "RCC_PROJECT_LSE_STARTUP_TIME",
+                      "computed_value": "$value"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "($basic.lse.state==='OFF') || (($get('hwPlatform.lse_startup_time') !== undefined) && ($get('hwPlatform.lse_startup_time').value != 0))",
+                      "message": "This value comes from your hardware profile and cannot be changed here."
+                    },
+                    {
+                      "type": "set",
+                      "condition": "($get('hwPlatform.lse_startup_time') !== undefined) && ($get('hwPlatform.lse_startup_time').value != 0)",
+                      "attributes": {
+                        "title": "Startup timeout value (retrieved from board profile)"
+                      },
+                      "computed": {
+                        "const": "$get('hwPlatform.lse_startup_time').value"
+                      }
+                    }
+                  ]
+                },
+                "drive_capability": {
+                  "title": "Drive capability",
+                  "type": "string",
+                  "description": "Adjust the amplifier driving capability to ensure a stable oscillation.",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$basic.lse.state==='OFF'"
+                    }
+                  ],
+                  "oneOf": [
+                    {
+                      "title": "Low",
+                      "const": "LOW"
+                    },
+                    {
+                      "title": "Medium low",
+                      "const": "MEDIUMLOW"
+                    },
+                    {
+                      "title": "Medium high",
+                      "const": "MEDIUMHIGH"
+                    },
+                    {
+                      "title": "High",
+                      "const": "HIGH"
+                    }
+                  ],
+                  "default": "LOW"
+                },
+                "enable_css": {
+                  "title": "Clock Security System",
+                  "description": "CSS detects LSE failures. In case of failure, no automatic system action is taken. You must handle corrective actions.",
+                  "type": "boolean",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$basic.lse.state==='OFF'"
+                    }
+                  ],
+                  "default": false
+                }
+              },
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('pinout.peripheralCanBeMapped', $resource.id, 'OSC32_IN') === true)"
+                }
+              ]
+            }
+          }
+        },
+        "additional": {
+          "title": "Advanced features",
+          "type": "object",
+          "properties": {
+            "hsi": {
+              "title": "HSI",
+              "description": "High Speed Internal clock.",
+              "type": "object",
+              "properties": {
+                "enable_in_stop_mode": {
+                  "title": "HSI in stop mode",
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "psi": {
+              "title": "PSI",
+              "description": "Precise Speed Internal clock.",
+              "type": "object",
+              "properties": {
+                "enable_in_stop_mode": {
+                  "title": "PSI in stop mode",
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "audio_clock": {
+              "title": "External audio clock",
+              "description": "External kernel clock input for I2S.",
+              "type": "object",
+              "properties": {
+                "enable": {
+                  "title": "Audio clock",
+                  "type": "boolean",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "condition": "$value === true",
+                      "name": "RCC_PROJECT_AUDIO",
+                      "value": true
+                    }
+                  ],
+                  "default": false
+                },
+                "audio_clock_freq": {
+                  "title": "Frequency",
+                  "type": "number",
+                  "unit": "Hz",
+                  "default": 100,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.audio_clock.enable"
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('clock.frequency','AUDIO_Source')"
+                      }
+                    }
+                  ]
+                }
+              },
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'AUDIOCLK') === true"
+                }
+              ]
+            },
+            "clk_outputs": {
+              "title": "Clock outputs",
+              "type": "object",
+              "properties": {
+                "mco1": {
+                  "title": "MCO1",
+                  "description": "Microcontroller clock output 1.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'MCO1') === true"
+                    }
+                  ]
+                },
+                "mco2": {
+                  "title": "MCO2",
+                  "description": "Microcontroller clock output 2.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'MCO2') === true"
+                    }
+                  ]
+                },
+                "lsco": {
+                  "title": "LSCO",
+                  "description": "Low speed clock output.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'LSCO') === true"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "system": {
+          "title": "System",
+          "type": "object",
+          "properties": {
+            "gpio": {
+              "title": "GPIO",
+              "type": "object",
+              "properties": {
+                "hse_in": {
+                  "title": "HSE In",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "OSC_IN",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "($basic.hse === undefined) || ($basic.hse.state==='OFF')"
+                    }
+                  ]
+                },
+                "hse_out": {
+                  "title": "HSE Out",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "OSC_OUT",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.hse.state==='ON'"
+                    }
+                  ]
+                },
+                "lse_in": {
+                  "title": "LSE In",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "OSC32_IN",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "($basic.lse === undefined) || ($basic.lse.state==='OFF')"
+                    }
+                  ]
+                },
+                "lse_out": {
+                  "title": "LSE Out",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "OSC32_OUT",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($basic.lse.state==='ON')"
+                    }
+                  ]
+                },
+                "audio_clock": {
+                  "title": "Audio clock",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "AUDIOCLK",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        },
+                        "output_type": {
+                          "const": "PUSHPULL"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.audio_clock.enable"
+                    }
+                  ]
+                },
+                "mco1": {
+                  "title": "MCO1",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "MCO1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        },
+                        "output_type": {
+                          "const": "PUSHPULL"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.clk_outputs.mco1"
+                    }
+                  ]
+                },
+                "mco2": {
+                  "title": "MCO2",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "MCO2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        },
+                        "output_type": {
+                          "const": "PUSHPULL"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.clk_outputs.mco2"
+                    }
+                  ]
+                },
+                "lsco": {
+                  "title": "LSCO",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "LSCO",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.clk_outputs.lsco"
+                    }
+                  ]
+                }
+              }
+            },
+            "exti": {
+              "type": "object",
+              "title": "EXTI",
+              "properties": {
+                "lse_css_interruption": {
+                  "title": "LSE CSS",
+                  "type": "object",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.lse.enable_css"
+                    }
+                  ],
+                  "objectType": "need.exti.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_EXTI_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "title": "NVIC",
+              "type": "object",
+              "properties": {
+                "irq_handler_generation": {
+                  "title": "NMI IRQ handler generation",
+                  "description": "HSE and LSE CSS failures are reported through NMI. Enabling this option generates the NMI IRQ handler in which you can manage the clock failure event. If both HSE and LSE CSS are enabled, only one NMI handler is generated to manage both failures.",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($basic.hse.enable_css || $basic.lse.enable_css) && ($info.layer === 'HAL')"
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "condition": "($value === true)",
+                      "name": "NMI_RCC_IRQ_HANDLER",
+                      "value": true
+                    }
+                  ]
+                },
+                "css_interruption": {
+                  "title": "NMI Priority",
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "system:NMI"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($basic.hse.enable_css || $basic.lse.enable_css)"
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

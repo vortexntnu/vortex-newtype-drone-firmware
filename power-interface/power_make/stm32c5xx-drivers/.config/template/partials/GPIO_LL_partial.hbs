@@ -1,0 +1,287 @@
+{{!
+ * @file Partial used to generate code for GPIO:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{#if (eq fct 'init_resource')}}
+  {{! ~}}
+  {{! Generate the GPIO init code in pppi_init function~}}
+  {{! > GPIO_LL fct='init_resource' resource='USART1'~}}
+  {{! ~}}
+  {{assign 'resource' resource~}}
+  {{assign 'gpio_configs' (helper_gpio_get_allocated_resource_needs @root.pinoutAPI resource)~}}
+  {{!log "GPIO_LL_partial(init) gpio_configs:" @root.gpio_configs~}}
+  {{#if (gt (length @root.gpio_configs.list_config_pins) 0)}}
+  /* ### {{@root.resource}} GPIO Configuration ########################### */
+  {{assign 'found_signal' true~}}
+  {{assign 'first_gpio' true~}}
+  {{assign 'gpios_clock' ''}}
+  {{#each @root.gpio_configs.list_port}}
+    {{#if (not @root.first_gpio)}}
+      {{! ~}}
+      {{assign 'gpios_clock' (append @root.gpios_clock ' | ')~}}
+    {{/if}}
+    {{! ~}}
+    {{assign 'gpios_clock' (append @root.gpios_clock 'LL_AHB2_GRP1_PERIPH_GPIO')~}}
+    {{assign 'gpios_clock' (append @root.gpios_clock this)~}}
+    {{assign 'first_gpio' false~}}
+  {{/each}}
+
+  {{#if @root.gpios_clock}}
+  /* GPIO Clocks activation */
+  LL_AHB2_GRP1_EnableClock({{@root.gpios_clock}});
+  {{/if}}
+
+  {{~assign 'all_exti_cfg' 'undefined'~}}
+  {{#each @root.gpio_configs.list_config_pins}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+{{assign 'lut_table'   (helper_gpio_get_lut_table 'common_lut')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource}}
+  /**
+    {{#if (and (gt (length pin) 0) (gt (length signalName) 0))}}
+      {{~assign 'labels_found' false~}}
+      {{#each pin}}
+        {{~assign 'pin_master_label_check' (lookup ../aliases.master_label @index)~}}
+        {{#if (and (not @root.labels_found) @root.pin_master_label_check (gt (length @root.pin_master_label_check) 0))}}
+          {{~assign 'labels_found' true~}}
+        {{/if}}
+      {{/each}}
+      {{#if @root.labels_found}}
+    [GPIO Pin] ------> [Signal Name] ------> [Labels]
+      {{else}}
+    [GPIO Pin] ------> [Signal Name]
+      {{/if}}
+
+      {{#each pin}}
+        {{#if @root.labels_found}}
+       {{helper_gpio_add_pad_right (concat "P" ../port this) 4}}    ------>   {{lookup ../signalName @index}}   ------>  {{#if (lookup ../aliases.master_label @index)}}{{uppercase (lookup ../aliases.master_label @index)}}{{#each (lookup ../aliases.other_labels @index)}}, {{uppercase this}}{{/each}}{{/if}}
+        {{else}}
+       {{helper_gpio_add_pad_right (concat "P" ../port this) 4}}    ------>   {{lookup ../signalName @index}}
+        {{/if}}
+      {{/each}}
+    {{/if}}
+    **/
+
+    {{~assign 'gpio_pins' ''~}}
+    {{~assign 'not_first_pin' false~}}
+    {{#each pin}}
+      {{#if @root.not_first_pin}}
+        {{~assign 'gpio_pins' (append @root.gpio_pins ' | ')~}}
+      {{/if}}
+      {{#if (lookup ../aliases.master_label @index)}}
+        {{~assign 'gpio_pin' (append (lookup ../aliases.master_label @index) '_PIN')~}}
+      {{else}}
+        {{~assign 'gpio_pin' (append 'LL_GPIO_PIN_' this)~}}
+      {{/if}}
+      {{~assign 'gpio_pins' (append @root.gpio_pins @root.gpio_pin)~}}
+      {{~assign 'not_first_pin' true}}
+    {{/each}}
+
+    {{#if output_init_state}}
+  /* Initialize the output state */
+  LL_GPIO_{{#if (eq output_init_state 'SET')}}Set{{else}}Reset{{/if}}OutputPin({{#if (and (eq (length pin) 1) (lookup aliases.master_label 0))}}{{lookup aliases.master_label 0}}_PORT{{else}}GPIO{{port}}{{/if}}, {{@root.gpio_pins}});
+    {{/if}}
+
+    {{#if speed}}
+  /* Configure IO output speed (Low, Medium, High or Very-High) */{{! ~}}
+    {{#each pin}}
+      {{#if (and (eq this '13') (eq ../port 'A'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA13_lut')~}}
+      {{else if (and (eq this '14') (eq ../port 'A'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA14_lut')~}}
+      {{else if (or (and (eq this "15") (eq ../port "A")) (and (eq this "4") (eq ../port "B")))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA15_PB4_lut')~}}
+      {{else if (and (eq this '3') (eq ../port 'B'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PB3_lut')~}}
+      {{else}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'common_lut')~}}
+      {{/if}}
+  {{#if (lookup ../aliases.master_label @index)}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat (lookup ../aliases.master_label @index) '_PORT')~}}
+  {{else}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat 'GPIO' ../port)~}}
+  {{/if}}
+  {{#if (lookup ../aliases.master_label @index)}}
+  {{~helper_common_gen_ll_code_add_subinst (append (lookup ../aliases.master_label @index) '_PIN')}}
+  {{else}}
+  {{~helper_common_gen_ll_code_add_subinst (concat 'LL_GPIO_PIN_' this)}}
+  {{/if}}
+  {{helper_common_gen_ll_code_subinst 'LL_GPIO_SetPinSpeed' (concat 'LL_GPIO_SPEED_FREQ_' ../speed)~}}
+    {{/each}}
+
+    {{/if}}
+
+    {{#if output_type}}
+  /* Configure IO output type (Push-Pull or Open-Drain) */
+  {{~assign 'lut_table'   (helper_gpio_get_lut_table 'common_lut')~}}
+  {{#if (and (eq (length pin) 1) (lookup aliases.master_label 0))}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat (lookup aliases.master_label 0) '_PORT')~}}
+  {{else}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat 'GPIO' port)~}}
+  {{/if}}
+  {{~helper_common_gen_ll_code_add_subinst @root.gpio_pins}}
+  {{helper_common_gen_ll_code_subinst 'LL_GPIO_SetPinOutputType' (concat 'LL_GPIO_OUTPUT_' output_type)}}
+    {{/if}}
+
+    {{#if pull}}
+  /* Activate the Pull-up, Pull-down resistor, or No pull for the current IO */{{! ~}}
+    {{#each pin}}
+      {{#if (and (eq this '13') (eq ../port 'A'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA13_lut')~}}
+      {{else if (and (eq this '14') (eq ../port 'A'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA14_lut')~}}
+      {{else if (or (and (eq this "15") (eq ../port "A")) (and (eq this "4") (eq ../port "B")))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA15_PB4_lut')~}}
+      {{else if (and (eq this '3') (eq ../port 'B'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PB3_lut')~}}
+      {{else}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'common_lut')~}}
+      {{/if}}
+  {{#if (lookup ../aliases.master_label @index)}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat (lookup ../aliases.master_label @index) '_PORT')~}}
+  {{else}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat 'GPIO' ../port)~}}
+  {{/if}}
+  {{#if (lookup ../aliases.master_label @index)}}
+  {{~helper_common_gen_ll_code_add_subinst (append (lookup ../aliases.master_label @index) '_PIN')}}
+  {{else}}
+  {{~helper_common_gen_ll_code_add_subinst (concat 'LL_GPIO_PIN_' this)}}
+  {{/if}}
+  {{helper_common_gen_ll_code_subinst 'LL_GPIO_SetPinPull' (concat 'LL_GPIO_PULL_' ../pull)~}}
+    {{/each}}
+
+    {{/if}}
+
+    {{#unless (eq af undefined)}}
+  /* Configure the Alternate Function in current IO */{{! ~}}
+    {{#each pin}}
+      {{~assign 'lut_table'   (helper_gpio_get_lut_table 'common_lut')~}}
+      {{#if (lookup ../aliases.master_label @index)}}
+      {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat (lookup ../aliases.master_label @index) '_PORT')~}}
+      {{else}}
+      {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat 'GPIO' ../port)~}}
+      {{/if}}
+      {{#if (lookup ../aliases.master_label @index)}}
+      {{~helper_common_gen_ll_code_add_subinst (append (lookup ../aliases.master_label @index) '_PIN')}}
+      {{else}}
+      {{~helper_common_gen_ll_code_add_subinst (concat 'LL_GPIO_PIN_' this)}}
+      {{/if}}
+      {{#if (lt this 8)}}
+  {{helper_common_gen_ll_code_subinst 'LL_GPIO_SetAFPin_0_7' (concat 'LL_GPIO_AF_' ../af)~}}
+      {{else}}
+  {{helper_common_gen_ll_code_subinst 'LL_GPIO_SetAFPin_8_15' (concat 'LL_GPIO_AF_' ../af)~}}
+      {{/if}}
+    {{/each}}
+
+    {{/unless}}
+
+  /* Configure IO direction mode (Input, Output, Alternate or Analog) */{{! ~}}
+    {{#each pin}}
+      {{#if (and (eq this '13') (eq ../port 'A'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA13_lut')~}}
+      {{else if (and (eq this '14') (eq ../port 'A'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA14_lut')~}}
+      {{else if (or (and (eq this "15") (eq ../port "A")) (and (eq this "4") (eq ../port "B")))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PA15_PB4_lut')~}}
+      {{else if (and (eq this '3') (eq ../port 'B'))}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'PB3_lut')~}}
+      {{else}}
+        {{~assign 'lut_table' (helper_gpio_get_lut_table 'common_lut')~}}
+      {{/if}}
+  {{#if (lookup ../aliases.master_label @index)}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat (lookup ../aliases.master_label @index) '_PORT')~}}
+  {{else}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table (concat 'GPIO' ../port)~}}
+  {{/if}}
+  {{#if (lookup ../aliases.master_label @index)}}
+  {{~helper_common_gen_ll_code_add_subinst (append (lookup ../aliases.master_label @index) '_PIN')}}
+  {{else}}
+  {{~helper_common_gen_ll_code_add_subinst (concat 'LL_GPIO_PIN_' this)}}
+  {{/if}}
+  {{helper_common_gen_ll_code_subinst 'LL_GPIO_SetPinMode' (concat 'LL_GPIO_MODE_' ../mode)~}}
+    {{/each}}{{!}}
+
+{{assign 'all_exti_cfg' (helper_gpio_merge_exti_cfg @root.all_exti_cfg exti_cfg)~}}
+  {{/each}}
+
+  {{#if (and (not (eq @root.all_exti_cfg 'undefined')) (gt (length @root.all_exti_cfg) 0))}}
+{{> EXTI fct='exti_gpio_init' layer='LL' config=@root.all_exti_cfg}}
+  {{/if}}
+  {{else}}
+  /* No GPIO configuration required for {{@root.resource}} */
+  {{/if}}
+{{else if (eq fct 'deinit_resource')}}
+  {{! ~}}
+  {{! Generate the GPIO deinit code in pppi_deinit function~}}
+  {{! ~}}
+  {{! > GPIO_LL fct='deinit_resource' resource='USART1'~}}
+  {{! ~}}
+  {{!log "GPIO_LL_partial deinit: gpio_configs"~}}
+  {{assign 'resource' resource~}}
+  {{assign 'gpio_configs' (helper_gpio_get_allocated_resource_needs @root.pinoutAPI resource)~}}
+  {{#if (gt (length @root.gpio_configs.list_config_pins) 0)}}
+  {{#each @root.gpio_configs.list_config_pins}}
+  /* ### GPIO deinitialization of {{@root.resource}}: {{signalName}} ########################### */
+{{!}}
+    {{~assign 'gpio_pins' ''~}}
+    {{~assign 'not_first_pin' false~}}
+    {{#each pin}}
+      {{#if @root.not_first_pin}}
+        {{~assign 'gpio_pins' (append @root.gpio_pins ' | ')~}}
+      {{/if}}
+      {{#if (lookup ../aliases.master_label @index)}}
+        {{~assign 'gpio_pin' (append (lookup ../aliases.master_label @index) '_PIN')~}}
+      {{else}}
+        {{~assign 'gpio_pin' (append 'LL_GPIO_PIN_' this)~}}
+      {{/if}}
+      {{~assign 'gpio_pins' (append @root.gpio_pins @root.gpio_pin)~}}
+      {{~assign 'not_first_pin' true~}}
+    {{/each}}
+
+  /* Configure IO in Analog Mode */
+    {{#each pin}}
+  LL_GPIO_SetPinMode({{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PORT{{else}}GPIO{{../port}}{{/if}}, {{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PIN{{else}}LL_GPIO_PIN_{{this}}{{/if}}, LL_GPIO_MODE_ANALOG);
+    {{/each}}
+
+  /* Configure the default Alternate Function in current IO */
+    {{#each pin}}
+  LL_GPIO_SetAFPin_{{#if (lt this 8)}}0_7{{else}}8_15{{/if}}({{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PORT{{else}}GPIO{{../port}}{{/if}}, {{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PIN{{else}}LL_GPIO_PIN_{{this}}{{/if}}, LL_GPIO_AF_0);
+    {{/each}}
+
+  /* Configure the default value for IO Speed */
+    {{#each pin}}
+  LL_GPIO_SetPinSpeed({{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PORT{{else}}GPIO{{../port}}{{/if}}, {{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PIN{{else}}LL_GPIO_PIN_{{this}}{{/if}}, LL_GPIO_SPEED_FREQ_LOW);
+    {{/each}}
+
+  /* Configure the default value IO Output Type */
+  LL_GPIO_SetPinOutputType({{#if (and (eq (length pin) 1) (lookup aliases.master_label 0))}}{{lookup aliases.master_label 0}}_PORT{{else}}GPIO{{port}}{{/if}}, {{@root.gpio_pins}}, LL_GPIO_OUTPUT_PUSHPULL);
+
+  /* Deactivate the Pull-up and Pull-down resistor for the current IO */
+    {{#each pin}}
+  LL_GPIO_SetPinPull({{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PORT{{else}}GPIO{{../port}}{{/if}}, {{#if (lookup ../aliases.master_label @index)}}{{lookup ../aliases.master_label @index}}_PIN{{else}}LL_GPIO_PIN_{{this}}{{/if}}, LL_GPIO_PULL_NO);
+    {{/each}}
+
+  /* Reset the IO output state */
+  LL_GPIO_WriteOutputPin({{#if (lookup aliases.master_label 0)}}{{lookup aliases.master_label 0}}_PORT{{else}}GPIO{{port}}{{/if}}, {{@root.gpio_pins}}, LL_GPIO_PIN_RESET);
+
+    {{#each exti_cfg}}
+        {{#if exti_enabled}}
+        {{~assign 'll_gpio_port' port~}}
+        {{~assign 'll_gpio_pin' pin~}}
+        {{> EXTI fct='exti_gpio_deinit' layer='LL' needs=config.needs gpio_port=@root.ll_gpio_port gpio_pin=@root.ll_gpio_pin}}
+        {{/if}}
+    {{/each}}
+  {{/each}}
+  {{else}}
+  /* No GPIO de-initialization required for {{@root.resource}} */
+  {{/if}}
+{{else}}
+#warning "Step '{{fct}}' not present in partial GPIO_LL_partial.hbs"
+{{/if}}

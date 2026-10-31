@@ -1,0 +1,298 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:HCD",
+  "grammarVersion": "3.8",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/usb_helpers.js",
+      "accessor": "common"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ],
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": ""
+              }
+            },
+            "layer": {
+              "type": "string",
+              "title": "Software layer",
+              "default": "HAL",
+              "actions": [
+                {
+                  "type": "disable",
+                  "message": "Only HAL layer is supported for this component",
+                  "condition": "true"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_HCD_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ]
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            },
+            "usb_mode": {
+              "type": "string",
+              "title": "Mode used by the component",
+              "description": "This component is a standard component which can be used HW instance available on another component. The notion of function is used to distinguish the usage of each HW instance.",
+              "actions": [
+                {
+                  "type": "disable",
+                  "message": "Only Host mode is supported for this component",
+                  "condition": "true"
+                }
+              ],
+              "default": "HCD"
+            }
+          }
+        },
+        "basic": {
+          "title": "Main features",
+          "type": "object",
+          "properties": {
+             "core_speed": {
+              "type": "string",
+              "title": "Core speed",
+              "oneOf": [
+                {
+                  "title": "Full speed",
+                  "const": "SPEED_FS"
+                },
+                {
+                  "title": "High speed",
+                  "const": "SPEED_HS",
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "($resource.name === 'OTG_FS') || ($resource.name === 'USB')"
+                    }
+                  ]
+                },
+                {
+                  "title": "High speed in full speed",
+                  "const": "SPEED_HS_IN_FS",
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "($resource.name === 'OTG_FS')||($resource.name === 'USB')"
+                    }
+                  ]
+                }
+              ],
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "true",
+                  "computed": {
+                    "default": "$common.helper_usb_get_speed_by_ip($resource.name)"
+                  }
+                }
+              ]
+            },
+            "phy_interface": {
+              "title": "PHY interface",
+              "type": "string",
+
+              "actions": [
+                {
+                  "type": "set",
+                    "computed": {
+                      "default": "$common.helper_usb_get_phy_interface_by_ip($resource.name)",
+                      "title" : "$common.helper_usb_get_phy_interface_title_by_ip($resource.name)"
+                    },
+                  "condition": "true"
+                },
+                {
+                  "type": "disable",
+                  "message": "PHY interface is automatically set based on the selected IP and cannot be modified.",
+                  "condition": "true"
+                }
+              ]
+            },
+            "dma_state": {
+              "type": "boolean",
+              "title": "DMA state",
+              "default": false,
+              "actions": [
+                {
+                  "type": "exclude",
+                  "condition": "($resource.name == 'OTG_FS')||($resource.name == 'USB')"
+                }
+              ]
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "properties": {
+            "gpio": {
+              "type": "object",
+              "title": "GPIO",
+              "properties": {
+                "dp": {
+                  "type": "object",
+                  "title": "USB D+ pin",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "!$get('pinout.peripheralCanBeMapped', $resource.name, 'DP')"
+                    }
+                  ],
+                  "needs": [
+                    {
+                      "selector": "DP"
+                    }
+                  ]
+                },
+                "dm": {
+                  "type": "object",
+                  "title": "USB D- pin",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "!$get('pinout.peripheralCanBeMapped', $resource.name, 'DM')"
+                    }
+                  ],
+                  "needs": [
+                    {
+                      "selector": "DM"
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "type": "object",
+              "title": "NVIC",
+              "properties": {
+                "enable_interruption": {
+                  "type": "boolean",
+                  "title": "Global interrupt",
+                  "actions": [
+                    {
+                      "type": "warning",
+                      "condition": "$value == false",
+                      "message": "Disabling the interrupt will prevent the USB peripheral from functioning properly."
+                    }
+                  ],
+                  "default": true
+                },
+                "irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "IRQ handler generation",
+                  "synchronize": true,
+                  "synchronizeOn": {
+                    "path": "irq_handler_generation",
+                    "component": "HAL-USB"
+                  },
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "nvic_config": {
+                  "type": "object",
+                  "title": "Global",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    }
+                  ],
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

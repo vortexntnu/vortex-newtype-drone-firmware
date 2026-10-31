@@ -1,0 +1,145 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_smbus_template.h.hbs
+  * @brief          : Header for mx_smbus_template.c.cbs file.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'SMBUS' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "SMBUS template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'file_name' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.file_name}}.h
+  * @brief          : Header for mx_{{lowercase @root.file_name}}.c file.
+{{> LICENSE}}
+
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef MX_{{@root.file_name}}_H
+#define MX_{{@root.file_name}}_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Includes ------------------------------------------------------------------*/
+{{assign 'only_ll' true~}}
+{{assign 'include_mx_def' false~}}
+{{#each @root.instances~}}
+{{assign 'SMBUS_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.SMBUS_cxt.info.layer~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{assign 'only_ll' false~}}
+{{/if}}
+{{#with @root.SMBUS_cxt.security_privilege}}
+{{#unless @root.include_mx_def}}
+{{~assign 'include_mx_def' true~}}
+#include "mx_def.h"
+{{/unless}}
+{{/with}}
+{{/each}}
+{{#if @root.only_ll}}
+#include "stm32_ll.h"
+{{else}}
+#include "stm32_hal.h"
+{{/if}}
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+{{#each @root.instances}}
+{{~assign 'smbus_cxt' config~}}
+{{~assign 'current_resource' current_resource~}}
+{{~assign 'current_layer' @root.smbus_cxt.info.layer~}}
+{{/each}}
+
+{{#each @root.instances}}
+{{assign 'smbus_cxt' config~}}
+{{assign 'current_layer' @root.smbus_cxt.info.layer~}}
+{{~assign 'current_resource' current_resource~}}
+{{assign 'configs' @root.smbus_cxt~}}
+{{#if (eq @root.current_layer 'LL')}}
+#define USE_{{uppercase @root.current_resource}}
+{{/if}}
+{{helper_gpio_generate_aliases @root.pinoutAPI @root.current_resource @root.current_layer~}}
+{{/each}}
+/* Exported macros -----------------------------------------------------------*/
+/* Exported variables --------------------------------------------------------*/
+/* Exported functions ------------------------------------------------------- */
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{#each @root.instances}}
+  {{~assign 'smbus_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.smbus_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+/******************************************************************************/
+/* Exported functions for SMBUS in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index 'SMBUS')~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+/**
+  * @brief {{@root.fct_name}} init function
+  * This function configures the hardware resources used in this example
+  * @retval pointer to handle or NULL in case of failure
+  */
+{{#if (eq @root.current_layer 'HAL')}}
+hal_smbus_handle_t *{{@root.fct_name}}_init(void);
+{{else}}
+I2C_TypeDef *{{@root.fct_name}}_init(void);
+{{/if}}
+
+/**
+  * @brief  De-initialize {{lowercase @root.current_resource}} instance and return it.
+  */
+void {{@root.fct_name}}_deinit(void);
+
+{{#with @root.SMBUS_cxt.security_privilege}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/**
+  * @brief Peripheral privilege configuration function
+  * @retval system_status_t
+  */
+system_status_t {{@root.fct_name}}_config_privilege(void);
+{{else}}
+/**
+  * @brief Peripheral security and privilege configuration function
+  * @retval system_status_t
+  */
+system_status_t {{@root.fct_name}}_config_security_privilege(void);
+{{/if}}
+
+{{/with}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index 'SMBUS')~}}
+/**
+  * @brief  Get the {{@root.current_resource}} object.
+  * @retval Pointer on the {{@root.current_resource}} Handle
+  */
+hal_smbus_handle_t *{{@root.fct_name}}_gethandle(void);
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='prototype'}}
+
+{{/if}}
+{{/each}}
+{{> CORTEX fct='generate_irqhandler' type='prototype' component='SMBUS'}}
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* MX_{{@root.file_name}}_H */
+{{/helper_common_beautifier}}

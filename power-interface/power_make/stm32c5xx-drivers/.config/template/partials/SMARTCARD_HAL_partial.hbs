@@ -1,0 +1,243 @@
+{{!
+ * @file Partial used to generate code for SMARTCARD:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!
+  Partial used for HAL SMARTCARD:
+  how to use
+  > SMARTCARD_HAL fct='xxxx' with xxxx:
+    * exported_variables
+    * exported_functions_init
+    * exported_functions_gethandle
+~}}
+{{assign 'current_function' 'SMARTCARD'~}}
+{{#if (eq fct 'exported_variables')}}
+/* Handle for {{@root.current_function}} */
+static hal_smartcard_handle_t h{{@root.current_resource}};
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.current_resource}}
+{{else if (eq fct 'exported_functions_init')}}
+hal_smartcard_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_smartcard_config_t smartcard_config;
+
+  if (HAL_SMARTCARD_Init(&h{{@root.current_resource}}, HAL_{{replace (uppercase @root.current_resource) "USART" "SMARTCARD"}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='SMARTCARD'}}
+{{#with basic}}
+  smartcard_config.baud_rate = {{baud_rate}}U;
+  smartcard_config.stop_bits = HAL_SMARTCARD_STOP_BIT_{{stop_bit}};
+  smartcard_config.first_bit = HAL_SMARTCARD_BIT_ORDER_{{first_bit}};
+  smartcard_config.parity = HAL_SMARTCARD_PARITY_{{parity}};
+{{#if nack}}
+  smartcard_config.nack = HAL_SMARTCARD_NACK_ENABLE;
+{{else}}
+  smartcard_config.nack = HAL_SMARTCARD_NACK_DISABLE;
+{{/if}}
+  smartcard_config.clock_prescaler = HAL_SMARTCARD_CLOCK_PRESC_DIV{{clock_prescaler}};
+  smartcard_config.sclk_prescaler = HAL_SMARTCARD_SCLK_PRESC_DIV{{sclk_prescaler}};
+{{#if clock_output}}
+  smartcard_config.clock_output = HAL_SMARTCARD_CLOCK_OUTPUT_ENABLE;
+{{else}}
+  smartcard_config.clock_output = HAL_SMARTCARD_CLOCK_OUTPUT_DISABLE;
+{{/if}}
+  smartcard_config.clock_polarity = HAL_SMARTCARD_CLOCK_POLARITY_{{clock_polarity}};
+  smartcard_config.clock_phase = HAL_SMARTCARD_CLOCK_PHASE_{{clock_phase}}_EDGE;
+  smartcard_config.guard_time_etu = {{guard_time_etu}}U;
+  smartcard_config.auto_retry_count = {{auto_retry_count}}U;
+{{/with~}}{{!basic}}
+
+  if (HAL_SMARTCARD_SetConfig(&h{{@root.current_resource}}, &smartcard_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#with additional}}
+{{#if enable_fifo_mode}}
+  if (HAL_SMARTCARD_SetTxFifoThreshold(&h{{@root.current_resource}}, HAL_SMARTCARD_FIFO_THRESHOLD_{{set_tx_fifo_threshold}}) != HAL_OK)
+  {
+    return NULL;
+  }
+  if (HAL_SMARTCARD_SetRxFifoThreshold(&h{{@root.current_resource}}, HAL_SMARTCARD_FIFO_THRESHOLD_{{set_rx_fifo_threshold}}) != HAL_OK)
+  {
+    return NULL;
+  }
+  if (HAL_SMARTCARD_EnableFifoMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+
+{{#if enable_io_invert}}
+  if (HAL_SMARTCARD_EnableIOInvert(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{! enable_io_invert~}}
+
+{{#if enable_data_invert}}
+  if (HAL_SMARTCARD_EnableDataInvert(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{! enable_data_invert~}}
+
+{{#if enable_tx_rx_swap}}
+  if (HAL_SMARTCARD_EnableTxRxSwap(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{! enable_tx_rx_swap~}}
+
+{{#if disable_rx_over_run_detection}}
+  if (HAL_SMARTCARD_DisableRxOverRunDetection(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{! disable_rx_over_run_detection~}}
+
+{{#if enable_dma_stop_on_rx_error}}
+  if (HAL_SMARTCARD_EnableDMAStopOnRxError(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{! enable_dma_stop_on_rx_error~}}
+
+{{#if enable_receiver_timeout}}
+  if (HAL_SMARTCARD_EnableReceiverTimeout(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if (not (eq set_receiver_timeout 0))}}
+  if (HAL_SMARTCARD_SetReceiverTimeout(&h{{@root.current_resource}}, {{set_receiver_timeout}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if~}}{{! set_receiver_timeout~}}
+{{/if~}}{{! enable_receiver_timeout~}}
+
+{{#if (not (eq set_tx_cplt_indication "DISABLE"))}}
+  if (HAL_SMARTCARD_SetTxCpltIndication(&h{{@root.current_resource}}, HAL_SMARTCARD_TX_CPLT_{{set_tx_cplt_indication}}_GUARD_TIME) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{! set_tx_cplt_indication~}}
+
+{{#if (not (eq set_block_length 0))}}
+  if (HAL_SMARTCARD_SetBlockLength(&h{{@root.current_resource}}, {{set_block_length}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{! set_block_length~}}
+{{/with~}}{{!additional}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'~}}
+{{#with system}}
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Enable interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config.needs @root.current_resource irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config.needs}}
+#warning "Partial HAL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}
+{{/with}}{{! nvic ~}}
+
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{assign 'found_smartcard_dma_tx' true~}}
+  /* Configure the DMA TX */
+{{#> DMA_HAL fct='init' needs=dma_config_tx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Transmit DMA handle to the SMARTCARD handle */
+  if (HAL_SMARTCARD_SetTxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! enable_dma_tx~}}
+{{#if enable_dma_rx}}
+{{assign 'found_smartcard_dma_rx' true~}}
+  /* Configure the DMA RX */
+{{#> DMA_HAL fct='init' needs=dma_config_rx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Receive DMA handle to the SMARTCARD handle */
+  if (HAL_SMARTCARD_SetRxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! enable_dma_rx~}}
+{{/with}}{{! dma}}
+{{/with}}{{!system}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+{{#with system}}
+{{#if nvic.enable_interruption}}
+  /* Disable interrupt */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+{{/if}}
+
+  (void)HAL_SMARTCARD_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{#> DMA_HAL fct='deinit' needs=dma_config_tx.needs}}
+{{/DMA_HAL~}}
+{{/if}}
+
+{{#if enable_dma_rx}}
+{{#> DMA_HAL fct='deinit' needs=dma_config_rx.needs}}
+{{/DMA_HAL~}}
+{{/if}}
+{{/with}}{{! dma ~}}
+{{/with}}
+}
+
+{{else if (eq fct 'exported_functions_gethandle')}}
+hal_smartcard_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+{{else if (eq fct 'exported_functions_gethandle_prototype')}}
+/**
+  * @brief  Get the {{@root.current_resource}}{{addConfigLC @root.current_function}} object.
+  * @retval Pointer on the {{@root.current_resource}} Handle
+  */
+hal_smartcard_handle_t *{{@root.fct_name}}_gethandle(void);
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='prototype'}}
+{{else}}
+#warning "step {{fct}} in partial SMARTCARD_HAL not managed"
+{{/if}}

@@ -1,0 +1,3056 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:stm32="https://developer.st.com/schemas/stm32cube/1.0.0" schemaVersion="1.7.55" xsi:noNamespaceSchemaLocation="PACK.xsd" xsi:schemaLocation="https://developer.st.com/schemas/stm32cube/1.0.0 stm32cube.xsd" Dvendor="STMicroelectronics:13" Dname="STM32C5*">
+  <vendor>STMicroelectronics</vendor>
+  <name>stm32c5xx_hal_drivers</name>
+  <environments>
+    <environment name="STM32Cube">
+      <stm32:pack type="HAL" friendlyName="stm32c5xx_drivers" shortDesc="STM32C5xx HAL Drivers">
+        <relocation-info parent="" layer="" element=""/>
+        <compatibility>
+          <release version="2.1.0">
+            <applicable-schema schemaType="sw-configuration" schemaVersion="3.8.0" />
+            <applicable-api-group apiType="codegen-getters">
+              <applicable-api apiType="clockAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="DmaAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="EnvVarAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="ExtiAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="hwPlatformAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="NvicAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="peripheralsResourceManagerAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="pinoutAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="SWConfigurationAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="SWProjectAPI" apiVersion="1.0.0" />
+            </applicable-api-group>
+          </release>
+          <release version="2.0.0">
+            <applicable-schema schemaType="sw-configuration" schemaVersion="3.8.0" />
+            <applicable-api-group apiType="codegen-getters">
+              <applicable-api apiType="clockAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="DmaAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="EnvVarAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="ExtiAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="hwPlatformAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="NvicAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="peripheralsResourceManagerAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="pinoutAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="SWConfigurationAPI" apiVersion="1.0.0" />
+              <applicable-api apiType="SWProjectAPI" apiVersion="1.0.0" />
+            </applicable-api-group>
+          </release>
+        </compatibility>
+      </stm32:pack>
+    </environment>
+  </environments>
+  <ECCN>
+    <ECCN-EU>NEC</ECCN-EU>
+    <ECCN-US>5D992.c</ECCN-US>
+  </ECCN>
+  <description>STMicroelectronics STM32C5xx HAL Drivers</description>
+  <url>https://developer.st.com/st-pack-server/api/v1/pack/</url>
+  <license>LICENSE.md</license>
+  <changelogs>
+    <changelog id="Release Notes" name="Release_Notes.html"/>
+  </changelogs>
+  <releases>
+    <release version="2.1.0" date="2026-05-04">
+
+Second Official release of STM32C5xx HAL Drivers supporting:
+- STM32C551xx, STM32C552xx, STM32C562xx devices
+- STM32C531xx, STM32C532xx, STM32C542xx devices
+- STM32C591xx, STM32C593xx, STM32C5A3xx devices
+
+    </release>
+    <release version="2.0.0" date="2026-02-12">
+
+First Official release of STM32C5xx HAL Drivers supporting:
+- STM32C551xx, STM32C552xx, STM32C562xx devices
+- STM32C531xx, STM32C532xx, STM32C542xx devices
+- STM32C591xx, STM32C593xx, STM32C5A3xx devices
+
+    </release>
+
+  </releases>
+  <keywords>
+    <keyword>ST</keyword>
+    <keyword>HAL</keyword>
+    <keyword>LL</keyword>
+    <keyword>STM32C5</keyword>
+    <keyword>STM32C5xx</keyword>
+  </keywords>
+  <requirements>
+    <packages>
+      <package vendor="STMicroelectronics" name="stm32c5xx_dfp" version="2.1.0"/>
+    </packages>
+  </requirements>
+  <conditions>
+    <condition id="STM32C5">
+      <description>STMicroelectronics STM32C5</description>
+      <require Dvendor="STMicroelectronics:13" Dname="STM32C5*"/>
+    </condition>
+    <!-- HAL Conditions -->
+    <condition id="CMSIS Core">
+      <description>STMicroelectronics STM32C5 and HAL Common</description>
+      <require condition="STM32C5"/>
+      <require Cclass="CMSIS" Cgroup="CORE"/>
+    </condition>
+    <condition id="HAL Common">
+      <description>STMicroelectronics STM32C5 and HAL common</description>
+      <require condition="STM32C5"/>
+      <require condition="CMSIS Core"/>
+    </condition>
+    <condition id="HAL CORE">
+      <description>STMicroelectronics STM32C5 and HAL system</description>
+      <require condition="HAL Common"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="template"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="RCC"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="CORTEX"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="Core"/> -->
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="RTC_ALARM"/> -->
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="RTC_WAKEUP"/> -->
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="TIM"/> -->
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="SYSTICK"/> -->
+    </condition>
+    <condition id="HAL CORE DMA">
+      <description>STMicroelectronics STM32C5 and HAL with DMA</description>
+      <require condition="HAL CORE"/>
+      <require condition="HAL Common"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="DMA"/>
+    </condition>
+    <condition id="HAL ADC">
+      <description>HAL ADC dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="ADC"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="DBGMCU"/>
+    </condition>
+    <condition id="HAL COMP">
+      <description>HAL COMP dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="COMP"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="EXTI"/>
+    </condition>
+    <condition id="HAL CORDIC">
+      <description>HAL CORDIC dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="CORDIC"/>
+    </condition>
+    <condition id="HAL CORTEX">
+      <description>HAL CORTEX dependencies</description>
+      <require condition="HAL Common"/>
+    </condition>
+    <condition id="HAL CRC">
+      <description>HAL CRC dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="CRC"/>
+    </condition>
+    <condition id="HAL CRS">
+      <description>HAL CRS dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="CRS"/>
+    </condition>
+    <condition id="HAL DAC">
+      <description>HAL DAC dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="DAC"/>
+    </condition>
+    <condition id="HAL DBGMCU">
+      <description>HAL DBGMCU dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="DBGMCU"/>
+    </condition>
+    <condition id="HAL DMA">
+      <description>HAL DMA dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="DMA"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="Q"/>
+    </condition>
+    <condition id="HAL EXTI">
+      <description>HAL EXTI dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="EXTI"/>
+    </condition>
+    <condition id="HAL FLASH">
+      <description>HAL FLASH dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="FLASH_ITF"/>
+    </condition>
+    <condition id="HAL FLASH_ITF">
+      <description>HAL FLASH_ITF dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="FLASH"/>
+    </condition>
+    <condition id="HAL GPIO">
+      <description>HAL GPIO dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="GPIO"/>
+    </condition>
+    <condition id="HAL I2C">
+      <description>HAL I2C dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="I2C"/>
+    </condition>
+    <condition id="HAL I3C">
+      <description>HAL I3C dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="I3C"/>
+    </condition>
+    <condition id="HAL I2S">
+      <description>HAL I2S dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="SPI"/>
+    </condition>
+    <condition id="HAL ICACHE">
+      <description>HAL ICACHE dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="ICACHE"/>
+    </condition>
+    <condition id="HAL IWDG">
+      <description>HAL IWDG dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="IWDG"/>
+    </condition>
+    <condition id="HAL LPTIM">
+      <description>HAL LPTIM dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="LPTIM"/>
+    </condition>
+    <condition id="HAL OPAMP">
+      <description>HAL OPAMP dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="OPAMP"/>
+    </condition>
+    <condition id="HAL PKA">
+      <description>HAL PKA dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="PKA"/>
+    </condition>
+    <condition id="HAL PWR">
+      <description>HAL PWR dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="PWR"/>
+    </condition>
+    <condition id="HAL RAMCFG">
+      <description>HAL RAMCFG dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="RAMCFG"/>
+    </condition>
+    <condition id="HAL RCC">
+      <description>HAL RCC dependencies</description>
+      <require condition="HAL Common"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="RCC"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="BUS"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="PWR"/>
+    </condition>
+    <condition id="HAL RNG">
+      <description>HAL RNG dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="RNG"/>
+    </condition>
+    <condition id="HAL RTC">
+      <description>HAL RTC dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="RTC"/>
+    </condition>
+    <condition id="HAL SMARTCARD">
+      <description>HAL SMARTCARD dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="USART"/>
+    </condition>
+    <condition id="HAL SMBUS">
+      <description>HAL SMBUS dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="I2C"/>
+    </condition>
+    <condition id="HAL SPI">
+      <description>HAL SPI dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="SPI"/>
+    </condition>
+    <condition id="HAL SBS">
+      <description>HAL SBS dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="SBS"/>
+    </condition>
+    <condition id="HAL TAMP">
+      <description>HAL TAMP dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="TAMP"/>
+    </condition>
+    <condition id="HAL TIM">
+      <description>HAL TIM dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="TIM"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="SBS"/>
+    </condition>
+    <condition id="HAL UART">
+      <description>HAL UART dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="USART"/>
+    </condition>
+    <condition id="HAL USART">
+      <description>HAL USART dependencies</description>
+      <require condition="HAL CORE DMA"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="USART"/>
+    </condition>
+    <condition id="HAL WWDG">
+      <description>HAL WWDG dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="WWDG"/>
+    </condition>
+    <condition id="HAL CORE XSPI">
+      <description>HAL CORE XSPI dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 HAL DRIVERS CORE" Csub="DLYB"/>
+    </condition>
+    <condition id="HAL CORE USB">
+      <description>HAL CORE USB dependencies</description>
+      <require condition="HAL CORE"/>
+      <require Cclass="Device" Cgroup="STM32 HAL DRIVERS CORE" Csub="USB DRD"/>
+      <require Cclass="Device" Cgroup="STM32 HAL DRIVERS CORE" Csub="USB CORE DEF"/>
+    </condition>
+    <!-- HAL Init Generated Code Conditions -->
+    <condition id="Use mutex">
+      <description>STMicroelectronics HAL condition to check if USE_HAL_MUTEX is enabled</description>
+      <!-- <accept Cclass=="Device" Cgroup="STM32 HAL" Csub="HAL OS" Cvariant="NO_OS"/>
+      <accept Cclass=="Device" Cgroup="STM32 HAL" Csub="HAL OS" Cvariant="FreeRTOS"/> -->
+    </condition>
+    <condition id="HAL Generated code">
+      <description>STMicroelectronics HAL components used for code Generation</description>
+      <require condition="Use mutex"/>
+      <require condition="CMSIS Core"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="CORTEX"/> -->
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="EXTI"/> -->
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="PWR"/> -->
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="RCC"/> -->
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="UTILS"/>
+      <require Cclass="Device" Cgroup="STM32CubeMX2 Codegen" Csub="Generated Code"/>
+    </condition>
+    <condition id="HAL System Init">
+      <description>STMicroelectronics HAL Common Init</description>
+      <require condition="HAL Generated code"/>
+    </condition>
+    <condition id="HAL CORE Init GPIO and RCC">
+      <description>STMicroelectronics HAL Common Init</description>
+      <require condition="HAL Generated code"/>
+      <!-- <require condition="HAL GPIO Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="PWR"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="FLASH_ITF"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and PWR">
+      <description>STMicroelectronics HAL PWR Init</description>
+      <require condition="HAL Generated code"/>
+      <!-- <require condition="HAL GPIO Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="PWR"/> -->
+    </condition>
+    <condition id="HAL GPIO Init">
+      <description>STMicroelectronics HAL Common Init</description>
+      <require condition="HAL Generated code"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="GPIO"/> -->
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="SBS"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init">
+      <description>STMicroelectronics HAL CORE, GPIO and DMA Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="GPIO"/> -->
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="DMA"/> -->
+    </condition>
+    <condition id="HAL CORE DMA Init">
+      <description>STMicroelectronics HAL CORE and DMA Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="DMA"/> -->
+    </condition>
+    <condition id="HAL CORE Init and CRC">
+      <description>STMicroelectronics HAL CRC Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="CRC"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="CRC"/> -->
+    </condition>
+    <condition id="HAL CORE Init and CORTEX">
+      <description>STMicroelectronics HAL CORTEX Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="CORTEX"/> -->
+    </condition>
+    <condition id="HAL CORE Init GPIO and CORTEX">
+      <description>STMicroelectronics HAL CORTEX Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL GPIO Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="CORTEX"/> -->
+    </condition>
+    <condition id="HAL CORE Init GPIO and CRS">
+      <description>STMicroelectronics HAL CRS Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <require condition="HAL GPIO Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="CRS"/> -->
+    </condition>
+    <condition id="HAL CORE Init and ICACHE">
+      <description>STMicroelectronics HAL ICACHE Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="ICACHE"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="ICACHE"/> -->
+    </condition>
+    <condition id="HAL CORE Init and IWDG">
+      <description>STMicroelectronics HAL IWDG Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="IWDG"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and ADC">
+      <description>STMicroelectronics HAL ADC Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="ADC"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="ADC"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and COMP">
+      <description>HAL COMP Init dependencies</description>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <require condition="HAL CORE"/>
+      <!-- <accept  Cclass="Device" Cgroup="STM32 HAL" Csub="COMP"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="COMP"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and TIM">
+      <description>STMicroelectronics HAL TIM Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="TIM"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and LPTIM">
+      <description>STMicroelectronics HAL LPTIM Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="LPTIM"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and HCD">
+      <description>STMicroelectronics HAL HCD Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="HCD"/>
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and I2C">
+      <description>STMicroelectronics HAL I2C Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="I2C"/>
+      <accept Cclass="Device" Cgroup="STM32 LL" Csub="I2C"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and I3C">
+      <description>STMicroelectronics HAL I3C Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="I3C"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and I2S">
+      <description>STMicroelectronics HAL I2S Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="I2S"/> -->
+    </condition>
+    <condition id="HAL CORE Init and PKA">
+      <description>STMicroelectronics HAL PKA Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept  Cclass="Device" Cgroup="STM32 HAL" Csub="PKA"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="PKA"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and PCD">
+      <description>STMicroelectronics HAL PCD Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="PCD"/>
+    </condition>
+    <condition id="HAL CORE GPIO Init and SMBUS">
+      <description>STMicroelectronics HAL SMBUS Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="SMBUS"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and SPI">
+      <description>STMicroelectronics HAL SPI Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="SPI"/>
+      <accept Cclass="Device" Cgroup="STM32 LL" Csub="SPI"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and XSPI">
+      <description>STMicroelectronics HAL SPI Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="XSPI"/>
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and UART">
+      <description>STMicroelectronics HAL UART Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="UART"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and USART">
+      <description>STMicroelectronics HAL USART Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="USART"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and SMARTCARD">
+      <description>STMicroelectronics HAL SMARTCARD Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="SMARTCARD"/> -->
+    </condition>
+    <condition id="HAL CORE Init and RNG">
+      <description>STMicroelectronics HAL RNG Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <accept  Cclass="Device" Cgroup="STM32 HAL" Csub="RNG"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="RNG"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and FDCAN">
+      <description>STMicroelectronics HAL FDCAN Init dependencies</description>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="FDCAN"/>
+    </condition>
+    <condition id="HAL CORE DMA Init and AES">
+      <description>STMicroelectronics HAL AES Init dependencies</description>
+      <require condition="HAL CORE DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept  Cclass="Device" Cgroup="STM32 HAL" Csub="AES"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="AES"/> -->
+    </condition>
+    <condition id="HAL CORE DMA Init and HASH">
+      <description>STMicroelectronics HAL HASH Init dependencies</description>
+      <require condition="HAL CORE DMA Init"/>
+      <require condition="HAL System Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="HASH"/>
+    </condition>
+    <condition id="HAL CORE GPIO Init and ETH">
+      <description>STMicroelectronics HAL ETH Init dependencies</description>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="ETH"/>
+    </condition>
+    <condition id="HAL CORE Init and FLASH">
+      <description>STMicroelectronics HAL FLASH Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="FLASH"/> -->
+    </condition>
+    <condition id="HAL CORE Init and SBS">
+      <description>STMicroelectronics HAL SBS Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="SBS"/> -->
+    </condition>
+    <condition id="HAL CORE Init and CCB">
+      <description>STMicroelectronics HAL CCB Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL System Init"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="CCB"/>
+    </condition>
+    <condition id="HAL CORE Init and RAMCFG">
+      <description>STMicroelectronics HAL RAMCFG Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="RAMCFG"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO DMA Init and DAC">
+      <description>STMicroelectronics HAL DAC Init dependencies</description>
+      <require condition="HAL CORE GPIO DMA Init"/>
+      <!-- <accept  Cclass="Device" Cgroup="STM32 HAL" Csub="DAC"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="DAC"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and OPAMP">
+      <description>STMicroelectronics HAL OPAMP Init dependencies</description>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept  Cclass="Device" Cgroup="STM32 HAL" Csub="OPAMP"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="OPAMP"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and TAMP">
+      <description>STMicroelectronics HAL TAMP Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept  Cclass="Device" Cgroup="STM32 HAL" Csub="TAMP"/>
+      <accept  Cclass="Device" Cgroup="STM32 LL" Csub="TAMP"/> -->
+    </condition>
+    <condition id="HAL CORE GPIO Init and RTC">
+      <description>STMicroelectronics HAL RTC Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL GPIO Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="RTC"/> -->
+    </condition>
+    <condition id="HAL CORE Init and WWDG">
+      <description>STMicroelectronics HAL WWDG Init dependencies</description>
+      <require condition="CMSIS Core"/>
+      <require condition="HAL System Init"/>
+      <!-- <accept Cclass="Device" Cgroup="STM32 HAL" Csub="WWDG"/>
+      <accept Cclass="Device" Cgroup="STM32 LL" Csub="WWDG"/> -->
+    </condition>
+    <condition id="HAL CORE DMA Init and CORDIC">
+      <description>STMicroelectronics HAL CORDIC Init dependencies</description>
+      <require condition="HAL CORE DMA Init"/>
+      <require condition="HAL System Init"/>
+      <!-- <require Cclass="Device" Cgroup="STM32 HAL" Csub="CORDIC"/> -->
+    </condition>
+    <!-- LL driver Conditions -->
+    <condition id="LL">
+      <description>STMicroelectronics STM32C5 and LL</description>
+      <require condition="STM32C5"/>
+      <require Cclass="Device" Cgroup="STM32 LL" Csub="Common"/>
+    </condition>
+    <!-- Timebases conditions -->
+    <condition id="Timebase NONE">
+      <description>HAL timebase NONE</description>
+      <require condition="STM32C5"/>
+    </condition>
+    <condition id="Timebase HAL RTC ALARM or WKUP">
+      <description>HAL timebase based on RTC ALARM or WAKEUP</description>
+      <require condition="STM32C5"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="RTC"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="RTC timebase template"/>
+    </condition>
+    <condition id="Timebase HAL TIM">
+      <description>HAL timebase based on TIM</description>
+      <require condition="STM32C5"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="TIM"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="TIM timebase template"/>
+    </condition>
+    <!-- HAL OS Conditions -->
+    <condition id="NO OS">
+      <description>NO MW used for HAL OS</description>
+      <require condition="STM32C5"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="template"/>
+    </condition>
+    <condition id="MW FreeRTOS">
+      <description>MW FreeRTOS used for HAL OS</description>
+      <require condition="STM32C5"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="template"/>
+    </condition>
+    <condition id="TEMPLATE OS">
+      <description>TEMPLATE OS used for HAL OS</description>
+      <require condition="STM32C5"/>
+      <require Cclass="Device" Cgroup="STM32 HAL" Csub="template"/>
+    </condition>
+  </conditions>
+  <generators>
+    <!-- This generator is launched if any component referencing this generator by 'id' is selected and the specified <gpdsc> file does not exist -->
+    <generator id="stm32c5xx_hal_mx2codegen">
+      <description>ST Microelectronics: STM32 Cube Code Generator for HAL Drivers Pack</description>
+      <exe>
+        <command host="win">.config/gen_code.bat</command>
+        <command host="linux">.config/gen_code.sh</command>
+        <command host="mac">.config/gen_code.sh</command>
+        <!-- #name of the gpdsc template contained in this PACK and aligned with GPDSC name-->
+        <argument>HAL_Driver_codegen_template.gpdsc.hbs</argument>
+        <!-- passing the generator name-->
+        <argument>stm32c5xx_hal_mx2codegen</argument>
+        <argument>$G</argument>
+        <!-- Flag to indicate that this Generator is dry-run capable -->
+        <argument mode="dry-run">--dry-run</argument>
+      </exe>
+      <!-- workingDir></workingDir -->
+      <!-- path is specified either absolute or relative to PDSC or GPDSC file. If not specified it is the project directory configured by the environment -->
+      <gpdsc name="$P/STM32_HAL_Driver_codegen.gpdsc"/>
+    </generator>
+  </generators>
+  <components>
+    <!-- START: STMicroelectronics STM32CubeC5 HAL -->
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="SYSTICK" isDefaultVariant="true" Cversion="2.0.0" condition="Timebase NONE">
+      <description>HAL timebases based on Systick</description>
+      <files>
+        <file category="include" name="timebases/"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="RTC timebase template" Cversion="2.0.0" condition="HAL Common">
+      <description>HAL RTC templates used for timebases based on RTC alarm or RTC wakeup</description>
+      <files>
+        <file category="header" name="templates/timebases/stm32_hal_timebase.h" attr="template" select="timebase" version="2.0.0"/>
+        <file category="header" name="templates/timebases/mx_rtc.h" attr="config" version="2.0.0"/>
+        <file category="source" name="templates/timebases/mx_rtc.c" attr="config" version="2.0.0"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="RTC_ALARM" Cversion="2.0.0" condition="Timebase HAL RTC ALARM or WKUP">
+      <description>HAL timebases based on RTC alarm</description>
+      <files>
+        <file category="source" name="timebases/stm32_hal_timebase_rtc_alarm.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="RTC_WAKEUP" Cversion="2.0.0" condition="Timebase HAL RTC ALARM or WKUP">
+      <description>HAL timebases based on RTC wakeup</description>
+      <files>
+        <file category="source" name="timebases/stm32_hal_timebase_rtc_wakeup.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="TIM timebase template" Cversion="2.0.0" condition="HAL Common">
+      <description>HAL templates</description>
+      <files>
+        <file category="header" name="templates/timebases/stm32_hal_timebase.h" attr="template" select="timebase" version="2.0.0"/>
+        <file category="header" name="templates/timebases/mx_timx.h" attr="template" select="timebase" version="2.0.0"/>
+        <file category="source" name="templates/timebases/mx_timx.c" attr="template" select="timebase" version="2.0.0"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="timebases" Cvariant="TIM" Cversion="2.0.0" condition="Timebase HAL TIM">
+      <description>HAL timebases based on TIM</description>
+      <files>
+        <file category="source" name="timebases/stm32_hal_timebase_tim.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="Core" Cversion="2.0.0" condition="HAL Common">
+      <description>Common HAL driver</description>
+      <files>
+        <file category="include" name="hal/"/>
+        <file category="include" name="ll/"/>
+        <file category="header" name="hal/stm32_hal.h"/>
+        <file category="header" name="hal/stm32c5xx_hal_def.h"/>
+        <file category="header" name="hal/stm32c5xx_hal.h"/>
+        <file category="source" name="hal/stm32c5xx_hal.c"/>
+        <file category="doc" name="LICENSE.md"/>
+        <file category="doc" name="LICENSE.html"/>
+        <file category="doc" name="README.md"/>
+        <file category="doc" name="CMakeLists.txt"/>
+        <file category="doc" name="doc/STMicroelectronics.stm32c5xx_hal_drivers_dependencies.md"/>
+        <file category="doc" name="Release_Notes.md"/>
+        <file category="doc" name="Release_Notes.html"/>
+        <file category="doc" name="_htmresc/st_logo_2020.png"/>
+        <file category="doc" name="_htmresc/mini-st_2020.css"/>
+        <file category="doc" name="_htmresc/favicon.png"/>
+        <file category="doc" name="_htmresc/Update.svg"/>
+        <file category="doc" name="SW_Security_Level.md"/>
+        <file category="doc" name="sbom_cdx.json"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL UTILS" Csub="I2C" Cversion="2.0.0" condition="HAL Common">
+      <description>Utilities I2C</description>
+      <files>
+        <file category="header" name="utils/i2c_timing/stm32_utils_i2c.h"/>
+        <file category="source" name="utils/i2c_timing/stm32_utils_i2c.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL UTILS" Csub="I3C" Cversion="2.0.0" condition="HAL Common">
+      <description>Utilities I3C</description>
+      <files>
+        <file category="header" name="utils/i3c_timing/stm32_utils_i3c.h"/>
+        <file category="source" name="utils/i3c_timing/stm32_utils_i3c.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL UTILS" Csub="FDCAN" Cversion="2.0.1" condition="HAL Common">
+      <description>Utilities FDCAN</description>
+      <files>
+        <file category="header" name="utils/fdcan_timing/stm32_utils_fdcan.h"/>
+        <file category="source" name="utils/fdcan_timing/stm32_utils_fdcan.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="ASSERT" Cversion="2.1.0" condition="HAL Common">
+      <description>HAL ASSERT template</description>
+      <files>
+        <file category="header" name="templates/common/stm32_assert.h" attr="config" version="2.1.0"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="template" Cversion="2.1.0" condition="HAL Common">
+      <description>HAL templates</description>
+      <files>
+        <file category="header" name="templates/common/stm32_ll.h" attr="config" version="2.1.0"/>
+        <file category="header" name="templates/common/stm32c5xx_hal_conf.h" attr="config" version="2.1.0"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="ADC" Cversion="2.0.1" condition="HAL ADC">
+      <description>Analog-to-digital converter (ADC) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_adc.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_adc.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="AES" Cversion="2.0.1" condition="HAL CORE DMA">
+      <description>Advanced Encryption Standard (AES) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_aes.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_aes.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="COMP" Cversion="2.1.0" condition="HAL COMP">
+      <description>Comparator (COMP) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_comp.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_comp.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="CORDIC" Cversion="2.1.0" condition="HAL CORDIC">
+      <description>CORDIC HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_cordic.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_cordic.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="CORTEX" Cversion="2.0.0" condition="HAL CORTEX">
+      <description>Cortex (CORTEX) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_cortex.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_cortex.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="CRC" Cversion="2.0.0" condition="HAL CRC">
+      <description>CRC calculation unit (CRC) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_crc.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_crc.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="CRS" Cversion="2.0.0" condition="HAL CRS">
+      <description>Clock Recovery CORE (CRS) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_crs.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_crs.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="CCB" Cversion="2.0.1" condition="HAL CORE">
+      <description>CCB HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_ccb.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_ccb.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="DAC" Cversion="2.0.1" condition="HAL DAC">
+      <description>Digital-to-analog converter (DAC) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_dac.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_dac.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="DBGMCU" Cversion="2.0.0" condition="HAL DBGMCU">
+      <description>Microcontroller debug unit (DBGMCU) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_dbgmcu.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_dbgmcu.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL DRIVERS CORE" Csub="DLYB" Cversion="2.0.0" condition="HAL CORE">
+      <description>Delay Block (DLYB) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_dlyb_core.h"/>
+        <file category="source" name="hal/stm32c5xx_dlyb_core.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="DMA" Cversion="2.1.0" condition="HAL DMA">
+      <description>DMA controller (DMA) HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <resource-need-config type="need.dma.channels">.config/stm32c5xx_dma_parameters.json</resource-need-config>
+        </environment>
+      </environments>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_dma.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_dma.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="ETH" Cversion="2.1.0" condition="HAL CORE">
+      <description>ETH HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_eth.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_eth.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="EXTI" Cversion="2.1.0" condition="HAL EXTI">
+      <description>External interrupts and events (EXTI) controller</description>
+      <environments>
+        <environment name="STM32Cube">
+          <resource-need-config type="need.exti.lines">.config/stm32c5xx_exti_parameters.json</resource-need-config>
+        </environment>
+      </environments>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_exti.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_exti.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="FDCAN" Cversion="2.1.0" condition="HAL CORE">
+      <description>FDCAN HAL Driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_fdcan.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_fdcan.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="FLASH" Cversion="2.0.1" condition="HAL FLASH">
+      <description>Embedded FLASH memory HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_flash.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_flash.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="FLASH_ITF" Cversion="2.1.0" condition="HAL FLASH_ITF">
+      <description>Embedded FLASH Option Bytes HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_flash_itf.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_flash_itf.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="GPIO" Cversion="2.1.0" condition="HAL GPIO">
+      <description>General-purpose I/O (GPIO) HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <resource-need-config type="need.pinout.signals">.config/stm32c5xx_gpio_parameters.json</resource-need-config>
+        </environment>
+      </environments>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_gpio.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_gpio.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="HASH" Cversion="2.0.1" condition="HAL CORE DMA">
+      <description>HASH HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_hash.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_hash.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="HCD" Cversion="2.1.0" condition="HAL CORE USB">
+      <description>HCD HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_hcd.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_hcd.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="I2C" Cversion="2.0.1" condition="HAL I2C">
+      <description>Inter-integrated circuit (I2C) interface HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_i2c.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_i2c.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="I3C" Cversion="2.0.1" condition="HAL I3C">
+      <description>Improved inter-integrated circuit (I3C) interface HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_i3c.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_i3c.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="I2S" Cversion="2.0.0" condition="HAL I2S">
+      <description>Integrated Inter-IC Sound Bus (I2S) interface HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_i2s.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_i2s.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="ICACHE" Cversion="2.1.0" condition="HAL ICACHE">
+      <description>ICACHE HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_icache.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_icache.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="IWDG" Cversion="2.0.0" condition="HAL IWDG">
+      <description>Independent watchdog (IWDG) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_iwdg.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_iwdg.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="LPTIM" Cversion="2.1.0" condition="HAL LPTIM">
+      <description>Low-power timer (LPTIM) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_lptim.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_lptim.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="OPAMP" Cversion="2.1.0" condition="HAL OPAMP">
+      <description>OPAMP HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_opamp.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_opamp.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="PCD" Cversion="2.1.0" condition="HAL CORE USB">
+      <description>USB Peripheral controller (PCD) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_pcd.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_pcd.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="PKA" Cversion="2.0.1" condition="HAL PKA">
+      <description>PKA HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_pka.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_pka.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="PWR" Cversion="2.0.1" condition="HAL PWR">
+      <description>Power controller (PWR) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_pwr.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_pwr.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="Q" Cversion="2.0.0" condition="HAL CORE">
+      <description>Queue (Q) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_q.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_q.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="RAMCFG" Cversion="2.0.0" condition="HAL RAMCFG">
+      <description>RAMCFG HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_ramcfg.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_ramcfg.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="RCC" Cversion="2.0.0" condition="HAL RCC">
+      <description>Reset and clock control (RCC) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_rcc.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_rcc.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="RNG" Cversion="2.0.0" condition="HAL RNG">
+      <description>Random number generator (RNG) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_rng.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_rng.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="RTC" Cversion="2.0.1" condition="HAL RTC">
+      <description>Real-time clock (RTC) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_rtc.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_rtc.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="SMARTCARD" Cversion="2.0.0" condition="HAL SMARTCARD">
+      <description>SMARTCARD HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_smartcard.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_smartcard.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="SMBUS" Cversion="2.0.0" condition="HAL SMBUS">
+      <description>SMBus (SMBUS) interface HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_smbus.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_smbus.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="SPI" Cversion="2.0.1" condition="HAL SPI">
+      <description>Serial peripheral interface (SPI) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_spi.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_spi.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="SBS" Cversion="2.0.0" condition="HAL SBS">
+      <description>CORE configuration controller (SBS) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_sbs.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_sbs.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="TAMP" Cversion="2.0.1" condition="HAL TAMP">
+      <description>Tampers (TAMP) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_tamp.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_tamp.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="TIM" Cversion="2.0.1" condition="HAL TIM">
+      <description>Timers (TIM) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_tim.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_tim.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="UART" Cversion="2.0.1" condition="HAL UART">
+      <description>Universal asynchronous receiver transmitter (UART) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_uart.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_uart.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="USART" Cversion="2.0.0" condition="HAL USART">
+      <description>Universal synchronous asynchronous receiver transmitter (USART) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_usart.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_usart.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL DRIVERS CORE" Csub="USB CORE DEF" Cversion="2.1.0" condition="HAL CORE">
+      <description>USB Core Def (USB CORE DEF) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_usb_core_def.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL DRIVERS CORE" Csub="USB DRD" Cversion="2.1.0" condition="HAL CORE">
+      <description>USB DRD Core (USB DRD) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_usb_drd_core.h"/>
+        <file category="source" name="hal/stm32c5xx_usb_drd_core.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="WWDG" Cversion="2.0.1" condition="HAL WWDG">
+      <description>Window watchdog (WWDG) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_wwdg.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_wwdg.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="XSPI" Cversion="2.0.1" condition="HAL CORE XSPI">
+      <description>Octo-SPI/Hexa-SPI (XSPI) HAL driver</description>
+      <files>
+        <file category="header" name="hal/stm32c5xx_hal_xspi.h"/>
+        <file category="source" name="hal/stm32c5xx_hal_xspi.c"/>
+      </files>
+    </component>
+    <!-- END: STMicroelectronics STM32CubeC5 HAL -->
+    <!-- START: STMicroelectronics STM32CubeC5 HAL CODE GEN -->
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Codegen" Csub="Generated Code" Cversion="2.0.0" condition="HAL Common">
+      <description>Temporary component that will store all the resulting generated code</description>
+      <files>
+        <file category="genAsset" name=".config/gen_code.bat"/>
+        <file category="genAsset" name=".config/gen_code.sh"/>
+        <file category="genAsset" name=".config/HAL_Driver_codegen_template.gpdsc.hbs"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="System" Cversion="2.1.0" condition="HAL System Init">
+      <description>Code Generation for common System files</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <project-component id="SystemInit" name="HAL System Init"/>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_hal_system_parameters.json"/>
+        <file category="genAsset" name=".config/template/common/mx_system_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/common/mx_system_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/common/mx_def_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/common/stm32_external_env_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/license/mx_stm32c5xx_hal_drivers_license_template.md.hbs"/>
+        <file category="genAsset" name=".config/template/partials/ICACHE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/icache_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook_system.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORE" Cversion="2.1.0" condition="HAL Generated code">
+      <description>Code Generation for CORE files</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <project-component id="HALCore" name="HAL common definitions"/>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_hal_core_parameters.json"/>
+        <file category="genAsset" name=".config/template/common/stm32_ll_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/common/mx_hal_def_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/common/stm32_hal_timebase_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/common/stm32c5xx_hal_conf_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook_system.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="GPIO" Cversion="2.1.0" condition="HAL GPIO Init" maxInstances="10">
+      <description>Code Generation for GPIO files</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.gpio</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>gpio</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_gpio_parameters.json"/>
+        <file category="genAsset" name=".config/template/GPIO/mx_gpio_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/GPIO/mx_gpio_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="RCC" Cversion="2.1.0" condition="HAL CORE Init GPIO and RCC">
+      <description>Code Generation for RCC files</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.rcc</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>rcc</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_rcc_parameters.json"/>
+        <file category="genAsset" name=".config/template/RCC/mx_rcc_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/RCC/mx_rcc_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_LOCAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/pwr_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORTEX DEBUG" Cversion="2.1.0" condition="HAL CORE Init GPIO and CORTEX" maxInstances="10">
+      <description>Init Code Generation for CORTEX Debug driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-configuration-types>
+              <supported-configuration-type>cortex_debug</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_cortex_debug_parameters.json"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_debug_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_debug_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORTEX MPU" Cversion="2.1.0" condition="HAL CORE Init and CORTEX" maxInstances="10">
+      <description>Init Code Generation for CORTEX HAL MPU driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.cortex</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>cortex_mpu</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_cortex_mpu_parameters.json"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_mpu_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_mpu_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/mpu_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORTEX NVIC" Cversion="2.1.0" condition="HAL CORE Init and CORTEX" maxInstances="10">
+      <description>Init Code Generation for CORTEX HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-configuration-types>
+              <supported-configuration-type>cortex_nvic</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_cortex_nvic_parameters.json"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_nvic_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_nvic_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORTEX SCB" Cversion="2.1.0" condition="HAL CORE Init and CORTEX" maxInstances="10">
+      <description>Init Code Generation for CORTEX HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-configuration-types>
+              <supported-configuration-type>cortex_scb</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_cortex_scb_parameters.json"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_scb_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_scb_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/scb_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORTEX SYSTICK" Cversion="2.1.0" condition="HAL CORE Init and CORTEX" maxInstances="10">
+      <description>Init Code Generation for CORTEX HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-configuration-types>
+              <supported-configuration-type>cortex_systick</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_cortex_systick_parameters.json"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_systick_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CORTEX/mx_cortex_systick_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/systick_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CRC" Cversion="2.1.0" condition="HAL CORE Init and CRC" maxInstances="10">
+      <description>Init Code Generation for CRC HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.crc</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>crc</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_crc_parameters.json"/>
+        <file category="genAsset" name=".config/template/CRC/mx_crc_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CRC/mx_crc_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CCB" Cversion="2.1.0" condition="HAL CORE Init and CCB" maxInstances="10">
+      <description>Init Code Generation for CCB HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.ccb</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>ccb</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_ccb_parameters.json"/>
+        <file category="genAsset" name=".config/template/CCB/mx_ccb_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CCB/mx_ccb_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="DMA" Cversion="2.1.0" condition="HAL CORE DMA Init" maxInstances="20">
+      <description>Init Code Generation for DMA HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.dma</supported-resource-type>
+              <supported-resource-type>dma.channel</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>lpdma</supported-configuration-type>
+              <supported-configuration-type>gpdma</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_dma_parameters.json"/>
+        <file category="genAsset" name=".config/template/DMA/mx_dma_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/DMA/mx_dma_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="ICACHE" Cversion="2.1.0" condition="HAL CORE Init and ICACHE" maxInstances="10">
+      <description>Init Code Generation for ICACHE HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.icache</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>icache</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_icache_parameters.json"/>
+        <file category="genAsset" name=".config/template/ICACHE/mx_icache_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/ICACHE/mx_icache_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/icache_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/icache_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="TIM" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and TIM" maxInstances="20">
+      <description>Init Code Generation for TIM HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.tim</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>tim_adv</supported-configuration-type>
+              <supported-configuration-type>tim</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_tim_parameters.json"/>
+        <file category="genAsset" name=".config/template/TIM/mx_tim_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/TIM/mx_tim_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/tim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/tim_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="HCD" Cversion="2.1.0" condition="HAL CORE GPIO Init and HCD" maxInstances="10">
+      <description>Init Code Generation for HCD HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.usb</supported-resource-type>
+              <supported-resource-type>peripheral.usb_otg_fs</supported-resource-type>
+              <supported-resource-type>peripheral.usb_otg_hs</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>usb_drd_fs_host</supported-configuration-type>
+              <supported-configuration-type>usb_otg_fs_host</supported-configuration-type>
+              <supported-configuration-type>usb_otg_hs_host</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_hcd_parameters.json"/>
+        <file category="genAsset" name=".config/template/USB/mx_usb_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/USB/mx_usb_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/usb_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/usb_mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="I2C" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and I2C" maxInstances="10">
+      <description>Init Code Generation for I2C HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.i2c</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>i2c</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>I2C</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_i2c_parameters.json"/>
+        <file category="genAsset" name=".config/template/I2C/mx_i2c_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/I2C/mx_i2c_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/I2C_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/I2C_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/i2c_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/i2c_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="I3C" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and I3C" maxInstances="10">
+      <description>Init Code Generation for I3C HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.i3c</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>i3c</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>I3C</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_i3c_parameters.json"/>
+        <file category="genAsset" name=".config/template/I3C/mx_i3c_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/I3C/mx_i3c_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/i3c_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/i3c_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="I2S" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and I2S" maxInstances="10">
+      <description>Init Code Generation for I2S HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.spi</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>spi_i2s</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>I2S</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_i2s_parameters.json"/>
+        <file category="genAsset" name=".config/template/I2S/mx_i2s_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/I2S/mx_i2s_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/i2s_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/spi_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="SPI" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and SPI" maxInstances="10">
+      <description>Init Code Generation for SPI HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.spi</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>spi</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>SPI</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_spi_parameters.json"/>
+        <file category="genAsset" name=".config/template/SPI/mx_spi_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/SPI/mx_spi_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/spi_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/spi_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="UART" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and UART" maxInstances="10">
+      <description>Init Code Generation for UART HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.uart</supported-resource-type>
+              <supported-resource-type>peripheral.usart</supported-resource-type>
+              <supported-resource-type>peripheral.lpuart</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>uart_async</supported-configuration-type>
+              <supported-configuration-type>uart_lin</supported-configuration-type>
+              <supported-configuration-type>uart_mpc</supported-configuration-type>
+              <supported-configuration-type>uart_modbus</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>Serial</supported-protocol-type>
+              <supported-protocol-type>LIN</supported-protocol-type>
+              <supported-protocol-type>Multiprocessor Communication</supported-protocol-type>
+              <supported-protocol-type>Modbus Communication</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_uart_parameters.json"/>
+        <file category="genAsset" name=".config/template/UART/mx_uart_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/UART/mx_uart_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/UART_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/UART_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/USART_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/USART_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/uart_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/uart_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="IRDA" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and UART" maxInstances="10">
+      <description>Init Code Generation for IRDA HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.uart</supported-resource-type>
+              <supported-resource-type>peripheral.usart</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>uart_irda</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>IrDA</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_irda_parameters.json"/>
+        <file category="genAsset" name=".config/template/IRDA/mx_irda_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/IRDA/mx_irda_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/IRDA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/IRDA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/uart_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/uart_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="USART" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and USART" maxInstances="10">
+      <description>Init Code Generation for USART HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.usart</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>usart_sync</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>SPI</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_usart_parameters.json"/>
+        <file category="genAsset" name=".config/template/USART/mx_usart_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/USART/mx_usart_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/USART_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/USART_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/usart_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/usart_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="RNG" Cversion="2.1.0" condition="HAL CORE Init and RNG" maxInstances="10">
+      <description>Code Generation for RNG files</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.rng</supported-resource-type>
+              <supported-resource-type>peripheralBlock.rng</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>rng</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_rng_parameters.json"/>
+        <file category="genAsset" name=".config/template/RNG/mx_rng_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/RNG/mx_rng_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/rng_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="FDCAN" Cversion="2.1.0" condition="HAL CORE GPIO Init and FDCAN" maxInstances="10">
+      <description>Init Code Generation for FDCAN HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheralBlock.fdcan</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>fdcan</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>CAN</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_fdcan_parameters.json"/>
+        <file category="genAsset" name=".config/template/FDCAN/mx_fdcan_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/FDCAN/mx_fdcan_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/fdcan_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="AES" Cversion="2.1.0" condition="HAL CORE DMA Init and AES" maxInstances="10">
+      <description>Code Generation for AES files</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.aes</supported-resource-type>
+              <supported-resource-type>peripheral.saes</supported-resource-type>
+              <supported-resource-type>peripheralBlock.saes</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>aes</supported-configuration-type>
+              <supported-configuration-type>saes</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_aes_parameters.json"/>
+        <file category="genAsset" name=".config/template/AES/mx_aes_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/AES/mx_aes_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/aes_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="ADC" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and ADC" maxInstances="10">
+      <description>Init Code Generation for ADC HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheralBlock.adc</supported-resource-type>
+              <supported-resource-type>peripheral.adc</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>adc</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_adc_parameters.json"/>
+        <file category="genAsset" name=".config/template/ADC/mx_adc_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/ADC/mx_adc_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/ADC_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/ADC_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/adc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/adc_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/pwr_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="COMP" Cversion="2.1.0" condition="HAL CORE GPIO Init and COMP" maxInstances="12">
+      <description>Init Code Generation for COMP HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheralBlock.comp</supported-resource-type>
+              <supported-resource-type>peripheral.comp</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>comp</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_comp_parameters.json"/>
+        <file category="genAsset" name=".config/template/COMP/mx_comp_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/COMP/mx_comp_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/COMP_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/COMP_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/comp_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/comp_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORDIC" Cversion="2.1.0" condition="HAL CORE DMA Init and CORDIC" maxInstances="10">
+      <description>Init Code Generation for CORDIC HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.cordic</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>cordic</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_cordic_parameters.json"/>
+        <file category="genAsset" name=".config/template/CORDIC/mx_cordic_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CORDIC/mx_cordic_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORDIC_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORDIC_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/cordic_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CRS" Cversion="2.1.0" condition="HAL CORE Init GPIO and CRS" maxInstances="10">
+      <description>Init Code Generation for CRS HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.crs</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>crs</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_crs_parameters.json"/>
+        <file category="genAsset" name=".config/template/CRS/mx_crs_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/CRS/mx_crs_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/crs_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="DAC" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and DAC" maxInstances="10">
+      <description>Init Code Generation for DAC HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.dac</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>dac</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_dac_parameters.json"/>
+        <file category="genAsset" name=".config/template/DAC/mx_dac_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/DAC/mx_dac_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DAC_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DAC_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dac_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dac_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="HASH" Cversion="2.1.0" condition="HAL CORE DMA Init and HASH" maxInstances="10">
+      <description>Init Code Generation for HASH HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.hash</supported-resource-type>
+              <supported-resource-type>peripheralBlock.hash</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>hash</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_hash_parameters.json"/>
+        <file category="genAsset" name=".config/template/HASH/mx_hash_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/HASH/mx_hash_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/hash_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="LPTIM" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and LPTIM" maxInstances="20">
+      <description>Init Code Generation for LPTIM HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.lptim</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>lptim</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_lptim_parameters.json"/>
+        <file category="genAsset" name=".config/template/LPTIM/mx_lptim_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/LPTIM/mx_lptim_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/lptim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/lptim_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="OPAMP" Cversion="2.1.0" condition="HAL CORE GPIO Init and OPAMP" maxInstances="10">
+      <description>Init Code Generation for OPAMP HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.opamp</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>opamp</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_opamp_parameters.json"/>
+        <file category="genAsset" name=".config/template/OPAMP/mx_opamp_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/OPAMP/mx_opamp_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/OPAMP_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/OPAMP_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/opamp_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/opamp_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="XSPI" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and XSPI" maxInstances="10">
+      <description>Init Code Generation for XSPI HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheralBlock.ospi</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>xspi</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_xspi_parameters.json"/>
+        <file category="genAsset" name=".config/template/XSPI/mx_xspi_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/XSPI/mx_xspi_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/xspi_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="PKA" Cversion="2.1.0" condition="HAL CORE Init and PKA" maxInstances="10">
+      <description>Init Code Generation for PKA HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.pka</supported-resource-type>
+              <supported-resource-type>peripheralBlock.pka</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>pka</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_pka_parameters.json"/>
+        <file category="genAsset" name=".config/template/PKA/mx_pka_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/PKA/mx_pka_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/pka_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="RAMCFG" Cversion="2.1.0" condition="HAL CORE Init and RAMCFG" maxInstances="10">
+      <description>Init Code Generation for RAMCFG HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.ram</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>ramcfg</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_ramcfg_parameters.json"/>
+        <file category="genAsset" name=".config/template/RAMCFG/mx_ramcfg_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/RAMCFG/mx_ramcfg_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/ramcfg_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/ramcfg_mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="SBS" Cversion="2.1.0" condition="HAL CORE Init and SBS" maxInstances="10">
+      <description>Init Code Generation for SBS HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.sbs</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>sbs</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_sbs_parameters.json"/>
+        <file category="genAsset" name=".config/template/SBS/mx_sbs_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/SBS/mx_sbs_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SBS_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/sbs_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/sbs_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="PCD" Cversion="2.1.0" condition="HAL CORE GPIO Init and PCD" maxInstances="10">
+      <description>Init Code Generation for PCD HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.usb</supported-resource-type>
+              <supported-resource-type>peripheral.usb_otg_fs</supported-resource-type>
+              <supported-resource-type>peripheral.usb_otg_hs</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>usb_drd_fs_device</supported-configuration-type>
+              <supported-configuration-type>usb_otg_fs_device</supported-configuration-type>
+              <supported-configuration-type>usb_otg_hs_device</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_pcd_parameters.json"/>
+        <file category="genAsset" name=".config/template/USB/mx_usb_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/USB/mx_usb_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/usb_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/usb_mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="WWDG" Cversion="2.1.0" condition="HAL CORE Init and WWDG" maxInstances="10">
+      <description>Init Code Generation for WWDG HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.wwdg</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>wwdg</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_wwdg_parameters.json"/>
+        <file category="genAsset" name=".config/template/WWDG/mx_wwdg_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/WWDG/mx_wwdg_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/wwdg_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="RTC" Cversion="2.1.0" condition="HAL CORE GPIO Init and RTC" maxInstances="10">
+      <description>Init Code Generation for RTC HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheralBlock.rtc</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>rtc</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_rtc_parameters.json"/>
+        <file category="genAsset" name=".config/template/RTC/mx_rtc_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/RTC/mx_rtc_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RTC_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rtc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/pwr_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="TAMP" Cversion="2.1.0" condition="HAL CORE GPIO Init and TAMP" maxInstances="10">
+      <description>Init Code Generation for TAMP HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheralBlock.tamp</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>tamp</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_tamp_parameters.json"/>
+        <file category="genAsset" name=".config/template/TAMP/mx_tamp_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/TAMP/mx_tamp_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/TAMP_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/TAMP_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/tamp_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/pwr_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="SMARTCARD" Cversion="2.1.0" condition="HAL CORE GPIO DMA Init and SMARTCARD" maxInstances="10">
+      <description>Init Code Generation for SMARTCARD HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.usart</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>uart_smartcard</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>SmartCard</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_smartcard_parameters.json"/>
+        <file category="genAsset" name=".config/template/SMARTCARD/mx_smartcard_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/SMARTCARD/mx_smartcard_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SMARTCARD_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SMARTCARD_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/DMA_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/smartcard_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/smartcard_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="SMBUS" Cversion="2.1.0" condition="HAL CORE GPIO Init and SMBUS" maxInstances="10">
+      <description>Init Code Generation for SMBUS HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.i2c</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>smbus</supported-configuration-type>
+            </supported-configuration-types>
+            <supported-protocol-types>
+              <supported-protocol-type>SMBus</supported-protocol-type>
+            </supported-protocol-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_smbus_parameters.json"/>
+        <file category="genAsset" name=".config/template/SMBUS/mx_smbus_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/SMBUS/mx_smbus_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/I2C_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/I2C_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/dma_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/dma_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/i2c_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/i2c_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="PWR" Cversion="2.1.0" condition="HAL CORE GPIO Init and PWR" maxInstances="10">
+      <description>Init Code Generation for PWR HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.pwr</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>pwr</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_pwr_parameters.json"/>
+        <file category="genAsset" name=".config/template/PWR/mx_pwr_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/PWR/mx_pwr_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/PWR_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/pwr_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="ETH" Cversion="2.1.0" condition="HAL CORE GPIO Init and ETH" maxInstances="10">
+      <description>Init Code Generation for ETH HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.eth</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>eth</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_eth_parameters.json"/>
+        <file category="genAsset" name=".config/template/ETH/mx_eth_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/ETH/mx_eth_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_HAL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/GPIO_LL_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/EXTI_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/gpio_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/exti_ll_optim_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/eth_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="FLASH" Cversion="2.1.0" condition="HAL CORE Init and FLASH" maxInstances="10">
+      <description>Init Code Generation for FLASH HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.nvm</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>flash</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/template/FLASH/mx_flash_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/FLASH/mx_flash_template.h.hbs"/>
+        <file category="genAsset" name=".config/stm32c5xx_flash_parameters.json"/>
+        <file category="genAsset" name=".config/template/helpers/flash_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/RCC_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/rcc_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="IWDG" Cversion="2.1.0" condition="HAL CORE Init and IWDG" maxInstances="10">
+      <description>Init Code Generation for IWDG HAL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <stm32:component>
+            <supported-resource-types>
+              <supported-resource-type>peripheral.iwdg</supported-resource-type>
+            </supported-resource-types>
+            <supported-configuration-types>
+              <supported-configuration-type>iwdg</supported-configuration-type>
+            </supported-configuration-types>
+          </stm32:component>
+        </environment>
+      </environments>
+      <files>
+        <file category="genAsset" name=".config/stm32c5xx_iwdg_parameters.json"/>
+        <file category="genAsset" name=".config/template/IWDG/mx_iwdg_template.c.hbs"/>
+        <file category="genAsset" name=".config/template/IWDG/mx_iwdg_template.h.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/iwdg_helpers.js"/>
+        <file category="genAsset" name=".config/template/partials/SYSTEM_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/CORTEX_partial.hbs"/>
+        <file category="genAsset" name=".config/template/partials/LICENSE_partial.hbs"/>
+        <file category="genAsset" name=".config/template/helpers/nvic_helpers.js"/>
+        <file category="genAsset" name=".config/template/helpers/common_helpers.js"/>
+        <file category="genAsset" name=".config/template/hooks/mapping_hook.js"/>
+      </files>
+    </component>
+    <!-- END: STMicroelectronics STM32CubeC5 HAL CODE GEN -->
+    <!-- START: STMicroelectronics STM32CubeC5 LL -->
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="Common" Cversion="2.0.0" condition="CMSIS Core">
+      <description>Common LL driver</description>
+      <files>
+        <file category="include" name="ll/"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="ADC" Cversion="2.1.0" condition="LL">
+      <description>Analog-to-digital converter (ADC) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_adc.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="BUS" Cversion="2.0.1" condition="LL">
+      <description>LL BUS driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_bus.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="COMP" Cversion="2.1.0" condition="LL">
+      <description>COMP LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_comp.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="CORDIC" Cversion="2.0.0" condition="LL">
+      <description>CORDIC LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_cordic.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="CRC" Cversion="2.0.0" condition="LL">
+      <description>CRC calculation unit (CRC) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_crc.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="CRS" Cversion="2.0.0" condition="LL">
+      <description>(CRS) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_crs.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="DAC" Cversion="2.0.1" condition="LL">
+      <description>Digital-to-analog converter (DAC) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_dac.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="DBGMCU" Cversion="2.0.0" condition="LL">
+      <description>System configuration (DBGMCU) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_dbgmcu.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="DMA" Cversion="2.1.0" condition="LL">
+      <description>DMA controller (DMA) LL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <resource-need-config type="need.dma.channels">.config/stm32c5xx_dma_parameters.json</resource-need-config>
+        </environment>
+      </environments>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_dma.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="FLASH" Cversion="2.1.0" condition="LL">
+      <description>FLASH LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_flash.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="EXTI" Cversion="2.1.0" condition="LL">
+      <description>Extended interrupts and events controller (EXTI) LL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <resource-need-config type="need.exti.lines">.config/stm32c5xx_exti_parameters.json</resource-need-config>
+        </environment>
+      </environments>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_exti.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="GPIO" Cversion="2.1.0" condition="LL">
+      <description>General-purpose I/O (GPIO) LL driver</description>
+      <environments>
+        <environment name="STM32Cube">
+          <resource-need-config type="need.pinout.signals">.config/stm32c5xx_gpio_parameters.json</resource-need-config>
+        </environment>
+      </environments>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_gpio.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="I2C" Cversion="2.0.0" condition="LL">
+      <description>Inter-integrated circuit (I2C) interface LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_i2c.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="I3C" Cversion="2.0.0" condition="LL">
+      <description>Improved inter-integrated circuit (I3C) interface LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_i3c.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="ICACHE" Cversion="2.0.0" condition="LL">
+      <description>ICACHE interface LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_icache.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="IWDG" Cversion="2.0.0" condition="LL">
+      <description>Independent watchdog (IWDG) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_iwdg.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="LPTIM" Cversion="2.0.0" condition="LL">
+      <description>Low-power timer (LPTIM) interface LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_lptim.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="LPUART" Cversion="2.0.0" condition="LL">
+      <description>Low-power universal asynchronous receiver transmitter (LPUART) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_lpuart.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="OPAMP" Cversion="2.0.1" condition="LL">
+      <description>(OPAMP) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_opamp.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="PKA" Cversion="2.0.0" condition="LL">
+      <description>PKA LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_pka.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="PWR" Cversion="2.0.0" condition="LL">
+      <description>Power controller (PWR) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_pwr.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="RAMCFG" Cversion="2.0.1" condition="LL">
+      <description>RAM configuration controller (RAMCFG) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_ramcfg.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="RCC" Cversion="2.0.0" condition="LL">
+      <description>Reset and clock control (RCC) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_rcc.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="RNG" Cversion="2.0.0" condition="LL">
+      <description>Random number generator (RNG) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_rng.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="RTC" Cversion="2.0.0" condition="LL">
+      <description>Real-time clock (RTC) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_rtc.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="TAMP" Cversion="2.0.0" condition="LL">
+      <description>(TAMP) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_tamp.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="SPI" Cversion="2.0.0" condition="LL">
+      <description>Serial peripheral interface (SPI) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_spi.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="SBS" Cversion="2.0.0" condition="LL">
+      <description>System configuration (SBS) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_sbs.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="SYSTEM" Cversion="2.0.0" condition="LL">
+      <description>System configuration LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_system.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="TIM" Cversion="2.1.0" condition="LL">
+      <description>Timers (TIM) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_tim.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="USART" Cversion="2.0.0" condition="LL">
+      <description>Universal synchronous asynchronous receiver transmitter (USART) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_usart.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="UTILS" Cversion="2.0.0" condition="STM32C5">
+      <description>Utils LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_utils.h"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 LL" Csub="WWDG" Cversion="2.0.0" condition="LL">
+      <description>System window watchdog (WWDG) LL driver</description>
+      <files>
+        <file category="header" name="ll/stm32c5xx_ll_wwdg.h"/>
+      </files>
+    </component>
+    <!-- END: STMicroelectronics STM32CubeC5 LL -->
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="HAL OS" Cvariant="NO_OS" Cversion="2.0.0" condition="NO OS">
+      <description>HAL OS port without OS</description>
+      <files>
+        <file category="include" name="os_port/no_os/"/>
+        <file category="header" name="os_port/no_os/stm32_hal_os.h"/>
+        <file category="source" name="os_port/no_os/stm32_hal_os.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="HAL OS" Cvariant="FreeRTOS" Cversion="2.0.0" condition="MW FreeRTOS">
+      <description>HAL OS port with MW FreeRTOS</description>
+      <files>
+        <file category="include" name="os_port/freertos/"/>
+        <file category="header" name="os_port/freertos/stm32_hal_os.h"/>
+        <file category="source" name="os_port/freertos/stm32_hal_os.c"/>
+      </files>
+    </component>
+    <component Cclass="Device" Cgroup="STM32 HAL" Csub="HAL OS" Cvariant="TEMPLATE OS" Cversion="2.0.0" condition="TEMPLATE OS">
+      <description>HAL OS port with CMSIS OS</description>
+      <files>
+        <file category="header" name="templates/os_port/stm32_hal_os.h" attr="config" version="2.0.0"/>
+        <file category="source" name="templates/os_port/stm32_hal_os.c" attr="config" version="2.0.0"/>
+      </files>
+    </component>
+  </components>
+</package>

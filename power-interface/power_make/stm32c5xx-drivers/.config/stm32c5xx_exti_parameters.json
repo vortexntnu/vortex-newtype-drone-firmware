@@ -1,0 +1,160 @@
+{
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "1.0.0",
+  "componentid": "::Device:STM32CubeMX2 Config:EXTI",
+  "grammarVersion": "3.8",
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "configFor": [
+        "need.exti.lines"
+      ],
+      "properties": {
+        "labels": {
+          "type": "array",
+          "title": "Add a label",
+          "description": "Labels allow to create aliases inside mx_gpio_default.h and mx_ppp.h files like '<label>_EXTI_LINE', '<label>_EXTI_TRIGGER' and '<label>_exti_gethandle'. These aliases can be used on application side.",
+          "actions": [
+            {
+              "type": "include",
+              "condition": "$resource.configurable === true"
+            }
+          ],
+          "items": {
+            "type": "string",
+            "actions": [
+              {
+                "type": "error",
+                "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+              }
+            ],
+            "minLength": 0,
+            "maxLength": 32,
+            "unique": "project",
+            "default": ""
+          }
+        },
+        "basic": {
+          "type": "object",
+          "title": "Main features",
+          "actions": [
+            {
+              "type": "include",
+              "condition": "$resource.configurable === true"
+            }
+          ],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "title": "Mode",
+              "description": "The EXTI interrupt/event mode to be configured.",
+              "oneOf": [
+                {
+                  "title": "Interrupt",
+                  "const": "INTERRUPT"
+                },
+                {
+                  "title": "Event",
+                  "const": "EVENT"
+                },
+                {
+                  "title": "Interrupt / Event",
+                  "const": "INTERRUPT_EVENT"
+                },
+                {
+                  "title": "None",
+                  "const": "NONE"
+                }
+              ],
+              "default": "NONE"
+            },
+            "trigger_detection": {
+              "type": "string",
+              "title": "Trigger detection",
+              "description": "The EXTI Trigger edge to be configured.",
+              "oneOf": [
+                {
+                  "title": "Rising edge",
+                  "const": "RISING"
+                },
+                {
+                  "title": "Falling edge",
+                  "const": "FALLING"
+                },
+                {
+                  "title": "Rising/Falling edge",
+                  "const": "RISING_FALLING"
+                }
+              ],
+              "default": "RISING"
+            },
+            "interruption": {
+              "type": "object",
+              "title": "Interrupt",
+              "properties": {
+                "enable_interruption": {
+                  "type": "boolean",
+                  "title": "Interrupt",
+                  "description": "Activate the interuption of the line.",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "computed": {
+                        "default": "$getRootParameter('pins') != null"
+                      }
+                    }
+                  ]
+                },
+                "irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "IRQ handler generation",
+                  "description": "Activate the generation of the IRQ handler.",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$config.basic.interruption.enable_interruption && ($getRootParameter('layer') === 'HAL')"
+                    }
+                  ]
+                },
+                "nvic": {
+                  "title": "NVIC",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$config.basic.interruption.enable_interruption"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$getRootParameter('layer') === 'HAL'",
+                      "semaphore": true
+                    },
+                    {
+                        "on": "update-value",
+                        "name": "HAL_EXTI_SYSTEM_GPIO_STANDARD_EXTI",
+                        "condition": "$getRootParameter('pins') != null",
+                        "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,577 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_spi_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'SPI' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "SPI template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+{{assign 'spi_cxt' config~}}
+{{log "SPI template spi_cxt:" (toJSON @root.spi_cxt)~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.spi_cxt.info.layer~}}
+{{log "SPI template current_resource:" @root.current_resource~}}
+{{#if (eq @root.current_layer 'HAL')}}
+static hal_spi_handle_t h{{@root.current_resource}};
+{{/if}}
+{{/each}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.dma_resource strategy=@root.strategy}}
+{{else if (eq @root.current_layer 'LL')}}
+{{> DMA_LL fct='get_dma_lli_variables' resource=@root.dma_resource strategy=@root.strategy}}
+{{/if}}
+
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+{{assign 'spi_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'name' @root.spi_cxt.name~}}
+{{assign 'current_layer' @root.spi_cxt.info.layer~}}
+{{assign 'configs' @root.spi_cxt~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~! Initialize the context for LL code optimization ~}}
+  {{~assign 'lut_table'   (helper_spi_get_lut_table 'V1')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for SPI in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.spi_cxt}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index  from_where=@root.from_where)~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_spi_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_spi_config_t spi_config;
+
+  if (HAL_SPI_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource}}
+{{assign 'found_spi_rcc_kernel' true~}}
+
+{{#with basic}}
+  spi_config.mode = HAL_SPI_MODE_{{mode}};
+  spi_config.direction = HAL_SPI_DIRECTION_{{direction}};
+  spi_config.data_width = HAL_SPI_DATA_WIDTH_{{data_size.data_width}}_BIT;
+  spi_config.clock_polarity = HAL_SPI_CLOCK_POLARITY_{{timing.clock_polarity}};
+  spi_config.clock_phase = HAL_SPI_CLOCK_PHASE_{{timing.clock_phase}}_EDGE;
+{{#if (eq timing.baud_rate_prescaler 1)}}
+  spi_config.baud_rate_prescaler = HAL_SPI_BAUD_RATE_PRESCALER_{{#if (eq mode "MASTER")}}BYPASS{{else}}2{{/if}};
+{{else}}
+  spi_config.baud_rate_prescaler = HAL_SPI_BAUD_RATE_PRESCALER_{{#if (eq mode "MASTER")}}{{timing.baud_rate_prescaler}}{{else}}2{{/if}};
+{{/if}}
+  spi_config.first_bit = HAL_SPI_{{first_bit}};
+  spi_config.nss_pin_management = HAL_SPI_NSS_PIN_MGMT_{{nss_pin_management}};
+
+  if (HAL_SPI_SetConfig(&h{{@root.current_resource}}, &spi_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/with}}
+
+{{#with additional}}
+{{#if (eq enable_ti_mode "EnableTI")}}
+  {{assign 'found_spi_ti_format_enable' true~}}
+  HAL_SPI_EnableTIMode(&h{{@root.current_resource}});
+
+{{/if~}}
+
+{{#if enable_autonomous_mode_trigger}}
+{{assign 'found_spi_autonomous_mode_enable' true~}}
+{{#with autonomous_trig_config_t}}
+{{assign 'group' 1~}}
+{{#if (eq @root.current_resource 'SPI3')}}
+{{assign 'group' 2~}}
+{{/if}}
+  /* Autonomous mode configuration */
+  hal_spi_am_trig_config_t spi_autonomous_mode_config;
+
+  spi_autonomous_mode_config.source = HAL_SPI_AM_TRIG_GRP{{@root.group}}_{{source.source}};
+  spi_autonomous_mode_config.polarity = HAL_SPI_AM_TRIG_{{polarity}};
+
+  if (HAL_SPI_AM_SetConfigTrigger(&h{{@root.current_resource}}, &spi_autonomous_mode_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  if (HAL_SPI_AM_EnableTrigger(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}
+{{/if}}
+
+{{#if enable_crc}}
+{{assign 'found_spi_crc_enable' true~}}
+{{#with crc_config_t}}
+  hal_spi_crc_config_t spi_crc_config;
+
+  spi_crc_config.crc_polynomial = {{crc_polynomial.value}};
+  spi_crc_config.crc_length = HAL_SPI_CRC_LENGTH_{{crc_polynomial.size}}_BIT;
+  spi_crc_config.crc_tx_init_pattern = HAL_SPI_CRC_TX_INIT_PATTERN_{{crc_tx_init_pattern}};
+  spi_crc_config.crc_rx_init_pattern = HAL_SPI_CRC_RX_INIT_PATTERN_{{crc_rx_init_pattern}};
+
+  if (HAL_SPI_SetConfigCRC(&h{{@root.current_resource}}, &spi_crc_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  if (HAL_SPI_EnableCRC(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}
+{{/if}}
+{{/with}}{{! additional~}}
+
+{{#if (not (eq basic.nss_pin_management "INTERNAL"))}}
+{{#if (eq additional.enable_ti_mode "DisableTI")~}}
+{{assign 'found_spi_nss_enable' true~}}
+{{#with additional}}
+{{#with nss_config_t}}
+  hal_spi_nss_config_t spi_nss_config;
+
+  spi_nss_config.nss_pulse = HAL_SPI_NSS_PULSE_{{#if (not nss_pulse)}}DISABLE{{else}}ENABLE{{/if}};
+  spi_nss_config.nss_polarity = HAL_SPI_NSS_POLARITY_{{#if (eq ../../basic.mode "MASTER")}}{{nss_polarity}}{{else}}LOW{{/if}};
+  spi_nss_config.nss_mssi_delay = HAL_SPI_NSS_MSSI_DELAY_{{nss_mssi_delay}}_CYCLE;
+
+  if (HAL_SPI_SetConfigNSS(&h{{@root.current_resource}}, &spi_nss_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}
+{{/with}}{{! nss_config_t~}}
+{{/if}}{{! eq "DisableTI"~}}
+{{/if}}{{! eq "INTERNAL"~}}
+
+{{#with additional}}
+{{#if underrun_configuration}}
+{{#if (not (eq underrun_configuration "DISABLE"))}}
+  {{assign 'found_underrun_config' true~}}
+  hal_spi_underrun_config_t spi_underrun_config;
+
+  spi_underrun_config.underrun_behavior = HAL_SPI_UNDERRUN_BEHAV_{{underrun_configuration}};
+
+  if (HAL_SPI_SLAVE_SetConfigUnderrun(&h{{@root.current_resource}}, &spi_underrun_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{/if~}}
+
+{{#if set_midi_idleness_delay}}
+{{#if (not (eq set_midi_idleness_delay "0"))}}
+  {{assign 'found_spi_midi_delay' true~}}
+  HAL_SPI_MASTER_SetInterDataIdlenessDelay(&h{{@root.current_resource}}, HAL_SPI_MIDI_DELAY_{{set_midi_idleness_delay}}_CYCLE);
+
+{{/if~}}
+{{/if~}}
+
+{{#with ready_pin_configuration}}
+{{#if enable_ready_pin}}
+  {{assign 'found_spi_ready_pin' true~}}
+{{#if (not (eq ready_pin_polarity "HIGH"))~}}
+  if (HAL_SPI_SetReadyPinPolarity(&h{{@root.current_resource}}, HAL_SPI_READY_PIN_POLARITY_{{ready_pin_polarity}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+
+  if (HAL_SPI_EnableReadyPin(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{/with}}{{! ready_pin_configuration~}}
+
+{{#if (not (eq set_fifo_threshold "1"))}}
+  {{assign 'found_spi_fifo_threshold' true~}}
+  if (HAL_SPI_SetFifoThreshold(&h{{@root.current_resource}}, HAL_SPI_FIFO_THRESHOLD_{{set_fifo_threshold}}_DATA) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+
+{{#if enable_master_receiver_auto_susp}}
+  {{assign 'found_spi_auto_susp' true~}}
+  if (HAL_SPI_MASTER_EnableReceiverAutoSuspend(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! enable_master_receiver_auto_susp~}}
+
+{{#if spi_io_configuration.enable_master_keep_io_state}}
+  {{assign 'found_spi_master_keep_io' true~}}
+  if (HAL_SPI_MASTER_EnableKeepIOState(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! spi_io_configuration.enable_master_keep_io_state~}}
+
+{{#if spi_io_configuration.enable_mosi_miso_swap}}
+  {{assign 'found_spi_io_swap' true~}}
+  if (HAL_SPI_EnableMosiMisoSwap(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! spi_io_configuration.enable_mosi_miso_swap~}}
+
+{{#if spi_io_configuration.lock_io_config}}
+  {{assign 'found_spi_io_lock' true~}}
+  if (HAL_SPI_LockIOConfig(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! spi_io_configuration.lock_io_config~}}
+
+{{#if enable_delay_read_data_sampling}}
+  if (HAL_SPI_EnableDelayReadDataSampling(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{/with}}{{! additional~}}
+
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'~}}
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+  {{assign 'found_spi_dma_tx' true~}}
+  /* Configure the DMA TX */
+{{#> DMA_HAL fct='init' needs=dma_config_tx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Transmit DMA handle to the SPI handle */
+  if (HAL_SPI_SetTxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+
+{{#if enable_dma_rx}}
+  {{assign 'found_spi_dma_rx' true~}}
+  /* Configure the DMA RX */
+{{#> DMA_HAL fct='init' needs=dma_config_rx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Receive DMA handle to the SPI handle */
+  if (HAL_SPI_SetRxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}
+{{#with nvic}}
+{{#if enable_interrupt}}
+  {{assign 'found_spi_interrupt' true~}}
+  /* Enable the interrupt for SPI */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config.needs @root.current_resource irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config.needs}}
+#warning "Partial HAL CORTEX is not present"
+{{/CORTEX}}
+
+{{/if}}
+{{/with}}
+{{/with}}
+
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_interrupt}}
+  /* Disable the interrupt for SPI */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+
+{{/if}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+  (void)HAL_SPI_DeInit(&h{{@root.current_resource}});
+
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{#> DMA_HAL fct='deinit' needs=dma_config_tx.needs}}
+{{/DMA_HAL~}}
+{{/if}}
+
+{{#if enable_dma_rx}}
+{{#> DMA_HAL fct='deinit' needs=dma_config_rx.needs}}
+{{/DMA_HAL~}}
+{{/if}}
+{{/with}}{{! dma~}}
+{{/with}}
+}
+
+{{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+
+SPI_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource}}
+{{assign 'found_spi_rcc_kernel' true~}}
+
+{{#with basic}}
+{{#if (eq timing.baud_rate_prescaler 1)}}
+  uint32_t cfg1_config = LL_SPI_DATA_WIDTH_{{data_size.data_width}}_BIT | LL_SPI_BAUD_RATE_PRESCALER_{{#if (eq mode "MASTER")}}BYPASS{{else}}2{{/if}};
+{{else}}
+  uint32_t cfg1_config = LL_SPI_DATA_WIDTH_{{data_size.data_width}}_BIT | LL_SPI_BAUD_RATE_PRESCALER_{{#if (eq mode "MASTER")}}{{timing.baud_rate_prescaler}}{{else}}2{{/if}};
+{{/if}}
+  uint32_t cfg2_config = LL_SPI_MODE_{{mode}} | LL_SPI_{{direction}} | LL_SPI_CLOCK_POLARITY_{{timing.clock_polarity}}
+                       | LL_SPI_CLOCK_PHASE_{{timing.clock_phase}}_EDGE | LL_SPI_{{first_bit}} | LL_SPI_NSS_{{#if (eq nss_pin_management "INTERNAL")}}SOFT{{else}}HARD_{{nss_pin_management}}{{/if}};
+
+  LL_SPI_SetConfig({{@root.current_resource}}, cfg1_config, cfg2_config);
+
+{{/with}}{{! basic~}}
+
+{{#with additional}}
+
+{{#if underrun_configuration}}
+{{#if (not (eq underrun_configuration "DISABLE"))}}
+  {{assign 'found_underrun_config' true~}}
+  {{helper_common_gen_ll_code 'LL_SPI_SetUDRConfiguration' (concat 'LL_SPI_UNDERRUN_CONFIG_' underrun_configuration)}}
+
+{{/if~}}
+{{/if~}}
+  {{~#if (eq enable_ti_mode "EnableTI")~}}
+    {{~assign 'standard' 'LL_SPI_PROTOCOL_TI'~}}
+  {{~else~}}
+    {{~assign 'standard' 'LL_SPI_PROTOCOL_MOTOROLA'~}}
+  {{~/if~}}
+  {{~assign 'found_spi_ti_format_enable' true}}
+  {{helper_common_gen_ll_code 'LL_SPI_SetStandard' @root.standard}}
+
+{{#if enable_crc~}}
+{{~assign 'found_spi_crc_enable' true~}}
+{{~#with crc_config_t}}
+  LL_SPI_SetCRCPolynomial({{@root.current_resource}}, {{crc_polynomial.value}});
+
+  LL_SPI_SetCRCWidth({{@root.current_resource}}, LL_SPI_CRC_LENGTH_{{crc_polynomial.size}}_BIT);
+
+  {{helper_common_gen_ll_code 'LL_SPI_SetCRCInitPattern' (concat 'LL_SPI_CRC_TX_INIT_PATTERN_' crc_tx_init_pattern) (concat 'LL_SPI_CRC_RX_INIT_PATTERN_' crc_rx_init_pattern)}}
+
+  LL_SPI_EnableCRC({{@root.current_resource}});
+
+{{/with}}{{! crc_config_t~}}
+{{~/if~}}{{! EnableCRC~}}
+{{~/with}}{{! additional~}}
+{{~#if (not (eq basic.nss_pin_management "INTERNAL"))~}}
+{{~#if (eq additional.enable_ti_mode "DisableTI")~}}
+{{~#with additional~}}
+{{~#with nss_config_t}}
+  uint32_t config_nss = LL_SPI_NSS_PULSE_{{#if (not nss_pulse)}}DISABLE{{else}}ENABLE{{/if}}
+                       | LL_SPI_NSS_POLARITY_{{#if (eq ../../basic.mode "MASTER")}}{{nss_polarity}}{{else}}LOW{{/if}}
+                       | LL_SPI_MSSI_DELAY_{{nss_mssi_delay}}_CYCLE;
+
+  LL_SPI_SetNSSConfig({{@root.current_resource}}, config_nss);
+
+{{/with}}{{! nss_config_t~}}
+{{~/with}}{{! additional~}}
+{{~/if~}}{{! eq DisableTI~}}
+{{~/if~}}{{! not eq INTERNAL~}}
+{{~#with additional~}}
+{{~#if (or (eq enable_ti_mode "EnableTI") (not (eq ../../basic.mode "MASTER")))~}}
+  {{~assign 'found_spi_midi_delay' true}}
+  {{helper_common_gen_ll_code 'LL_SPI_SetInterDataIdleness' (concat 'LL_SPI_MIDI_DELAY_' set_midi_idleness_delay '_CYCLE')}}
+
+{{/if~}}
+{{~#with ready_pin_configuration~}}
+{{~#if enable_ready_pin~}}
+  {{~assign 'found_spi_ready_pin' true}}
+  {{helper_common_gen_ll_code 'LL_SPI_SetReadyPinPolarity' (concat 'LL_SPI_READY_PIN_POLARITY_' ready_pin_polarity)}}
+  LL_SPI_EnableReadyPin({{@root.current_resource}});
+
+{{/if~}}
+{{~/with}}{{! ready_pin_configuration~}}
+  {{~assign 'found_spi_fifo_threshold' true}}
+  {{helper_common_gen_ll_code 'LL_SPI_SetFIFOThreshold' (concat 'LL_SPI_FIFO_THRESHOLD_' set_fifo_threshold '_DATA')}}
+
+{{#if enable_master_receiver_auto_susp~}}
+  {{~assign 'found_spi_auto_susp' true}}
+  LL_SPI_EnableMasterRxAutoSuspend({{@root.current_resource}});
+
+{{/if~}}{{! enable_master_receiver_auto_susp~}}
+{{#if spi_io_configuration.enable_master_keep_io_state~}}
+  {{~assign 'found_spi_master_keep_io' true}}
+  LL_SPI_EnableGPIOControl({{@root.current_resource}});
+
+{{/if~}}{{! spi_io_configuration.enable_master_keep_io_state~}}
+{{#if spi_io_configuration.enable_mosi_miso_swap~}}
+  {{~assign 'found_spi_io_swap' true}}
+  LL_SPI_EnableMosiMisoSwap({{@root.current_resource}});
+
+{{/if~}}{{! spi_io_configuration.enable_mosi_miso_swap~}}
+{{#if spi_io_configuration.lock_io_config~}}
+  {{~assign 'found_spi_io_lock' true}}
+  LL_SPI_EnableIOLock({{@root.current_resource}});
+
+{{/if~}}{{! spi_io_configuration.lock_io_config~}}
+{{~#if enable_delay_read_data_sampling}}
+  LL_SPI_EnableDelayReadDataSampling({{@root.current_resource}});
+{{/if}}
+{{/with}}{{! additional~}}
+
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource~}}
+{{#with system}}
+{{#with nvic}}
+{{#if enable_interrupt}}
+  {{assign 'found_spi_interrupt' true~}}
+  /* Enable the interrupt for SPI */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic_config.needs @root.current_resource irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config.needs}}
+#warning "Partial LL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}
+{{/with}}{{! nvic~}}
+
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{> DMA_LL fct='init' needs=dma_config_tx.needs}}
+{{/if}}
+{{#if enable_dma_rx}}
+{{> DMA_LL fct='init' needs=dma_config_rx.needs}}
+{{/if}}
+{{/with}}{{! dma~}}
+{{/with}}{{! system~}}
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+  LL_SPI_Disable({{@root.current_resource}});
+
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource~}}
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{#> DMA_LL fct='deinit' needs=dma_config_tx.needs}}
+{{/DMA_LL~}}
+
+{{/if}}
+{{#if enable_dma_rx}}
+{{#> DMA_LL fct='deinit' needs=dma_config_rx.needs}}
+{{/DMA_LL~}}
+{{/if}}
+{{/with}}{{! dma~}}
+{{/with}}{{! system~}}
+}
+
+{{/if}}
+{{/with}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_spi_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+{{/if}}
+{{#with @root.configs}}
+{{#with security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Enable clock for RIF/RCC peripherals
+    - Configure the security/privilege items for SPI peripheral
+    - other SPI systems security/privilege configuration if any (DMA/GPIO/EXTI)
+    */
+
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GTZC fct='gtzc_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/GTZC}}
+
+  {{#if (eq @root.current_layer 'HAL')~}}
+{{#> DMA_HAL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_HAL}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+  {{else}}
+{{#> DMA_LL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_LL}}
+{{#> GPIO_LL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_LL}}
+  {{/if}}
+
+  return SYSTEM_OK;
+}
+
+{{/with}}
+{{/with}}{{!root.configs~}}
+
+{{#if (eq @root.current_layer 'LL')}}
+{{> DMA_LL fct='get_dma_lli_reg' resource=@root.dma_resource strategy=@root.strategy type='implementation'}}
+{{/if}}
+
+{{/each}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='SPI'}}
+{{/helper_common_beautifier}}

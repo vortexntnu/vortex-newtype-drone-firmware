@@ -1,0 +1,108 @@
+{{!
+ * @file Partial used to generate code for COMP:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!--
+  Partial used for HAL COMP:
+  how to use
+  > COMP_HAL fct='xxxx' with xxxx:
+    * init
+    * deinit
+--}}
+{{!==================== partial function: init ====================~}}
+{{#if (eq fct 'init')}}
+{{#if (eq basic.multi_inst_mode "multi_inst_window_main")}}
+  /* Window mode:
+     This comparator instance is selected as main instance (input plus used for window comparators).
+     Configuration applied to this comparator instance and comparator secondary instance:
+     COMP{{@root.comp_window_other_instance_nb}}
+  */
+  /* Note: Window mode activated under condition of USE_HAL_COMP_WINDOW_MODE defined in hal_conf.h */
+  /* Initialize and get other comparator handle */
+  hal_comp_handle_t* p_handle_other_comp = mx_comp{{@root.comp_window_other_instance_nb}}_init();
+
+  /* Link handles */
+  if (HAL_COMP_WINDOW_SetHandle(&h{{uppercase @root.current_resource~}}, p_handle_other_comp) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  hal_comp_window_config_t comp_window_config;
+  comp_window_config.power_mode = HAL_COMP_POWER_MODE_{{basic.power_mode~}};
+  comp_window_config.input = HAL_COMP_INPUT_PLUS_{{helper_comp_transform_input_name basic.input.input_plus.source}};
+  comp_window_config.upper_threshold = HAL_COMP_INPUT_MINUS_{{helper_comp_transform_input_name basic.input.input_minus.source}};
+  comp_window_config.lower_threshold = HAL_COMP_INPUT_MINUS_{{helper_comp_transform_input_name basic.input.input_minus_window_lower_threshold.source}};
+  comp_window_config.input_hysteresis = HAL_COMP_INPUT_HYSTERESIS_{{basic.input.input_hysteresis~}};
+  comp_window_config.output_polarity = HAL_COMP_OUTPUT_POLARITY_{{basic.output.output_polarity~}};
+{{#if (eq basic.output.output_trigger "NONE")}}
+{{! no exti to configure}}
+#if defined(USE_HAL_COMP_EXTI) && (USE_HAL_COMP_EXTI == 1)
+  comp_window_config.output_trigger = HAL_COMP_OUTPUT_TRIG_NONE;
+#endif /* USE_HAL_COMP_EXTI */
+{{~else}}
+  comp_window_config.output_trigger = HAL_COMP_OUTPUT_TRIG_{{@root.exti_config.trigger_detection~}};
+{{~/if}}{{! output_trigger != NONE}}
+  comp_window_config.window_output_mode = HAL_COMP_WINDOW_OUTPUT_{{basic.output.window_output_mode~}};
+  if (HAL_COMP_WINDOW_SetConfig(&h{{uppercase @root.current_resource~}}, &comp_window_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#with additional~}}
+{{/with~}}{{!additional}}
+{{~else}}{{!multi_inst_window_main}}
+{{#if (eq basic.multi_inst_mode "multi_inst_window_sec")}}
+  /* Window mode:
+     This comparator instance is selected as secondary instance (input plus not used for window comparators).
+     Configuration performed by other comparator main instance:
+     COMP{{@root.comp_window_other_instance_nb}}
+  */
+{{~else}}{{!multi_inst_window_sec}}
+  hal_comp_config_t comp_config;
+  comp_config.power_mode = HAL_COMP_POWER_MODE_{{basic.power_mode~}};
+  comp_config.input_plus = HAL_COMP_INPUT_PLUS_{{helper_comp_transform_input_name basic.input.input_plus.source}};
+  comp_config.input_minus = HAL_COMP_INPUT_MINUS_{{helper_comp_transform_input_name basic.input.input_minus.source}};
+  comp_config.input_hysteresis = HAL_COMP_INPUT_HYSTERESIS_{{basic.input.input_hysteresis~}};
+  comp_config.output_polarity = HAL_COMP_OUTPUT_POLARITY_{{basic.output.output_polarity~}};
+{{#if (eq basic.output.output_trigger "NONE")}}
+{{! no exti to configure}}
+#if defined(USE_HAL_COMP_EXTI) && (USE_HAL_COMP_EXTI == 1)
+  comp_config.output_trigger = HAL_COMP_OUTPUT_TRIG_NONE;
+#endif /* USE_HAL_COMP_EXTI */
+{{~else}}
+  comp_config.output_trigger = HAL_COMP_OUTPUT_TRIG_{{@root.exti_config.trigger_detection~}};
+{{~/if}}{{! output_trigger != NONE}}
+  if (HAL_COMP_SetConfig(&h{{uppercase @root.current_resource~}}, &comp_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#with additional~}}
+{{/with~}}{{!additional}}
+{{/if}}{{!multi_inst_window_sec}}
+{{/if}}{{!multi_inst_window_main}}
+
+{{#with additional~}}
+{{#if output_blanking_state}}
+
+  if (HAL_COMP_SetOutputBlanking(&h{{uppercase @root.current_resource~}}, HAL_COMP_OUTPUT_BLANK_{{helper_comp_transform_blk_src_name output_blanking_src.source}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{/with~}}{{!additional}}
+
+{{!==================== partial function: deinit ====================~}}
+{{else if (eq fct 'deinit')}}
+  (void)HAL_COMP_DeInit(&h{{uppercase @root.current_resource}});
+{{else}}
+#warning "step {{fct}} in partial COMP_HAL not managed"
+{{/if}}

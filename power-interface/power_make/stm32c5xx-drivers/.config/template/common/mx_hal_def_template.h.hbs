@@ -1,0 +1,335 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_hal_def_template.h.hbs
+  * @brief          : Exporting peripherals initialization
+  *                   Include entry for the target folder to the application.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+~--}}
+{{#helper_common_beautifier}}
+{{assign "strategy" (@root.EnvVarAPI.getVariableValue 'SYSTEM_PROJECT_CODEGEN_STRATEGY')~}}
+{{assign "_define_" "#define"~}}
+{{~assign 'object_cxt' (helper_common_get_sw_config_ctxt @root.SWProjectAPI @root.DmaAPI @root.SWConfigurationAPI @root.pinoutAPI @root.ExtiAPI @root.peripheralsResourceManagerAPI @root.strategy)~}}
+{{log "MX_HAL_DEF template object_cxt:" @root.object_cxt~}}
+/**
+  ******************************************************************************
+  * @file           : mx_hal_def.h
+  * @brief          : Exporting peripherals initialization
+  *                   Include entry for the target folder to the application.
+{{> LICENSE}}
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef MX_HAL_DEF_H
+#define MX_HAL_DEF_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_def.h"
+{{assign 'only_ll' (helper_common_check_if_only_ll @root.EnvVarAPI)~}}
+{{#if @root.only_ll}}
+#include "stm32_ll.h"
+{{else}}
+#include "stm32_hal.h"
+{{/if}}
+{{assign 'list_includes' (helper_common_find_include_files @root.SWProjectAPI @root.DmaAPI @root.SWConfigurationAPI @root.pinoutAPI @root.peripheralsResourceManagerAPI @root.strategy)~}}
+{{#each @root.list_includes}}
+#include "mx_{{lowercase this}}.h"
+{{/each}}
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+{{assign 'display_instance' ''~}}
+{{#each @root.object_cxt.periphs}}
+  {{#unless (occurrences  resource 'gpio')}}
+    {{#if (eq layer 'LL')}}
+      {{#if (length labels)}}
+        {{#unless (eq @root.display_instance resource_inst)}}
+  /* ***********************************************************
+                Aliases to {{resource_inst}} used in LL
+    *********************************************************** */
+          {{~assign 'display_instance' resource_inst}}
+        {{/unless}}
+        {{#each labels}}
+{{@root._define_}} {{this}}  {{../resource}}
+        {{/each}}
+
+      {{else}}
+  /* *************************************************************
+    {{resource_inst}} (LL): No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for CMSIS instance
+    ************************************************************* */
+
+      {{/if}}
+    {{/if}}
+    {{#if (and (eq layer 'HAL') aliase_instance)}}
+      {{#if (length labels)}}
+  /* ***********************************************************
+                Aliases to {{resource_inst}} used in {{layer}}
+    *********************************************************** */
+        {{#each labels}}
+{{@root._define_}} {{this}}  {{../aliase_instance}}
+        {{/each}}
+
+      {{else}}
+  /* *************************************************************
+    {{resource_inst}} ({{layer}}): No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for {{aliase_instance}}
+    ************************************************************* */
+
+      {{/if}}
+    {{/if}}
+  {{/unless}}
+  {{~assign 'display_exti_instance' 0~}}
+  {{#each exti_gethandle}}
+    {{#unless (eq layer 'HAL')}}
+      {{#if (gt (length aliases) 0)}}
+        {{#unless (eq @root.display_exti_instance resource)}}
+  /* ***********************************************************
+      {{resource}} / {{line}}: aliases for EXTI used in LL
+    *********************************************************** */
+          {{~assign 'display_exti_instance' resource}}
+
+        {{/unless}}
+        {{#each aliases}}
+{{@root._define_}} {{this}}  {{../line}}
+        {{/each}}
+
+      {{else}}
+  /* *************************************************************
+    {{resource}} / {{line}} (LL): No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for CMSIS instance
+    ************************************************************* */
+
+      {{/if}}
+    {{/unless}}
+  {{/each}}
+{{/each}}
+{{~assign 'list_dma_needs' (helper_common_get_ll_dma_instance_used_for_needs @root.DmaAPI @root.SWConfigurationAPI)~}}
+{{~assign 'display_exti_instance' 0}}
+{{#each list_dma_needs}}
+  {{#if (length alias)}}
+    {{#unless (eq @root.display_instance resource)}}
+  /* ***********************************************************
+      {{resource}} / {{channel}}: aliases for DMA channel used as a need
+    *********************************************************** */
+      {{~assign 'display_instance' resource}}
+    {{/unless}}
+    {{#each alias}}
+{{@root._define_}} {{uppercase this}}_CH  {{../layer}}_{{../channel}}
+    {{/each}}
+
+  {{else}}
+  /* *************************************************************
+    {{resource}} / {{channel}}: No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for Channel instance
+    ************************************************************* */
+
+  {{/if}}
+{{/each}}
+/* Exported macros -----------------------------------------------------------*/
+
+/* ########### Aliases to initialization functions ########### */
+
+{{assign 'display_instance' 0~}}
+{{#each @root.object_cxt.periphs}}
+{{#if (length labels)}}
+{{#unless (eq @root.display_instance resource_inst)}}
+  /* ***********************************************************
+      {{resource_inst}}: aliases for initialization functions
+    *********************************************************** */
+
+{{assign 'display_instance' resource_inst~}}
+{{/unless}}
+/**
+  * @brief  Initialize the {{fct_name}} with {{layer}} layer
+  *         Name of the User label:
+{{#each labels}}
+  *                   {{this}}
+{{/each}}
+{{#if cfg_name}}
+  *         Name of the Config label:
+  *                   {{cfg_name}}
+{{/if}}
+{{#if (and (eq layer 'HAL') (not (eq fct_name_gethandle '')))}}
+  * @retval hal_{{lowercase component}}_handle_t Pointer on the handle on the {{resource}} instance
+{{else if (and (eq layer 'HAL') (eq fct_name_gethandle ''))}}
+  * @retval system_status_t Value based on the system_status_t
+{{else}}
+  * @retval {{resource}} Pointer on the {{resource}}
+{{/if}}
+  */
+{{#each fct_name_aliases}}
+{{@root._define_}} {{this}}_init {{../fct_name}}_init
+
+{{/each}}
+{{else}}
+  /* *************************************************************
+    {{resource_inst}}: No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for {{fct_name}}_init
+    ************************************************************* */
+
+{{/if}}
+{{/each}}
+/* ########################################################### */
+
+/* ########### Aliases to De-Initialization functions ########### */
+
+{{assign 'display_instance' 0~}}
+{{#each @root.object_cxt.periphs}}
+{{#unless (eq resource 'RCC')}}
+{{#if (length labels)}}
+{{#unless (eq @root.display_instance resource_inst)}}
+  /* ***********************************************************
+      {{resource_inst}}: aliases for De-Initialization functions
+    *********************************************************** */
+
+{{assign 'display_instance' resource_inst~}}
+{{/unless}}
+/**
+  * @brief  De-Initialize the {{fct_name}} with {{layer}} layer
+  *         Name of the User label:
+{{#each labels}}
+  *                   {{this}}
+{{/each}}
+{{#if cfg_name}}
+  *         Name of the Config label:
+  *                   {{cfg_name}}
+{{/if}}
+  */
+{{#each fct_name_aliases}}
+{{@root._define_}} {{this}}_deinit {{../fct_name}}_deinit
+
+{{/each}}
+{{else}}
+  /* *************************************************************
+    {{resource_inst}}: No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for {{fct_name}}_deinit
+    ************************************************************* */
+
+{{/if}}
+{{/unless}}
+{{/each}}
+/* ########################################################### */
+
+/* ########### Aliases to get HAL handle functions ########### */
+
+{{assign 'display_instance' 0~}}
+{{#each @root.object_cxt.periphs}}
+  {{#if (eq layer 'HAL')}}
+    {{#unless (eq fct_name_gethandle '')}}
+      {{#if (length labels)}}
+      {{#unless (eq @root.display_instance resource_inst)}}
+  /* ***********************************************************
+      {{resource_inst}}: aliases for get handle functions
+    *********************************************************** */
+        {{~assign 'display_instance' resource_inst~}}
+
+      {{/unless}}
+/**
+  * @brief  Get the HAL handle for {{resource}}
+  *         Name of the User label:
+      {{#each labels}}
+  *                   {{this}}
+      {{/each}}
+  * @retval hal_{{lowercase component}}_handle_t Pointer on the handle on the {{resource}} instance
+  */
+      {{#each labels}}
+{{@root._define_}} {{lowercase this}}_gethandle {{../fct_name_gethandle}}_gethandle
+
+      {{/each}}
+    {{else}}
+  /* *************************************************************
+    {{resource_inst}}: No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for {{fct_name}}_gethandle
+    ************************************************************* */
+
+      {{/if}}
+    {{/unless}}
+  {{/if}}
+  {{~assign 'display_exti_instance' 0~}}
+  {{#each exti_gethandle}}
+    {{#if (eq layer 'HAL')}}
+      {{#if (gt (length aliases) 0)}}
+        {{#unless (eq @root.display_exti_instance resource)}}
+  /* ***********************************************************
+      {{resource}}/EXTI: aliases for EXTI get handle functions
+    *********************************************************** */
+          {{~assign 'display_exti_instance' resource}}
+
+        {{/unless}}
+/**
+  * @brief  Get the EXTI handle for {{line}} used for {{resource}}
+  * @retval hal_exti_handle_t Pointer on the handle on the {{line}} used by {{resource}} instance
+  */
+        {{#each aliases}}
+{{@root._define_}} {{lowercase this}}_gethandle {{../name_gethandle}}
+        {{/each}}
+
+      {{else}}
+  /* *************************************************************
+    {{resource}} / {{line}}: No EXTI software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for {{name_gethandle}}
+    ************************************************************* */
+
+      {{/if}}
+    {{/if}}
+  {{/each}}
+{{/each}}
+/* ########################################################### */
+
+/* ########### Aliases to get IRQ Handlers functions ########### */
+{{assign 'irq_handler_list' (helper_common_get_irq_handler @root.SWProjectAPI @root.DmaAPI @root.SWConfigurationAPI @root.pinoutAPI @root.peripheralsResourceManagerAPI @root.NvicAPI @root.pinoutAPI @root.ExtiAPI)~}}
+{{#if (gt (length @root.irq_handler_list) 0)}}
+  {{#each @root.irq_handler_list}}
+    {{#unless generated}}
+      {{#unless (eq alias '')}}
+        {{#if first_label}}
+  /* *************************************************************
+    {{resource}}{{#if channel_id}} / {{channel_id}}{{/if}}{{#if signal_name}} / {{signal_name}}{{/if}}{{#if exti_name}} / {{exti_name}}{{/if}}: {{nvic_config.description}}
+    Alias on {{nvic_config.name}}_IRQHandler and {{nvic_config.name}}_IRQn
+    ************************************************************* */
+        {{/if}}
+{{@root._define_}} {{lowercase alias}}_irqhandler {{nvic_config.name}}_IRQHandler
+{{@root._define_}} {{alias}}_IRQN       {{nvic_config.name}}_IRQn
+
+      {{else}}
+  /* *************************************************************
+    {{resource}}{{#if channel_id}} / {{channel_id}}{{/if}}{{#if signal_name}} / {{signal_name}}{{/if}}{{#if exti_name}} / {{exti_name}}{{/if}}: No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for {{nvic_config.name}}_IRQHandler and {{nvic_config.name}}_IRQn
+    ************************************************************* */
+
+      {{/unless}}
+    {{/unless}}
+  {{/each}}
+{{/if}}
+  /* ########################################################### */
+
+{{helper_dma_generate_lli_reg_aliases @root.DmaAPI @root.SWConfigurationAPI}}
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* MX_HAL_DEF_H */
+{{/helper_common_beautifier}}
