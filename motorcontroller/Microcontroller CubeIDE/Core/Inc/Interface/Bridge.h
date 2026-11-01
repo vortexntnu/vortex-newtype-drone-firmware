@@ -10,6 +10,7 @@ typedef struct {
 	float current;
 	float voltage;
 	float temp;
+	float consumption;
 } ThrusterMeasurement;
 
 typedef struct {
@@ -23,15 +24,17 @@ typedef struct {
 	float voltage;
 	float current_draw;
 	float esc_current_draw;
-	float other_current_draw;
+	float other_current_draw;;
 } BmsMeasurement;
 
 float bridge_lookup_eRPM(float thrust);
 
 int16_t bridge_lookup_DShot(float thrust_force, float voltage);
 
+float bridge_lookup_thrust(float esc_voltage, float duty);
+
 float bridge_lookup_max_thrust(float esc_voltage, bool direction);
 
-float bridge_calculate_esc_voltage(float esc_current_draw, float );
+float bridge_calculate_esc_voltage(float esc_current_draw, float other_current_draw);
 
 #endif
