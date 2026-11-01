@@ -10,7 +10,8 @@ C_SRCS += \
 ../Core/Src/Embedded/Converter.c \
 ../Core/Src/Embedded/DShot.c \
 ../Core/Src/Embedded/Debug.c \
-../Core/Src/Embedded/PWM.c 
+../Core/Src/Embedded/PWM.c \
+../Core/Src/Embedded/Weight.c 
 
 OBJS += \
 ./Core/Src/Embedded/Commands.o \
@@ -18,7 +19,8 @@ OBJS += \
 ./Core/Src/Embedded/Converter.o \
 ./Core/Src/Embedded/DShot.o \
 ./Core/Src/Embedded/Debug.o \
-./Core/Src/Embedded/PWM.o 
+./Core/Src/Embedded/PWM.o \
+./Core/Src/Embedded/Weight.o 
 
 C_DEPS += \
 ./Core/Src/Embedded/Commands.d \
@@ -26,7 +28,8 @@ C_DEPS += \
 ./Core/Src/Embedded/Converter.d \
 ./Core/Src/Embedded/DShot.d \
 ./Core/Src/Embedded/Debug.d \
-./Core/Src/Embedded/PWM.d 
+./Core/Src/Embedded/PWM.d \
+./Core/Src/Embedded/Weight.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -36,7 +39,7 @@ Core/Src/Embedded/%.o Core/Src/Embedded/%.su Core/Src/Embedded/%.cyclo: ../Core/
 clean: clean-Core-2f-Src-2f-Embedded
 
 clean-Core-2f-Src-2f-Embedded:
-	-$(RM) ./Core/Src/Embedded/Commands.cyclo ./Core/Src/Embedded/Commands.d ./Core/Src/Embedded/Commands.o ./Core/Src/Embedded/Commands.su ./Core/Src/Embedded/Controller.cyclo ./Core/Src/Embedded/Controller.d ./Core/Src/Embedded/Controller.o ./Core/Src/Embedded/Controller.su ./Core/Src/Embedded/Converter.cyclo ./Core/Src/Embedded/Converter.d ./Core/Src/Embedded/Converter.o ./Core/Src/Embedded/Converter.su ./Core/Src/Embedded/DShot.cyclo ./Core/Src/Embedded/DShot.d ./Core/Src/Embedded/DShot.o ./Core/Src/Embedded/DShot.su ./Core/Src/Embedded/Debug.cyclo ./Core/Src/Embedded/Debug.d ./Core/Src/Embedded/Debug.o ./Core/Src/Embedded/Debug.su ./Core/Src/Embedded/PWM.cyclo ./Core/Src/Embedded/PWM.d ./Core/Src/Embedded/PWM.o ./Core/Src/Embedded/PWM.su
+	-$(RM) ./Core/Src/Embedded/Commands.cyclo ./Core/Src/Embedded/Commands.d ./Core/Src/Embedded/Commands.o ./Core/Src/Embedded/Commands.su ./Core/Src/Embedded/Controller.cyclo ./Core/Src/Embedded/Controller.d ./Core/Src/Embedded/Controller.o ./Core/Src/Embedded/Controller.su ./Core/Src/Embedded/Converter.cyclo ./Core/Src/Embedded/Converter.d ./Core/Src/Embedded/Converter.o ./Core/Src/Embedded/Converter.su ./Core/Src/Embedded/DShot.cyclo ./Core/Src/Embedded/DShot.d ./Core/Src/Embedded/DShot.o ./Core/Src/Embedded/DShot.su ./Core/Src/Embedded/Debug.cyclo ./Core/Src/Embedded/Debug.d ./Core/Src/Embedded/Debug.o ./Core/Src/Embedded/Debug.su ./Core/Src/Embedded/PWM.cyclo ./Core/Src/Embedded/PWM.d ./Core/Src/Embedded/PWM.o ./Core/Src/Embedded/PWM.su ./Core/Src/Embedded/Weight.cyclo ./Core/Src/Embedded/Weight.d ./Core/Src/Embedded/Weight.o ./Core/Src/Embedded/Weight.su
 
 .PHONY: clean-Core-2f-Src-2f-Embedded
 

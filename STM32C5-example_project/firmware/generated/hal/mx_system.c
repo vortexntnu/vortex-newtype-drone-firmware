@@ -96,12 +96,6 @@ system_status_t mx_system_init(void)
     Peripheral init section
   */
 
-  /** USB_DRD_FS_DEVICE */
-  if (mx_usb_drd_fs_device_init() == NULL)
-  {
-    return SYSTEM_PERIPHERAL_ERROR;
-  }
-
   /** FDCAN1 */
   if (mx_fdcan1_init() == NULL)
   {
@@ -117,6 +111,12 @@ system_status_t mx_system_init(void)
 
   /** gpio_default */
   if (mx_gpio_default_init() != SYSTEM_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  /** USB_DRD_FS_DEVICE */
+  if (mx_usb_drd_fs_device_init() == NULL)
   {
     return SYSTEM_PERIPHERAL_ERROR;
   }

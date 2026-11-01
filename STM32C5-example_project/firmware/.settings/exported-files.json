@@ -1,7 +1,7 @@
 {
   "disclaimer": "Do not modify this file as it is used by STM32CubeMX2 to determine what and how to update your project with new configuration",
   "version": "1.0.0",
-  "timestamp": "2026-10-02T18:33:19.295Z",
+  "timestamp": "2026-10-14T16:08:09.655Z",
   "files": [
     {
       "fileGroup": "project_file",
@@ -79,7 +79,7 @@
       "fileGroup": "project_file",
       "checksum": {
         "algo": "sha256",
-        "digest": "1c1a9bf9f9eb7a45d15c12a2d509ce2b61f35065289f6e3ce5990cc980c8261d"
+        "digest": "8edd503c731e0b2b457699d746ac15e516122a465625296e60702b394d2071b7"
       },
       "file": "stm32c5xx_dfp/CMakeLists.txt"
     },
@@ -103,7 +103,7 @@
       "fileGroup": "pack",
       "checksum": {
         "algo": "sha256",
-        "digest": "253316e5a48335df29db61a884d2a49834d74784130e486bbb7bc0b5f3152dd1"
+        "digest": "23a6cd6dec61f4feca7b05a8851aea7f6c0a3a530c6c872b95767ac8f0fc3901"
       },
       "file": "stm32c5xx_dfp/RTE_Components.h"
     },
@@ -287,7 +287,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "3586483bfc38dab265f0941e341cf9513cde30cee7fb2783952c6cc9cb674a6d"
+        "digest": "36974291827e03ee683522607c4ee93a3250ecf638224bd140521c963b941537"
       },
       "file": "generated/hal/mx_rcc.c"
     },
@@ -311,7 +311,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "7c81fdd6a6d98eb62b09c3dc803a9bcec4c4aaeff8be5e4569d3f746cf9332d7"
+        "digest": "1e7ffc34ceae9520ca2d86f2865d0afd8dfa79411b1507bc6988315a6d851383"
       },
       "file": "generated/hal/mx_system.c"
     },
@@ -343,7 +343,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "326a31cb7062475dccd42405710615398707daf47613159530ecfe0d6ac35d27"
+        "digest": "12671fcabc71af9627722ba339cfc96600fcec0f5dba6a86700ee27524231f5e"
       },
       "file": "generated/hal/mx_usb_drd_fs.c"
     },
@@ -415,7 +415,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "29657b98361b0f0c29f9e8efc3ca4192d0241048b9727ed811917b469c017c5b"
+        "digest": "5205efe74ed6ee8dfb5e3a4bedc754d90556c5cd2537c14bff7a2875b179715d"
       },
       "file": "generated/middleware/FreeRTOSConfig.h"
     },
@@ -423,7 +423,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "a5aec66d8827ef42afb1029eb64f6f5b4c3fd89b4b8a0a6341200408dd02419b"
+        "digest": "511948df145fb485eb20a16c434026923ff75ba615496af2cb0558b89b8ca355"
       },
       "file": "generated/middleware/mx_freertos_app.c"
     },

@@ -18,17 +18,21 @@
 #include "mx_freertos_app.h"
 
 /* Private define ------------------------------------------------------------*/
-#define Task1_stack_size  128U
+#define Blinky_stack_size  128U
+#define USB_Sender_stack_size  128U
 /* Private typedef -----------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /*-------------------- Tasks definition --------------------------------------*/
-/* Definitions for Task1 */
-static TaskHandle_t Task1_Handle;
+/* Definitions for Blinky */
+static TaskHandle_t Blinky_Handle;
+/* Definitions for USB_Sender */
+static TaskHandle_t USB_Sender_Handle;
 
 /* Private functions prototype -----------------------------------------------*/
 /* Tasks entry function ------------------------------------------------------*/
 static void function1(void *pvParameters);
+static void function2(void *pvParameters);
 
 /**
   * @brief Initializes FreeRTOS kernel objects.
@@ -39,9 +43,18 @@ int32_t app_synctasks_init (void)
 {
   BaseType_t ret;
 
-  /* Task1 creation-------------------------------------*/
-  ret = xTaskCreate(function1, "Task1", Task1_stack_size,
-                    (void*) NULL, 0, &Task1_Handle);
+  /* Blinky creation-------------------------------------*/
+  ret = xTaskCreate(function1, "Blinky", Blinky_stack_size,
+                    (void*) NULL, 0, &Blinky_Handle);
+
+  if (ret != pdPASS)
+  {
+      return -1;
+  }
+
+  /* USB_Sender creation-------------------------------------*/
+  ret = xTaskCreate(function2, "USB_Sender", USB_Sender_stack_size,
+                    (void*) NULL, 0, &USB_Sender_Handle);
 
   if (ret != pdPASS)
   {
@@ -53,7 +66,7 @@ int32_t app_synctasks_init (void)
 
 /* Tasks entry function ------------------------------------------------------*/
 /**
-  * @brief Function implementing the Task1 thread.
+  * @brief Function implementing the Blinky thread.
   * @param pvParameters: A pointer to the parameters passed to the task.
   * @retval None
   */
@@ -63,10 +76,22 @@ static void function1(void *pvParameters)
 
   for(;;)
   {
-    /* Infinite loop executing Task1 functionality. */
-    
-    HAL_GPIO_TogglePin(HAL_GPIOA, HAL_GPIO_PIN_5);
-    vTaskDelay(1000);
+    /* Infinite loop executing Blinky functionality. */
   }
 }
 
+/**
+  * @brief Function implementing the USB_Sender thread.
+  * @param pvParameters: A pointer to the parameters passed to the task.
+  * @retval None
+  */
+static void function2(void *pvParameters)
+{
+  ( void ) pvParameters;
+
+  for(;;)
+  {
+    printf("Hello USB\r\n");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
