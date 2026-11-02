@@ -10,15 +10,23 @@
 
 ## Overview
 
-An overview
+Can-bootloader for stm32c5.
 
 ## IDK
 
-Your explanation here
+Currently configured to work on stm32c542RC, probably needs other ports on CC.
+
+To build:
+Either use the IDE, configure it correctly, and press the build button.
+OR
+Use 'cmake --build build/debug_GCC_NUCLEO-C542RC'.
 
 ## Libraries/Dependencies
 
-List them
+<ul>
+<li>CMake</li>
+<li>The correct version of arm-none-eabi-Everything-Basically</li>
+</ul>
 
 ## License
 
