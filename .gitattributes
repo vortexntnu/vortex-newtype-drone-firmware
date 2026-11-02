@@ -3,31 +3,31 @@
 # Adjust paths to match your project layout.
 
 # --- STM32CubeMX generated ---
-.mxproject                      linguist-generated=true
-Core/Startup/*.s                linguist-generated=true
-Core/Src/system_stm32*.c        linguist-generated=true
-Core/Src/sysmem.c               linguist-generated=true
-Core/Src/syscalls.c             linguist-generated=true
-Core/Inc/stm32*_hal_conf.h      linguist-generated=true
+*.mxproject                      linguist-generated=true
+*Core/Startup/*.s                linguist-generated=true
+*Core/Src/system_stm32*.c        linguist-generated=true
+*Core/Src/sysmem.c               linguist-generated=true
+*Core/Src/syscalls.c             linguist-generated=true
+*Core/Inc/stm32*_hal_conf.h      linguist-generated=true
 *_FLASH.ld                      linguist-generated=true
 *_RAM.ld                        linguist-generated=true
 
 # --- ST vendor code copied in by CubeMX ---
-Drivers/**                      linguist-generated=true
-Middlewares/ST/**               linguist-generated=true
-Middlewares/Third_Party/**      linguist-generated=true
-USB_DEVICE/Target/**            linguist-generated=true
-FATFS/Target/**                 linguist-generated=true
+*Drivers/**                      linguist-generated=true
+*Middlewares/ST/**               linguist-generated=true
+*Middlewares/Third_Party/**      linguist-generated=true
+*USB_DEVICE/Target/**            linguist-generated=true
+*FATFS/Target/**                 linguist-generated=true
 
 # --- STM32CubeIDE project metadata ---
-.cproject                       linguist-generated=true
-.project                        linguist-generated=true
-.settings/**                    linguist-generated=true
+*.cproject                       linguist-generated=true
+*.project                        linguist-generated=true
+*.settings/**                    linguist-generated=true
 *.launch                        linguist-generated=true
 
 # --- Build output (better to .gitignore these, but just in case) ---
-Debug/**                        linguist-generated=true
-Release/**                      linguist-generated=true
+*Debug/**                        linguist-generated=true
+*Release/**                      linguist-generated=true
 
 # NOT marked on purpose (you edit these, so keep them reviewable):
 #   *.ioc
