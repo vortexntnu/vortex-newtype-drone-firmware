@@ -3,7 +3,7 @@
 
 #include "main.h"
 
-void PWM_Init();
-void PWM_SetDuty(uint16_t power);
+void pwm_init();
+void pwm_set_duty(uint16_t power);
 
 #endif

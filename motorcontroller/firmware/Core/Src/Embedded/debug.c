@@ -9,13 +9,13 @@
 extern UART_HandleTypeDef *COMMUNICATION_PORT;
 
 char command[COMMAND_MAX_LENGTH + 1] = "";
-char commandPrefix[] = "> ";
+char command_prefix[] = "> ";
 
 
 //
 
 
-bool String_IsEmpty(const char string[]) {
+bool string_is_empty(const char string[]) {
 	return string == NULL || string[0] == '\0';
 }
 
@@ -23,7 +23,7 @@ bool String_IsEmpty(const char string[]) {
 //
 
 
-bool ConcatinateWithinBounds(char output[], const char append[], uint8_t bound) // -> isFilled
+bool concatinate_within_bounds(char output[], const char append[], uint8_t bound) // -> isFilled
 {
 	uint8_t outputLength = strlen(output);
 	uint8_t appendLength = strlen(append);
@@ -46,36 +46,36 @@ bool ConcatinateWithinBounds(char output[], const char append[], uint8_t bound) 
 	return true;
 }
 
-void UART_Transmit(const char message[])
+void uart_transmit(const char message[])
 {
-	HAL_UART_Transmit(COMMUNICATION_PORT, (uint8_t*)message, strlen(message), UART_TRANSMIT_TIMEOUT);
+	HAL_uart_transmit(COMMUNICATION_PORT, (uint8_t*)message, strlen(message), UART_TRANSMIT_TIMEOUT);
 }
 
 
 //
 
 
-void Command_WriteTerminal(const char message[])
+void command_write_terminal(const char message[])
 {
-	uint8_t prefixLength = strlen(commandPrefix);
+	uint8_t prefix_length = strlen(command_prefix);
 	uint8_t commandLength = strlen(command);
 
-	char commandline[prefixLength + commandLength + 1];
+	char commandline[prefix_length + commandLength + 1];
 
-	strcpy(commandline, commandPrefix);
+	strcpy(commandline, command_prefix);
 	strcat(commandline, command);
 
-	UART_Transmit("\r\033[2K");
+	uart_transmit("\r\033[2K");
 
-	if (!String_IsEmpty(message)) {
-		UART_Transmit(message);
-		UART_Transmit("\r\n");
+	if (!string_is_empty(message)) {
+		uart_transmit(message);
+		uart_transmit("\r\n");
 	}
 
-	UART_Transmit(commandline);
+	uart_transmit(commandline);
 }
 
-void Command_AppendCharacter(char character)
+void command_append_character(char character)
 {
 	uint8_t length = strlen(command);
 	if (length >= COMMAND_MAX_LENGTH) return;
@@ -84,7 +84,7 @@ void Command_AppendCharacter(char character)
 	strcat(command, string);
 }
 
-void Command_RemoveCharacter()
+void command_remove_character()
 {
 	uint8_t length = strlen(command);
 	if (length <= 0) return;
@@ -92,80 +92,80 @@ void Command_RemoveCharacter()
 	command[length - 1] = '\0';
 }
 
-void Command_Enter()
+void command_enter()
 {
-	Commands_ExecuteCommand(command);
+	commands_execute_command(command);
 //	char output[] = "Command not recognized";
 
 	command[0] = '\0';
-	Command_WriteTerminal("");
+	command_write_terminal("");
 }
 
 
 //
 
 
-void Debug_PrintRaw(const char message[])
+void debug_print_raw(const char message[])
 {
-	Command_WriteTerminal(message);
+	command_write_terminal(message);
 }
 
-void Debug_Print(const char message[], ...)
+void debug_print(const char message[], ...)
 {
 	char output[DEBUG_PRINT_MAX_LENGTH + 1] = "";
-    va_list Arguments;
+    va_list arguments;
 
-    va_start(Arguments, message);
+    va_start(arguments, message);
 
     for (uint16_t i = 0; i < strlen(message); i++) {
     	char character = message[i];
 
     	if (character == '%') {
-    		const char *argument = va_arg(Arguments, const char *);
+    		const char *argument = va_arg(arguments, const char *);
     		if (argument == NULL) break;
 
-    		bool filled = ConcatinateWithinBounds(output, argument, DEBUG_PRINT_MAX_LENGTH);
+    		bool filled = concatinate_within_bounds(output, argument, DEBUG_PRINT_MAX_LENGTH);
     		if (filled) break;
 
     		continue;
     	}
 
 		char string[] = {character, '\0'};
-		bool filled = ConcatinateWithinBounds(output, string, DEBUG_PRINT_MAX_LENGTH); // TODO DOES NOT NEED TO CALL THIS BOHEMITH
+		bool filled = concatinate_within_bounds(output, string, DEBUG_PRINT_MAX_LENGTH); // TODO DOES NOT NEED TO CALL THIS BOHEMITH
 		if (filled) break;
     }
 
-    va_end(Arguments);
+    va_end(arguments);
 
-    Command_WriteTerminal(output);
+    command_write_terminal(output);
 }
 
-void Debug_ReadUART()
+void debug_read_uart()
 {
-	uint8_t dataWaiting = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_RXNE);
-	uint8_t dataOverflow = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_ORE);
+	uint8_t data_waiting = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_RXNE);
+	uint8_t data_overflow = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_ORE);
 	BSP_LED_Toggle(LED_RED);
 
-	if (dataWaiting) {
-		uint8_t receivedByte;
-		HAL_UART_Receive(COMMUNICATION_PORT, &receivedByte, 1, 0);
+	if (data_waiting) {
+		uint8_t received_byte;
+		HAL_UART_Receive(COMMUNICATION_PORT, &received_byte, 1, 0);
 
-		switch(receivedByte) {
+		switch(received_byte) {
 			case '\x7f':
-				Command_RemoveCharacter();
+				command_remove_character();
 				break;
 			case '\r':
-				Command_Enter();
+				command_enter();
 				break;
 			default:
-				uint8_t normalCharacter = receivedByte >= ' ' && receivedByte <= '~';
-				if (normalCharacter) Command_AppendCharacter(receivedByte);
+				uint8_t normalCharacter = received_byte >= ' ' && received_byte <= '~';
+				if (normalCharacter) command_append_character(received_byte);
 		}
 
-		Command_WriteTerminal("");
+		command_write_terminal("");
 
-	} else if (dataOverflow) {
+	} else if (data_overflow) {
 		__HAL_UART_CLEAR_OREFLAG(COMMUNICATION_PORT);
-		Debug_PrintRaw("UART Overflow ");
+		debug_print_raw("UART Overflow ");
 	}
 }

@@ -17,27 +17,27 @@ UART_HandleTypeDef *COMMUNICATION_PORT = &hcom_uart[COM1];
 //
 
 
-void Controller_Init() {
-	PWM_Init();
+void controller_init() {
+	pwm_init();
 	Weight_Init();
 }
 
-void Controller_Main() {
-	Debug_ReadUART();
+void controller_main() {
+	debug_read_uart();
 
-//	DShot_Update();
+//	dshot_update();
 }
 
-void Controller_Blinky() {
+void controller_blinky() {
 	BSP_LED_Toggle(LED_GREEN);
-//	DShot_Update();
+//	dshot_update();
 
 	uint16_t weight = Weight_Read(1);
 	char string[10];
-	Converter_UIntToString(string, weight);
-	Debug_Print(string);
+	converter_uint_to_string(string, weight);
+	debug_print(string);
 }
 
-void Controller_CAN() {
+void controller_can() {
 
 }

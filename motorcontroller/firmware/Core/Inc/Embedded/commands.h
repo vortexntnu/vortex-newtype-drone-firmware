@@ -5,6 +5,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-void Commands_ExecuteCommand();
+void commands_execute_command();
 
 #endif

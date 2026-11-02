@@ -10,21 +10,21 @@ typedef enum {
     THRUST_ALLOCATOR_INVALID_INPUT = 1,
     THRUST_ALLOCATOR_SOLVER_FAILED = 2,
     THRUST_ALLOCATOR_INVALID_SOLUTION = 3
-} allocator_status;
+} AllocatorStatus;
 
 typedef struct {
     double tau[6];
     double lower[8];
     double upper[8];
     double x0[8];
-} allocator_inputs;
+} AllocatorInputs;
 
 /*
  * Allocate thrust for tau = [Fx,Fy,Fz,Tx,Ty,Tz] in N and N*m.
  * forces (N) and cost are output parameters, written only on success.
  * x0 is the initial guess, usually the previous forces.
  */
-allocator_status thrust_allocator_solve(const allocator_inputs *inputs,
+AllocatorStatus thrust_allocator_solve(const AllocatorInputs *inputs,
                                        double forces[8], double *cost);
 
 #ifdef __cplusplus

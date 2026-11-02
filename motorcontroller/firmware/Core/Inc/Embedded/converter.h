@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-uint8_t Converter_UIntToStringLength(uint32_t number);
-uint8_t Converter_UIntToString(char *Output, uint32_t number);
-uint8_t Converter_StringToUInt(uint32_t *Output, const char String[]);
+uint8_t converter_uint_to_string_length(uint32_t number);
+uint8_t converter_uint_to_string(char *Output, uint32_t number);
+uint8_t converter_string_to_uint(uint32_t *Output, const char String[]);
 
 #endif

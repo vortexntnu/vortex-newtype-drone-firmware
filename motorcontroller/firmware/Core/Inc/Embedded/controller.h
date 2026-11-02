@@ -3,9 +3,9 @@
 
 #include <stdbool.h>
 
-void Controller_Init();
-void Controller_Main();
-void Controller_Blinky();
-void Controller_CAN();
+void controller_init();
+void controller_main();
+void controller_blinky();
+void controller_can();
 
 #endif

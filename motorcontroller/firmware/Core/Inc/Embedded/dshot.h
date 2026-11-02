@@ -3,8 +3,8 @@
 
 #include <stdbool.h>
 
-void DShot_SetDuty(uint16_t duty, bool telemetry);
-void DShot_Update();
-void DShot_Init();
+void dshot_set_duty(uint16_t duty, bool telemetry);
+void dshot_update();
+void dshot_init();
 
 #endif

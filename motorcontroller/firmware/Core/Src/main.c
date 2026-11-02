@@ -575,7 +575,7 @@ static void MX_TIM1_Init(void)
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  if (HAL_TIM_pwm_init(&htim1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -680,11 +680,11 @@ static void MX_GPIO_Init(void)
 void RTOS_Main(void *argument)
 {
   /* USER CODE BEGIN 5 */
-	Controller_Init();
+	controller_init();
   /* Infinite loop */
   for(;;)
   {
-	  Controller_Main();
+	  controller_main();
     osDelay(50);
   }
   /* USER CODE END 5 */
@@ -703,7 +703,7 @@ void RTOS_Blinky(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  Controller_Blinky();
+	  controller_blinky();
 //    osDelay(1000/1000);
 	  osDelay(250);
   }
@@ -723,7 +723,7 @@ void RTOS_CAN(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  Controller_CAN();
+	  controller_can();
     osDelay(2000);
   }
   /* USER CODE END RTOS_CAN */

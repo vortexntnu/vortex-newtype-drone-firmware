@@ -1,6 +1,6 @@
+#include <commands.h>
 #include <converter.h>
 #include <dshot.h>
-#include <Embedded/Commands.h>
 #include <pwm.h>
 
 
@@ -9,56 +9,56 @@
 
 
 typedef struct {
-    int argumentCount;
-    char **argumentVector;
+    int arguments_count;
+    char **arguments_vector;
 } CommandContext;
 
 typedef struct {
     const char *category;
     const char *command;
-    void (*handler)(CommandContext *Context);
+    void (*handler)(CommandContext *context);
 } StaticCommand;
 
 
 //
 
 
-static void command_pwm_set_duty(CommandContext *Context)
+void command_pwm_set_duty(CommandContext *context)
 {
-	if (Context->argumentCount == 0) {
-		Debug_Print("No duty given");
+	if (*context_argument_count == 0) {
+		debug_print("No duty given");
 		return;
 	}
 
-	char *dutyString = Context->argumentVector[0];
+	char *duty_string = *context_argument_vector[0];
 	uint32_t duty;
 
-	if (!Converter_StringToUInt(&duty, dutyString)) {
-		Debug_Print("Invalid DShot duty");
+	if (!converter_string_to_uint(&duty, duty_string)) {
+		debug_print("Invalid DShot duty");
 		return;
 	}
 
-	Debug_Print("Setting PWM duty to %", dutyString);
-	PWM_SetDuty(duty);
+	debug_print("Setting PWM duty to %", duty_string);
+	pwm_set_duty(duty);
 }
 
-static void command_dshot_set_duty(CommandContext *Context)
+void command_dshot_set_duty(CommandContext *context)
 {
-	if (Context->argumentCount == 0) {
-		Debug_Print("No duty given");
+	if (*context_argument_count == 0) {
+		debug_print("No duty given");
 		return;
 	}
 
-	char *dutyString = Context->argumentVector[0];
+	char *duty_string = *context_argument_vector[0];
 	uint32_t duty;
 
-	if (!Converter_StringToUInt(&duty, dutyString)) {
-		Debug_Print("Invalid DShot duty");
+	if (!converter_string_to_uint(&duty, duty_string)) {
+		debug_print("Invalid DShot duty");
 		return;
 	}
 
-	Debug_Print("Setting DShot duty to %", dutyString);
-	DShot_SetDuty(duty, false);
+	debug_print("Setting DShot duty to %", duty_string);
+	dshot_set_duty(duty, false);
 }
 
 
@@ -78,29 +78,29 @@ static const StaticCommand COMMAND_TABLE[] = {
 //
 
 
-void Commands_ExecuteCommand(const char command[])
+void commands_execute_command(const char command[])
 {
 	char copy[strlen(command) + 1];
 	strcpy(copy, command);
 
 	char *category = strtok(copy, COMMAND_SEPARATOR);
 	if (category == NULL) {
-		Debug_Print("No category was given");
+		debug_print("No category was given");
 		return;
 	}
 
 	char *name = strtok(NULL, COMMAND_SEPARATOR);
 	if (name == NULL) {
-		Debug_Print("No command was given");
+		debug_print("No command was given");
 		return;
 	}
 
-	char *Arguments[COMMAND_MAX_ARGUMENTS];
+	char *arguments[COMMAND_MAX_ARGUMENTS];
 	char *argument = strtok(NULL, COMMAND_SEPARATOR);
-	uint8_t argumentCount = 0;
+	uint8_t arguments_count = 0;
 
-	while (argument != NULL && argumentCount < COMMAND_MAX_ARGUMENTS) {
-		Arguments[argumentCount++] = argument;
+	while (argument != NULL && arguments_count < COMMAND_MAX_ARGUMENTS) {
+		arguments[arguments_count++] = argument;
 		argument = strtok(NULL, COMMAND_SEPARATOR);
 	}
 
@@ -112,13 +112,13 @@ void Commands_ExecuteCommand(const char command[])
 		if ( strcmp(entry.command, name) ) continue;
 
 		CommandContext Context = {
-			.argumentCount = argumentCount,
-			.argumentVector = Arguments
+			.arguments_count = arguments_count,
+			.arguments_vector = arguments
 		};
 
 		entry.handler(&Context);
 		return;
 	}
 
-	Debug_Print("Unknown command");
+	debug_print("Unknown command");
 }

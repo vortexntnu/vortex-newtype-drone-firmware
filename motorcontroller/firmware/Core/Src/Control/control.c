@@ -3,8 +3,8 @@
 
 ControlErrorCode control_init()
 {
-	Debug_Print("Hello, world!");
-	return SUCCESS;
+	debug_print("Hello, world!");
+	return ControlErrorCode.SUCCESS;
 }
 
 ControlErrorCode control_allocate_thrust(float wrench[6], AllocatorParams allocator_parameters, float output_thrust[8])

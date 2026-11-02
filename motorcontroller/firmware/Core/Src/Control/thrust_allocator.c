@@ -10,7 +10,7 @@ Probably add some logic related to the status codes.
 Read thrust_allocator.h for more info about arguments.
 */
 
-allocator_status thrust_allocator_solve(const allocator_inputs *inputs,
+AllocatorStatus thrust_allocator_solve(const AllocatorInputs *inputs,
                                        double forces[8], double *cost)
 {
     if (!inputs || !forces || !cost) {
