@@ -23,7 +23,7 @@ typedef struct {
 //
 
 
-void Command_PWM_SetDuty(CommandContext *Context)
+static void command_pwm_set_duty(CommandContext *Context)
 {
 	if (Context->argumentCount == 0) {
 		Debug_Print("No duty given");
@@ -42,7 +42,7 @@ void Command_PWM_SetDuty(CommandContext *Context)
 	PWM_SetDuty(duty);
 }
 
-void Command_DShot_SetDuty(CommandContext *Context)
+static void command_dshot_set_duty(CommandContext *Context)
 {
 	if (Context->argumentCount == 0) {
 		Debug_Print("No duty given");
@@ -66,8 +66,8 @@ void Command_DShot_SetDuty(CommandContext *Context)
 
 
 static const StaticCommand COMMAND_TABLE[] = {
-    {"PWM",  "SetDuty", Command_PWM_SetDuty},
-	{"DShot",  "SetDuty", Command_DShot_SetDuty},
+    {"PWM",  "SetDuty", command_pwm_set_duty},
+	{"DShot",  "SetDuty", command_dshot_set_duty},
 };
 
 #define COMMAND_COUNT (sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]))
