@@ -445,12 +445,12 @@ Disassembly of section .text:
  80006d8:	4770      	bx	lr
  80006da:	bf00      	nop
 
-080006dc <Command_PWM_SetDuty>:
+080006dc <command_pwm_set_duty>:
 
 //
 
 
-void Command_PWM_SetDuty(CommandContext *Context)
+void command_pwm_set_duty(CommandContext *Context)
 {
  80006dc:	b580      	push	{r7, lr}
  80006de:	b084      	sub	sp, #16
@@ -460,12 +460,12 @@ void Command_PWM_SetDuty(CommandContext *Context)
  80006e4:	687b      	ldr	r3, [r7, #4]
  80006e6:	681b      	ldr	r3, [r3, #0]
  80006e8:	2b00      	cmp	r3, #0
- 80006ea:	d103      	bne.n	80006f4 <Command_PWM_SetDuty+0x18>
-		Debug_Print("No duty given");
- 80006ec:	4810      	ldr	r0, [pc, #64]	@ (8000730 <Command_PWM_SetDuty+0x54>)
- 80006ee:	f000 fba8 	bl	8000e42 <Debug_Print>
+ 80006ea:	d103      	bne.n	80006f4 <command_pwm_set_duty+0x18>
+		debug_print("No duty given");
+ 80006ec:	4810      	ldr	r0, [pc, #64]	@ (8000730 <command_pwm_set_duty+0x54>)
+ 80006ee:	f000 fba8 	bl	8000e42 <debug_print>
 		return;
- 80006f2:	e019      	b.n	8000728 <Command_PWM_SetDuty+0x4c>
+ 80006f2:	e019      	b.n	8000728 <command_pwm_set_duty+0x4c>
 	}
 
 	char *dutyString = Context->argumentVector[0];
@@ -475,30 +475,30 @@ void Command_PWM_SetDuty(CommandContext *Context)
  80006fa:	60fb      	str	r3, [r7, #12]
 	uint32_t duty;
 
-	if (!Converter_StringToUInt(&duty, dutyString)) {
+	if (!converter_string_to_uint(&duty, dutyString)) {
  80006fc:	f107 0308 	add.w	r3, r7, #8
  8000700:	68f9      	ldr	r1, [r7, #12]
  8000702:	4618      	mov	r0, r3
- 8000704:	f000 f9d8 	bl	8000ab8 <Converter_StringToUInt>
+ 8000704:	f000 f9d8 	bl	8000ab8 <converter_string_to_uint>
  8000708:	4603      	mov	r3, r0
  800070a:	2b00      	cmp	r3, #0
- 800070c:	d103      	bne.n	8000716 <Command_PWM_SetDuty+0x3a>
-		Debug_Print("Invalid DShot duty");
- 800070e:	4809      	ldr	r0, [pc, #36]	@ (8000734 <Command_PWM_SetDuty+0x58>)
- 8000710:	f000 fb97 	bl	8000e42 <Debug_Print>
+ 800070c:	d103      	bne.n	8000716 <command_pwm_set_duty+0x3a>
+		debug_print("Invalid DShot duty");
+ 800070e:	4809      	ldr	r0, [pc, #36]	@ (8000734 <command_pwm_set_duty+0x58>)
+ 8000710:	f000 fb97 	bl	8000e42 <debug_print>
 		return;
- 8000714:	e008      	b.n	8000728 <Command_PWM_SetDuty+0x4c>
+ 8000714:	e008      	b.n	8000728 <command_pwm_set_duty+0x4c>
 	}
 
-	Debug_Print("Setting PWM duty to %", dutyString);
+	debug_print("Setting PWM duty to %", dutyString);
  8000716:	68f9      	ldr	r1, [r7, #12]
- 8000718:	4807      	ldr	r0, [pc, #28]	@ (8000738 <Command_PWM_SetDuty+0x5c>)
- 800071a:	f000 fb92 	bl	8000e42 <Debug_Print>
-	PWM_SetDuty(duty);
+ 8000718:	4807      	ldr	r0, [pc, #28]	@ (8000738 <command_pwm_set_duty+0x5c>)
+ 800071a:	f000 fb92 	bl	8000e42 <debug_print>
+	pwm_set_duty(duty);
  800071e:	68bb      	ldr	r3, [r7, #8]
  8000720:	b29b      	uxth	r3, r3
  8000722:	4618      	mov	r0, r3
- 8000724:	f000 fc5c 	bl	8000fe0 <PWM_SetDuty>
+ 8000724:	f000 fc5c 	bl	8000fe0 <pwm_set_duty>
 }
  8000728:	3710      	adds	r7, #16
  800072a:	46bd      	mov	sp, r7
@@ -508,9 +508,9 @@ void Command_PWM_SetDuty(CommandContext *Context)
  8000734:	080112d8 	.word	0x080112d8
  8000738:	080112ec 	.word	0x080112ec
 
-0800073c <Command_DShot_SetDuty>:
+0800073c <command_dshot_set_duty>:
 
-void Command_DShot_SetDuty(CommandContext *Context)
+void command_dshot_set_duty(CommandContext *Context)
 {
  800073c:	b580      	push	{r7, lr}
  800073e:	b084      	sub	sp, #16
@@ -520,12 +520,12 @@ void Command_DShot_SetDuty(CommandContext *Context)
  8000744:	687b      	ldr	r3, [r7, #4]
  8000746:	681b      	ldr	r3, [r3, #0]
  8000748:	2b00      	cmp	r3, #0
- 800074a:	d103      	bne.n	8000754 <Command_DShot_SetDuty+0x18>
-		Debug_Print("No duty given");
- 800074c:	4810      	ldr	r0, [pc, #64]	@ (8000790 <Command_DShot_SetDuty+0x54>)
- 800074e:	f000 fb78 	bl	8000e42 <Debug_Print>
+ 800074a:	d103      	bne.n	8000754 <command_dshot_set_duty+0x18>
+		debug_print("No duty given");
+ 800074c:	4810      	ldr	r0, [pc, #64]	@ (8000790 <command_dshot_set_duty+0x54>)
+ 800074e:	f000 fb78 	bl	8000e42 <debug_print>
 		return;
- 8000752:	e01a      	b.n	800078a <Command_DShot_SetDuty+0x4e>
+ 8000752:	e01a      	b.n	800078a <command_dshot_set_duty+0x4e>
 	}
 
 	char *dutyString = Context->argumentVector[0];
@@ -535,31 +535,31 @@ void Command_DShot_SetDuty(CommandContext *Context)
  800075a:	60fb      	str	r3, [r7, #12]
 	uint32_t duty;
 
-	if (!Converter_StringToUInt(&duty, dutyString)) {
+	if (!converter_string_to_uint(&duty, dutyString)) {
  800075c:	f107 0308 	add.w	r3, r7, #8
  8000760:	68f9      	ldr	r1, [r7, #12]
  8000762:	4618      	mov	r0, r3
- 8000764:	f000 f9a8 	bl	8000ab8 <Converter_StringToUInt>
+ 8000764:	f000 f9a8 	bl	8000ab8 <converter_string_to_uint>
  8000768:	4603      	mov	r3, r0
  800076a:	2b00      	cmp	r3, #0
- 800076c:	d103      	bne.n	8000776 <Command_DShot_SetDuty+0x3a>
-		Debug_Print("Invalid DShot duty");
- 800076e:	4809      	ldr	r0, [pc, #36]	@ (8000794 <Command_DShot_SetDuty+0x58>)
- 8000770:	f000 fb67 	bl	8000e42 <Debug_Print>
+ 800076c:	d103      	bne.n	8000776 <command_dshot_set_duty+0x3a>
+		debug_print("Invalid DShot duty");
+ 800076e:	4809      	ldr	r0, [pc, #36]	@ (8000794 <command_dshot_set_duty+0x58>)
+ 8000770:	f000 fb67 	bl	8000e42 <debug_print>
 		return;
- 8000774:	e009      	b.n	800078a <Command_DShot_SetDuty+0x4e>
+ 8000774:	e009      	b.n	800078a <command_dshot_set_duty+0x4e>
 	}
 
-	Debug_Print("Setting DShot duty to %", dutyString);
+	debug_print("Setting DShot duty to %", dutyString);
  8000776:	68f9      	ldr	r1, [r7, #12]
- 8000778:	4807      	ldr	r0, [pc, #28]	@ (8000798 <Command_DShot_SetDuty+0x5c>)
- 800077a:	f000 fb62 	bl	8000e42 <Debug_Print>
-	DShot_SetDuty(duty, false);
+ 8000778:	4807      	ldr	r0, [pc, #28]	@ (8000798 <command_dshot_set_duty+0x5c>)
+ 800077a:	f000 fb62 	bl	8000e42 <debug_print>
+	dshot_set_duty(duty, false);
  800077e:	68bb      	ldr	r3, [r7, #8]
  8000780:	b29b      	uxth	r3, r3
  8000782:	2100      	movs	r1, #0
  8000784:	4618      	mov	r0, r3
- 8000786:	f000 f9fb 	bl	8000b80 <DShot_SetDuty>
+ 8000786:	f000 f9fb 	bl	8000b80 <dshot_set_duty>
 }
  800078a:	3710      	adds	r7, #16
  800078c:	46bd      	mov	sp, r7
@@ -568,12 +568,12 @@ void Command_DShot_SetDuty(CommandContext *Context)
  8000794:	080112d8 	.word	0x080112d8
  8000798:	08011304 	.word	0x08011304
 
-0800079c <Commands_ExecuteCommand>:
+0800079c <commands_execute_command>:
 
 //
 
 
-void Commands_ExecuteCommand(const char command[])
+void commands_execute_command(const char command[])
 {
  800079c:	e92d 43f0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, lr}
  80007a0:	b097      	sub	sp, #92	@ 0x5c
@@ -617,40 +617,40 @@ void Commands_ExecuteCommand(const char command[])
  80007fc:	f00f fed1 	bl	80105a2 <strcpy>
 
 	char *category = strtok(copy, COMMAND_SEPARATOR);
- 8000800:	493d      	ldr	r1, [pc, #244]	@ (80008f8 <Commands_ExecuteCommand+0x15c>)
+ 8000800:	493d      	ldr	r1, [pc, #244]	@ (80008f8 <commands_execute_command+0x15c>)
  8000802:	6cb8      	ldr	r0, [r7, #72]	@ 0x48
  8000804:	f00f fd96 	bl	8010334 <strtok>
  8000808:	6478      	str	r0, [r7, #68]	@ 0x44
 	if (category == NULL) {
  800080a:	6c7b      	ldr	r3, [r7, #68]	@ 0x44
  800080c:	2b00      	cmp	r3, #0
- 800080e:	d103      	bne.n	8000818 <Commands_ExecuteCommand+0x7c>
-		Debug_Print("No category was given");
- 8000810:	483a      	ldr	r0, [pc, #232]	@ (80008fc <Commands_ExecuteCommand+0x160>)
- 8000812:	f000 fb16 	bl	8000e42 <Debug_Print>
+ 800080e:	d103      	bne.n	8000818 <commands_execute_command+0x7c>
+		debug_print("No category was given");
+ 8000810:	483a      	ldr	r0, [pc, #232]	@ (80008fc <commands_execute_command+0x160>)
+ 8000812:	f000 fb16 	bl	8000e42 <debug_print>
 		return;
- 8000816:	e069      	b.n	80008ec <Commands_ExecuteCommand+0x150>
+ 8000816:	e069      	b.n	80008ec <commands_execute_command+0x150>
 	}
 
 	char *name = strtok(NULL, COMMAND_SEPARATOR);
- 8000818:	4937      	ldr	r1, [pc, #220]	@ (80008f8 <Commands_ExecuteCommand+0x15c>)
+ 8000818:	4937      	ldr	r1, [pc, #220]	@ (80008f8 <commands_execute_command+0x15c>)
  800081a:	2000      	movs	r0, #0
  800081c:	f00f fd8a 	bl	8010334 <strtok>
  8000820:	6438      	str	r0, [r7, #64]	@ 0x40
 	if (name == NULL) {
  8000822:	6c3b      	ldr	r3, [r7, #64]	@ 0x40
  8000824:	2b00      	cmp	r3, #0
- 8000826:	d103      	bne.n	8000830 <Commands_ExecuteCommand+0x94>
-		Debug_Print("No command was given");
- 8000828:	4835      	ldr	r0, [pc, #212]	@ (8000900 <Commands_ExecuteCommand+0x164>)
- 800082a:	f000 fb0a 	bl	8000e42 <Debug_Print>
+ 8000826:	d103      	bne.n	8000830 <commands_execute_command+0x94>
+		debug_print("No command was given");
+ 8000828:	4835      	ldr	r0, [pc, #212]	@ (8000900 <commands_execute_command+0x164>)
+ 800082a:	f000 fb0a 	bl	8000e42 <debug_print>
 		return;
- 800082e:	e05d      	b.n	80008ec <Commands_ExecuteCommand+0x150>
+ 800082e:	e05d      	b.n	80008ec <commands_execute_command+0x150>
 	}
 
 	char *Arguments[COMMAND_MAX_ARGUMENTS];
 	char *argument = strtok(NULL, COMMAND_SEPARATOR);
- 8000830:	4931      	ldr	r1, [pc, #196]	@ (80008f8 <Commands_ExecuteCommand+0x15c>)
+ 8000830:	4931      	ldr	r1, [pc, #196]	@ (80008f8 <commands_execute_command+0x15c>)
  8000832:	2000      	movs	r0, #0
  8000834:	f00f fd7e 	bl	8010334 <strtok>
  8000838:	6578      	str	r0, [r7, #84]	@ 0x54
@@ -659,7 +659,7 @@ void Commands_ExecuteCommand(const char command[])
  800083c:	f887 3053 	strb.w	r3, [r7, #83]	@ 0x53
 
 	while (argument != NULL && argumentCount < COMMAND_MAX_ARGUMENTS) {
- 8000840:	e00f      	b.n	8000862 <Commands_ExecuteCommand+0xc6>
+ 8000840:	e00f      	b.n	8000862 <commands_execute_command+0xc6>
 		Arguments[argumentCount++] = argument;
  8000842:	f897 3053 	ldrb.w	r3, [r7, #83]	@ 0x53
  8000846:	1c5a      	adds	r2, r3, #1
@@ -670,17 +670,17 @@ void Commands_ExecuteCommand(const char command[])
  8000852:	6d7a      	ldr	r2, [r7, #84]	@ 0x54
  8000854:	f843 2c38 	str.w	r2, [r3, #-56]
 		argument = strtok(NULL, COMMAND_SEPARATOR);
- 8000858:	4927      	ldr	r1, [pc, #156]	@ (80008f8 <Commands_ExecuteCommand+0x15c>)
+ 8000858:	4927      	ldr	r1, [pc, #156]	@ (80008f8 <commands_execute_command+0x15c>)
  800085a:	2000      	movs	r0, #0
  800085c:	f00f fd6a 	bl	8010334 <strtok>
  8000860:	6578      	str	r0, [r7, #84]	@ 0x54
 	while (argument != NULL && argumentCount < COMMAND_MAX_ARGUMENTS) {
  8000862:	6d7b      	ldr	r3, [r7, #84]	@ 0x54
  8000864:	2b00      	cmp	r3, #0
- 8000866:	d003      	beq.n	8000870 <Commands_ExecuteCommand+0xd4>
+ 8000866:	d003      	beq.n	8000870 <commands_execute_command+0xd4>
  8000868:	f897 3053 	ldrb.w	r3, [r7, #83]	@ 0x53
  800086c:	2b07      	cmp	r3, #7
- 800086e:	d9e8      	bls.n	8000842 <Commands_ExecuteCommand+0xa6>
+ 800086e:	d9e8      	bls.n	8000842 <commands_execute_command+0xa6>
 	}
 
 	//
@@ -688,10 +688,10 @@ void Commands_ExecuteCommand(const char command[])
 	for (uint8_t i = 0; i < COMMAND_COUNT; i++) {
  8000870:	2300      	movs	r3, #0
  8000872:	f887 3052 	strb.w	r3, [r7, #82]	@ 0x52
- 8000876:	e030      	b.n	80008da <Commands_ExecuteCommand+0x13e>
+ 8000876:	e030      	b.n	80008da <commands_execute_command+0x13e>
 		StaticCommand entry = COMMAND_TABLE[i];
  8000878:	f897 2052 	ldrb.w	r2, [r7, #82]	@ 0x52
- 800087c:	4921      	ldr	r1, [pc, #132]	@ (8000904 <Commands_ExecuteCommand+0x168>)
+ 800087c:	4921      	ldr	r1, [pc, #132]	@ (8000904 <commands_execute_command+0x168>)
  800087e:	4613      	mov	r3, r2
  8000880:	005b      	lsls	r3, r3, #1
  8000882:	4413      	add	r3, r2
@@ -707,7 +707,7 @@ void Commands_ExecuteCommand(const char command[])
  8000898:	f7ff fd22 	bl	80002e0 <strcmp>
  800089c:	4603      	mov	r3, r0
  800089e:	2b00      	cmp	r3, #0
- 80008a0:	d113      	bne.n	80008ca <Commands_ExecuteCommand+0x12e>
+ 80008a0:	d113      	bne.n	80008ca <commands_execute_command+0x12e>
 		if ( strcmp(entry.command, name) ) continue;
  80008a2:	69bb      	ldr	r3, [r7, #24]
  80008a4:	6c39      	ldr	r1, [r7, #64]	@ 0x40
@@ -715,7 +715,7 @@ void Commands_ExecuteCommand(const char command[])
  80008a8:	f7ff fd1a 	bl	80002e0 <strcmp>
  80008ac:	4603      	mov	r3, r0
  80008ae:	2b00      	cmp	r3, #0
- 80008b0:	d10d      	bne.n	80008ce <Commands_ExecuteCommand+0x132>
+ 80008b0:	d10d      	bne.n	80008ce <commands_execute_command+0x132>
 
 		CommandContext Context = {
  80008b2:	f897 3053 	ldrb.w	r3, [r7, #83]	@ 0x53
@@ -731,10 +731,10 @@ void Commands_ExecuteCommand(const char command[])
  80008c0:	f107 020c 	add.w	r2, r7, #12
  80008c4:	4610      	mov	r0, r2
  80008c6:	4798      	blx	r3
- 80008c8:	e010      	b.n	80008ec <Commands_ExecuteCommand+0x150>
+ 80008c8:	e010      	b.n	80008ec <commands_execute_command+0x150>
 		if ( strcmp(entry.category, category) ) continue;
  80008ca:	bf00      	nop
- 80008cc:	e000      	b.n	80008d0 <Commands_ExecuteCommand+0x134>
+ 80008cc:	e000      	b.n	80008d0 <commands_execute_command+0x134>
 		if ( strcmp(entry.command, name) ) continue;
  80008ce:	bf00      	nop
 	for (uint8_t i = 0; i < COMMAND_COUNT; i++) {
@@ -743,15 +743,15 @@ void Commands_ExecuteCommand(const char command[])
  80008d6:	f887 3052 	strb.w	r3, [r7, #82]	@ 0x52
  80008da:	f897 3052 	ldrb.w	r3, [r7, #82]	@ 0x52
  80008de:	2b01      	cmp	r3, #1
- 80008e0:	d9ca      	bls.n	8000878 <Commands_ExecuteCommand+0xdc>
+ 80008e0:	d9ca      	bls.n	8000878 <commands_execute_command+0xdc>
 		return;
 	}
 
-	Debug_Print("Unknown command");
- 80008e2:	4809      	ldr	r0, [pc, #36]	@ (8000908 <Commands_ExecuteCommand+0x16c>)
- 80008e4:	f000 faad 	bl	8000e42 <Debug_Print>
+	debug_print("Unknown command");
+ 80008e2:	4809      	ldr	r0, [pc, #36]	@ (8000908 <commands_execute_command+0x16c>)
+ 80008e4:	f000 faad 	bl	8000e42 <debug_print>
  80008e8:	46b5      	mov	sp, r6
- 80008ea:	e000      	b.n	80008ee <Commands_ExecuteCommand+0x152>
+ 80008ea:	e000      	b.n	80008ee <commands_execute_command+0x152>
 		return;
  80008ec:	46b5      	mov	sp, r6
 }
@@ -765,46 +765,46 @@ void Commands_ExecuteCommand(const char command[])
  8000904:	080113d4 	.word	0x080113d4
  8000908:	08011364 	.word	0x08011364
 
-0800090c <Controller_Init>:
+0800090c <controller_init>:
 
 
 //
 
 
-void Controller_Init() {
+void controller_init() {
  800090c:	b580      	push	{r7, lr}
  800090e:	af00      	add	r7, sp, #0
-	PWM_Init();
- 8000910:	f000 fb5c 	bl	8000fcc <PWM_Init>
+	pwm_init();
+ 8000910:	f000 fb5c 	bl	8000fcc <pwm_init>
 	Weight_Init();
  8000914:	f000 fba2 	bl	800105c <Weight_Init>
 }
  8000918:	bf00      	nop
  800091a:	bd80      	pop	{r7, pc}
 
-0800091c <Controller_Main>:
+0800091c <controller_main>:
 
-void Controller_Main() {
+void controller_main() {
  800091c:	b580      	push	{r7, lr}
  800091e:	af00      	add	r7, sp, #0
-	Debug_ReadUART();
- 8000920:	f000 faf6 	bl	8000f10 <Debug_ReadUART>
+	debug_read_uart();
+ 8000920:	f000 faf6 	bl	8000f10 <debug_read_uart>
 
-//	DShot_Update();
+//	dshot_update();
 }
  8000924:	bf00      	nop
  8000926:	bd80      	pop	{r7, pc}
 
-08000928 <Controller_Blinky>:
+08000928 <controller_blinky>:
 
-void Controller_Blinky() {
+void controller_blinky() {
  8000928:	b580      	push	{r7, lr}
  800092a:	b084      	sub	sp, #16
  800092c:	af00      	add	r7, sp, #0
 	BSP_LED_Toggle(LED_GREEN);
  800092e:	2000      	movs	r0, #0
  8000930:	f001 feb4 	bl	800269c <BSP_LED_Toggle>
-//	DShot_Update();
+//	dshot_update();
 
 	uint16_t weight = Weight_Read(1);
  8000934:	2001      	movs	r0, #1
@@ -812,25 +812,25 @@ void Controller_Blinky() {
  800093a:	4603      	mov	r3, r0
  800093c:	81fb      	strh	r3, [r7, #14]
 	char string[10];
-	Converter_UIntToString(string, weight);
+	converter_uint_to_string(string, weight);
  800093e:	89fa      	ldrh	r2, [r7, #14]
  8000940:	1d3b      	adds	r3, r7, #4
  8000942:	4611      	mov	r1, r2
  8000944:	4618      	mov	r0, r3
- 8000946:	f000 f85b 	bl	8000a00 <Converter_UIntToString>
-	Debug_Print(string);
+ 8000946:	f000 f85b 	bl	8000a00 <converter_uint_to_string>
+	debug_print(string);
  800094a:	1d3b      	adds	r3, r7, #4
  800094c:	4618      	mov	r0, r3
- 800094e:	f000 fa78 	bl	8000e42 <Debug_Print>
+ 800094e:	f000 fa78 	bl	8000e42 <debug_print>
 }
  8000952:	bf00      	nop
  8000954:	3710      	adds	r7, #16
  8000956:	46bd      	mov	sp, r7
  8000958:	bd80      	pop	{r7, pc}
 
-0800095a <Controller_CAN>:
+0800095a <controller_can>:
 
-void Controller_CAN() {
+void controller_can() {
  800095a:	b480      	push	{r7}
  800095c:	af00      	add	r7, sp, #0
 
@@ -840,12 +840,12 @@ void Controller_CAN() {
  8000962:	f85d 7b04 	ldr.w	r7, [sp], #4
  8000966:	4770      	bx	lr
 
-08000968 <IsCharacterNumber>:
+08000968 <is_character_number>:
 
 //
 
 
-bool IsCharacterNumber(const char input)
+bool is_character_number(const char input)
 {
  8000968:	b480      	push	{r7}
  800096a:	b083      	sub	sp, #12
@@ -855,12 +855,12 @@ bool IsCharacterNumber(const char input)
 	return input >= '0' && input <= '9';
  8000972:	79fb      	ldrb	r3, [r7, #7]
  8000974:	2b2f      	cmp	r3, #47	@ 0x2f
- 8000976:	d904      	bls.n	8000982 <IsCharacterNumber+0x1a>
+ 8000976:	d904      	bls.n	8000982 <is_character_number+0x1a>
  8000978:	79fb      	ldrb	r3, [r7, #7]
  800097a:	2b39      	cmp	r3, #57	@ 0x39
- 800097c:	d801      	bhi.n	8000982 <IsCharacterNumber+0x1a>
+ 800097c:	d801      	bhi.n	8000982 <is_character_number+0x1a>
  800097e:	2301      	movs	r3, #1
- 8000980:	e000      	b.n	8000984 <IsCharacterNumber+0x1c>
+ 8000980:	e000      	b.n	8000984 <is_character_number+0x1c>
  8000982:	2300      	movs	r3, #0
  8000984:	f003 0301 	and.w	r3, r3, #1
  8000988:	b2db      	uxtb	r3, r3
@@ -871,9 +871,9 @@ bool IsCharacterNumber(const char input)
  8000990:	f85d 7b04 	ldr.w	r7, [sp], #4
  8000994:	4770      	bx	lr
 
-08000996 <IsCharacterIntSeparator>:
+08000996 <is_character_int_separator>:
 
-bool IsCharacterIntSeparator(const char input)
+bool is_character_int_separator(const char input)
 {
  8000996:	b480      	push	{r7}
  8000998:	b083      	sub	sp, #12
@@ -883,15 +883,15 @@ bool IsCharacterIntSeparator(const char input)
 	return input == ' ' || input == '.' || input == ',';
  80009a0:	79fb      	ldrb	r3, [r7, #7]
  80009a2:	2b20      	cmp	r3, #32
- 80009a4:	d005      	beq.n	80009b2 <IsCharacterIntSeparator+0x1c>
+ 80009a4:	d005      	beq.n	80009b2 <is_character_int_separator+0x1c>
  80009a6:	79fb      	ldrb	r3, [r7, #7]
  80009a8:	2b2e      	cmp	r3, #46	@ 0x2e
- 80009aa:	d002      	beq.n	80009b2 <IsCharacterIntSeparator+0x1c>
+ 80009aa:	d002      	beq.n	80009b2 <is_character_int_separator+0x1c>
  80009ac:	79fb      	ldrb	r3, [r7, #7]
  80009ae:	2b2c      	cmp	r3, #44	@ 0x2c
- 80009b0:	d101      	bne.n	80009b6 <IsCharacterIntSeparator+0x20>
+ 80009b0:	d101      	bne.n	80009b6 <is_character_int_separator+0x20>
  80009b2:	2301      	movs	r3, #1
- 80009b4:	e000      	b.n	80009b8 <IsCharacterIntSeparator+0x22>
+ 80009b4:	e000      	b.n	80009b8 <is_character_int_separator+0x22>
  80009b6:	2300      	movs	r3, #0
  80009b8:	f003 0301 	and.w	r3, r3, #1
  80009bc:	b2db      	uxtb	r3, r3
@@ -903,9 +903,9 @@ bool IsCharacterIntSeparator(const char input)
  80009c8:	4770      	bx	lr
 	...
 
-080009cc <WillOverflow>:
+080009cc <will_overflow>:
 
-bool WillOverflow(uint32_t currentValue, uint8_t digit)
+bool will_overflow(uint32_t currentValue, uint8_t digit)
 {
  80009cc:	b480      	push	{r7}
  80009ce:	b083      	sub	sp, #12
@@ -916,7 +916,7 @@ bool WillOverflow(uint32_t currentValue, uint8_t digit)
 	return currentValue > (4294967295u - digit) / 10;
  80009d8:	78fb      	ldrb	r3, [r7, #3]
  80009da:	43db      	mvns	r3, r3
- 80009dc:	4a07      	ldr	r2, [pc, #28]	@ (80009fc <WillOverflow+0x30>)
+ 80009dc:	4a07      	ldr	r2, [pc, #28]	@ (80009fc <will_overflow+0x30>)
  80009de:	fba2 2303 	umull	r2, r3, r2, r3
  80009e2:	08db      	lsrs	r3, r3, #3
  80009e4:	687a      	ldr	r2, [r7, #4]
@@ -933,12 +933,12 @@ bool WillOverflow(uint32_t currentValue, uint8_t digit)
  80009fa:	4770      	bx	lr
  80009fc:	cccccccd 	.word	0xcccccccd
 
-08000a00 <Converter_UIntToString>:
+08000a00 <converter_uint_to_string>:
 
 	return length + 1;
 }
 
-uint8_t Converter_UIntToString(char *Output, uint32_t number)
+uint8_t converter_uint_to_string(char *Output, uint32_t number)
 {
  8000a00:	b480      	push	{r7}
  8000a02:	b087      	sub	sp, #28
@@ -948,7 +948,7 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
 	if (number == 0) {
  8000a0a:	683b      	ldr	r3, [r7, #0]
  8000a0c:	2b00      	cmp	r3, #0
- 8000a0e:	d108      	bne.n	8000a22 <Converter_UIntToString+0x22>
+ 8000a0e:	d108      	bne.n	8000a22 <converter_uint_to_string+0x22>
 		Output[0] = '0';
  8000a10:	687b      	ldr	r3, [r7, #4]
  8000a12:	2230      	movs	r2, #48	@ 0x30
@@ -960,7 +960,7 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
  8000a1c:	701a      	strb	r2, [r3, #0]
 		return 1;
  8000a1e:	2301      	movs	r3, #1
- 8000a20:	e041      	b.n	8000aa6 <Converter_UIntToString+0xa6>
+ 8000a20:	e041      	b.n	8000aa6 <converter_uint_to_string+0xa6>
 	}
 
 	char ReversedBuffer[10];
@@ -969,15 +969,15 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
  8000a24:	75fb      	strb	r3, [r7, #23]
 
 	for (; length < UINT_TO_STRING_MAX_ITERATIONS; length++) {
- 8000a26:	e01d      	b.n	8000a64 <Converter_UIntToString+0x64>
+ 8000a26:	e01d      	b.n	8000a64 <converter_uint_to_string+0x64>
 		if (number == 0) break;
  8000a28:	683b      	ldr	r3, [r7, #0]
  8000a2a:	2b00      	cmp	r3, #0
- 8000a2c:	d01e      	beq.n	8000a6c <Converter_UIntToString+0x6c>
+ 8000a2c:	d01e      	beq.n	8000a6c <converter_uint_to_string+0x6c>
 
 		ReversedBuffer[length] = number % 10 + '0';
  8000a2e:	6839      	ldr	r1, [r7, #0]
- 8000a30:	4b20      	ldr	r3, [pc, #128]	@ (8000ab4 <Converter_UIntToString+0xb4>)
+ 8000a30:	4b20      	ldr	r3, [pc, #128]	@ (8000ab4 <converter_uint_to_string+0xb4>)
  8000a32:	fba3 2301 	umull	r2, r3, r3, r1
  8000a36:	08da      	lsrs	r2, r3, #3
  8000a38:	4613      	mov	r3, r2
@@ -994,7 +994,7 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
  8000a4e:	f803 2c0c 	strb.w	r2, [r3, #-12]
 		number /= 10;
  8000a52:	683b      	ldr	r3, [r7, #0]
- 8000a54:	4a17      	ldr	r2, [pc, #92]	@ (8000ab4 <Converter_UIntToString+0xb4>)
+ 8000a54:	4a17      	ldr	r2, [pc, #92]	@ (8000ab4 <converter_uint_to_string+0xb4>)
  8000a56:	fba2 2303 	umull	r2, r3, r2, r3
  8000a5a:	08db      	lsrs	r3, r3, #3
  8000a5c:	603b      	str	r3, [r7, #0]
@@ -1004,8 +1004,8 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
  8000a62:	75fb      	strb	r3, [r7, #23]
  8000a64:	7dfb      	ldrb	r3, [r7, #23]
  8000a66:	2b09      	cmp	r3, #9
- 8000a68:	d9de      	bls.n	8000a28 <Converter_UIntToString+0x28>
- 8000a6a:	e000      	b.n	8000a6e <Converter_UIntToString+0x6e>
+ 8000a68:	d9de      	bls.n	8000a28 <converter_uint_to_string+0x28>
+ 8000a6a:	e000      	b.n	8000a6e <converter_uint_to_string+0x6e>
 		if (number == 0) break;
  8000a6c:	bf00      	nop
 	}
@@ -1013,7 +1013,7 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
 	for (uint8_t i = 0; i < length; i++) {
  8000a6e:	2300      	movs	r3, #0
  8000a70:	75bb      	strb	r3, [r7, #22]
- 8000a72:	e00e      	b.n	8000a92 <Converter_UIntToString+0x92>
+ 8000a72:	e00e      	b.n	8000a92 <converter_uint_to_string+0x92>
 		Output[i] = ReversedBuffer[length - 1 - i];
  8000a74:	7dfb      	ldrb	r3, [r7, #23]
  8000a76:	1e5a      	subs	r2, r3, #1
@@ -1033,7 +1033,7 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
  8000a92:	7dba      	ldrb	r2, [r7, #22]
  8000a94:	7dfb      	ldrb	r3, [r7, #23]
  8000a96:	429a      	cmp	r2, r3
- 8000a98:	d3ec      	bcc.n	8000a74 <Converter_UIntToString+0x74>
+ 8000a98:	d3ec      	bcc.n	8000a74 <converter_uint_to_string+0x74>
 	}
 	Output[length] = '\0';
  8000a9a:	7dfb      	ldrb	r3, [r7, #23]
@@ -1053,9 +1053,9 @@ uint8_t Converter_UIntToString(char *Output, uint32_t number)
  8000ab2:	bf00      	nop
  8000ab4:	cccccccd 	.word	0xcccccccd
 
-08000ab8 <Converter_StringToUInt>:
+08000ab8 <converter_string_to_uint>:
 
-uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
+uint8_t converter_string_to_uint(uint32_t *Output, const char String[])
 {
  8000ab8:	b580      	push	{r7, lr}
  8000aba:	b084      	sub	sp, #16
@@ -1066,9 +1066,9 @@ uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
  8000ac2:	683b      	ldr	r3, [r7, #0]
  8000ac4:	781b      	ldrb	r3, [r3, #0]
  8000ac6:	2b00      	cmp	r3, #0
- 8000ac8:	d101      	bne.n	8000ace <Converter_StringToUInt+0x16>
+ 8000ac8:	d101      	bne.n	8000ace <converter_string_to_uint+0x16>
  8000aca:	2300      	movs	r3, #0
- 8000acc:	e053      	b.n	8000b76 <Converter_StringToUInt+0xbe>
+ 8000acc:	e053      	b.n	8000b76 <converter_string_to_uint+0xbe>
 
 	uint32_t value = 0;
  8000ace:	2300      	movs	r3, #0
@@ -1081,7 +1081,7 @@ uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
  8000ad8:	72bb      	strb	r3, [r7, #10]
 
 	for (; i < STRING_TO_UINT_MAX_ITERATIONS; i++) {
- 8000ada:	e038      	b.n	8000b4e <Converter_StringToUInt+0x96>
+ 8000ada:	e038      	b.n	8000b4e <converter_string_to_uint+0x96>
 		char character = String[i];
  8000adc:	7abb      	ldrb	r3, [r7, #10]
  8000ade:	683a      	ldr	r2, [r7, #0]
@@ -1092,41 +1092,41 @@ uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
 		if (character == '\0') break;
  8000ae6:	7a7b      	ldrb	r3, [r7, #9]
  8000ae8:	2b00      	cmp	r3, #0
- 8000aea:	d034      	beq.n	8000b56 <Converter_StringToUInt+0x9e>
-		if (IsCharacterIntSeparator(character)) continue;
+ 8000aea:	d034      	beq.n	8000b56 <converter_string_to_uint+0x9e>
+		if (is_character_int_separator(character)) continue;
  8000aec:	7a7b      	ldrb	r3, [r7, #9]
  8000aee:	4618      	mov	r0, r3
- 8000af0:	f7ff ff51 	bl	8000996 <IsCharacterIntSeparator>
+ 8000af0:	f7ff ff51 	bl	8000996 <is_character_int_separator>
  8000af4:	4603      	mov	r3, r0
  8000af6:	2b00      	cmp	r3, #0
- 8000af8:	d125      	bne.n	8000b46 <Converter_StringToUInt+0x8e>
-		if (!IsCharacterNumber(character)) return 0;
+ 8000af8:	d125      	bne.n	8000b46 <converter_string_to_uint+0x8e>
+		if (!is_character_number(character)) return 0;
  8000afa:	7a7b      	ldrb	r3, [r7, #9]
  8000afc:	4618      	mov	r0, r3
- 8000afe:	f7ff ff33 	bl	8000968 <IsCharacterNumber>
+ 8000afe:	f7ff ff33 	bl	8000968 <is_character_number>
  8000b02:	4603      	mov	r3, r0
  8000b04:	f083 0301 	eor.w	r3, r3, #1
  8000b08:	b2db      	uxtb	r3, r3
  8000b0a:	2b00      	cmp	r3, #0
- 8000b0c:	d001      	beq.n	8000b12 <Converter_StringToUInt+0x5a>
+ 8000b0c:	d001      	beq.n	8000b12 <converter_string_to_uint+0x5a>
  8000b0e:	2300      	movs	r3, #0
- 8000b10:	e031      	b.n	8000b76 <Converter_StringToUInt+0xbe>
+ 8000b10:	e031      	b.n	8000b76 <converter_string_to_uint+0xbe>
 
 		uint8_t digit = character - '0';
  8000b12:	7a7b      	ldrb	r3, [r7, #9]
  8000b14:	3b30      	subs	r3, #48	@ 0x30
  8000b16:	723b      	strb	r3, [r7, #8]
 
-		if (WillOverflow(value, digit)) return 0;
+		if (will_overflow(value, digit)) return 0;
  8000b18:	7a3b      	ldrb	r3, [r7, #8]
  8000b1a:	4619      	mov	r1, r3
  8000b1c:	68f8      	ldr	r0, [r7, #12]
- 8000b1e:	f7ff ff55 	bl	80009cc <WillOverflow>
+ 8000b1e:	f7ff ff55 	bl	80009cc <will_overflow>
  8000b22:	4603      	mov	r3, r0
  8000b24:	2b00      	cmp	r3, #0
- 8000b26:	d001      	beq.n	8000b2c <Converter_StringToUInt+0x74>
+ 8000b26:	d001      	beq.n	8000b2c <converter_string_to_uint+0x74>
  8000b28:	2300      	movs	r3, #0
- 8000b2a:	e024      	b.n	8000b76 <Converter_StringToUInt+0xbe>
+ 8000b2a:	e024      	b.n	8000b76 <converter_string_to_uint+0xbe>
 
 		value = value * 10 + digit;
  8000b2c:	68fa      	ldr	r2, [r7, #12]
@@ -1142,8 +1142,8 @@ uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
  8000b3e:	7afb      	ldrb	r3, [r7, #11]
  8000b40:	3301      	adds	r3, #1
  8000b42:	72fb      	strb	r3, [r7, #11]
- 8000b44:	e000      	b.n	8000b48 <Converter_StringToUInt+0x90>
-		if (IsCharacterIntSeparator(character)) continue;
+ 8000b44:	e000      	b.n	8000b48 <converter_string_to_uint+0x90>
+		if (is_character_int_separator(character)) continue;
  8000b46:	bf00      	nop
 	for (; i < STRING_TO_UINT_MAX_ITERATIONS; i++) {
  8000b48:	7abb      	ldrb	r3, [r7, #10]
@@ -1151,8 +1151,8 @@ uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
  8000b4c:	72bb      	strb	r3, [r7, #10]
  8000b4e:	7abb      	ldrb	r3, [r7, #10]
  8000b50:	2b63      	cmp	r3, #99	@ 0x63
- 8000b52:	d9c3      	bls.n	8000adc <Converter_StringToUInt+0x24>
- 8000b54:	e000      	b.n	8000b58 <Converter_StringToUInt+0xa0>
+ 8000b52:	d9c3      	bls.n	8000adc <converter_string_to_uint+0x24>
+ 8000b54:	e000      	b.n	8000b58 <converter_string_to_uint+0xa0>
 		if (character == '\0') break;
  8000b56:	bf00      	nop
 	}
@@ -1160,15 +1160,15 @@ uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
 	if (length == 0 || String[i] != '\0') return 0;
  8000b58:	7afb      	ldrb	r3, [r7, #11]
  8000b5a:	2b00      	cmp	r3, #0
- 8000b5c:	d005      	beq.n	8000b6a <Converter_StringToUInt+0xb2>
+ 8000b5c:	d005      	beq.n	8000b6a <converter_string_to_uint+0xb2>
  8000b5e:	7abb      	ldrb	r3, [r7, #10]
  8000b60:	683a      	ldr	r2, [r7, #0]
  8000b62:	4413      	add	r3, r2
  8000b64:	781b      	ldrb	r3, [r3, #0]
  8000b66:	2b00      	cmp	r3, #0
- 8000b68:	d001      	beq.n	8000b6e <Converter_StringToUInt+0xb6>
+ 8000b68:	d001      	beq.n	8000b6e <converter_string_to_uint+0xb6>
  8000b6a:	2300      	movs	r3, #0
- 8000b6c:	e003      	b.n	8000b76 <Converter_StringToUInt+0xbe>
+ 8000b6c:	e003      	b.n	8000b76 <converter_string_to_uint+0xbe>
 
 	*Output = value;
  8000b6e:	687b      	ldr	r3, [r7, #4]
@@ -1183,12 +1183,12 @@ uint8_t Converter_StringToUInt(uint32_t *Output, const char String[])
  8000b7c:	bd80      	pop	{r7, pc}
 	...
 
-08000b80 <DShot_SetDuty>:
+08000b80 <dshot_set_duty>:
 }
 
 
 // throttle: 0-2047 (0 = disarmed, 48-2047 = range)
-void DShot_SetDuty(uint16_t throttle, bool telemetry)
+void dshot_set_duty(uint16_t throttle, bool telemetry)
 {
  8000b80:	b480      	push	{r7}
  8000b82:	b083      	sub	sp, #12
@@ -1199,7 +1199,7 @@ void DShot_SetDuty(uint16_t throttle, bool telemetry)
  8000b8c:	4613      	mov	r3, r2
  8000b8e:	717b      	strb	r3, [r7, #5]
 	currentDuty = throttle;
- 8000b90:	4a04      	ldr	r2, [pc, #16]	@ (8000ba4 <DShot_SetDuty+0x24>)
+ 8000b90:	4a04      	ldr	r2, [pc, #16]	@ (8000ba4 <dshot_set_duty+0x24>)
  8000b92:	88fb      	ldrh	r3, [r7, #6]
  8000b94:	8013      	strh	r3, [r2, #0]
 }
@@ -1211,13 +1211,13 @@ void DShot_SetDuty(uint16_t throttle, bool telemetry)
  8000ba2:	bf00      	nop
  8000ba4:	240000c0 	.word	0x240000c0
 
-08000ba8 <String_IsEmpty>:
+08000ba8 <string_is_empty>:
 
 
 //
 
 
-bool String_IsEmpty(const char string[]) {
+bool string_is_empty(const char string[]) {
  8000ba8:	b480      	push	{r7}
  8000baa:	b083      	sub	sp, #12
  8000bac:	af00      	add	r7, sp, #0
@@ -1225,13 +1225,13 @@ bool String_IsEmpty(const char string[]) {
 	return string == NULL || string[0] == '\0';
  8000bb0:	687b      	ldr	r3, [r7, #4]
  8000bb2:	2b00      	cmp	r3, #0
- 8000bb4:	d003      	beq.n	8000bbe <String_IsEmpty+0x16>
+ 8000bb4:	d003      	beq.n	8000bbe <string_is_empty+0x16>
  8000bb6:	687b      	ldr	r3, [r7, #4]
  8000bb8:	781b      	ldrb	r3, [r3, #0]
  8000bba:	2b00      	cmp	r3, #0
- 8000bbc:	d101      	bne.n	8000bc2 <String_IsEmpty+0x1a>
+ 8000bbc:	d101      	bne.n	8000bc2 <string_is_empty+0x1a>
  8000bbe:	2301      	movs	r3, #1
- 8000bc0:	e000      	b.n	8000bc4 <String_IsEmpty+0x1c>
+ 8000bc0:	e000      	b.n	8000bc4 <string_is_empty+0x1c>
  8000bc2:	2300      	movs	r3, #0
  8000bc4:	f003 0301 	and.w	r3, r3, #1
  8000bc8:	b2db      	uxtb	r3, r3
@@ -1242,12 +1242,12 @@ bool String_IsEmpty(const char string[]) {
  8000bd0:	f85d 7b04 	ldr.w	r7, [sp], #4
  8000bd4:	4770      	bx	lr
 
-08000bd6 <ConcatinateWithinBounds>:
+08000bd6 <concatinate_within_bounds>:
 
 //
 
 
-bool ConcatinateWithinBounds(char output[], const char append[], uint8_t bound) // -> isFilled
+bool concatinate_within_bounds(char output[], const char append[], uint8_t bound) // -> isFilled
 {
  8000bd6:	e92d 43f0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, lr}
  8000bda:	b089      	sub	sp, #36	@ 0x24
@@ -1278,14 +1278,14 @@ bool ConcatinateWithinBounds(char output[], const char append[], uint8_t bound) 
  8000c06:	7f7a      	ldrb	r2, [r7, #29]
  8000c08:	7f3b      	ldrb	r3, [r7, #28]
  8000c0a:	429a      	cmp	r2, r3
- 8000c0c:	d205      	bcs.n	8000c1a <ConcatinateWithinBounds+0x44>
+ 8000c0c:	d205      	bcs.n	8000c1a <concatinate_within_bounds+0x44>
 		strcat(output, append);
  8000c0e:	68b9      	ldr	r1, [r7, #8]
  8000c10:	68f8      	ldr	r0, [r7, #12]
  8000c12:	f00f fb7f 	bl	8010314 <strcat>
 		return false;
  8000c16:	2300      	movs	r3, #0
- 8000c18:	e03f      	b.n	8000c9a <ConcatinateWithinBounds+0xc4>
+ 8000c18:	e03f      	b.n	8000c9a <concatinate_within_bounds+0xc4>
 	}
 
 	char shortened[remaining + 1];
@@ -1327,7 +1327,7 @@ bool ConcatinateWithinBounds(char output[], const char append[], uint8_t bound) 
 	for (uint8_t i = 0; i < remaining; i++) {
  8000c6e:	2300      	movs	r3, #0
  8000c70:	77fb      	strb	r3, [r7, #31]
- 8000c72:	e009      	b.n	8000c88 <ConcatinateWithinBounds+0xb2>
+ 8000c72:	e009      	b.n	8000c88 <concatinate_within_bounds+0xb2>
 		shortened[i] = append[i];
  8000c74:	7ffb      	ldrb	r3, [r7, #31]
  8000c76:	68ba      	ldr	r2, [r7, #8]
@@ -1343,7 +1343,7 @@ bool ConcatinateWithinBounds(char output[], const char append[], uint8_t bound) 
  8000c88:	7ffa      	ldrb	r2, [r7, #31]
  8000c8a:	7f3b      	ldrb	r3, [r7, #28]
  8000c8c:	429a      	cmp	r2, r3
- 8000c8e:	d3f1      	bcc.n	8000c74 <ConcatinateWithinBounds+0x9e>
+ 8000c8e:	d3f1      	bcc.n	8000c74 <concatinate_within_bounds+0x9e>
 	}
 
 	strcat(output, shortened);
@@ -1361,16 +1361,16 @@ bool ConcatinateWithinBounds(char output[], const char append[], uint8_t bound) 
  8000ca2:	e8bd 83f0 	ldmia.w	sp!, {r4, r5, r6, r7, r8, r9, pc}
 	...
 
-08000ca8 <UART_Transmit>:
+08000ca8 <uart_transmit>:
 
-void UART_Transmit(const char message[])
+void uart_transmit(const char message[])
 {
  8000ca8:	b590      	push	{r4, r7, lr}
  8000caa:	b083      	sub	sp, #12
  8000cac:	af00      	add	r7, sp, #0
  8000cae:	6078      	str	r0, [r7, #4]
-	HAL_UART_Transmit(COMMUNICATION_PORT, (uint8_t*)message, strlen(message), UART_TRANSMIT_TIMEOUT);
- 8000cb0:	4b07      	ldr	r3, [pc, #28]	@ (8000cd0 <UART_Transmit+0x28>)
+	HAL_uart_transmit(COMMUNICATION_PORT, (uint8_t*)message, strlen(message), UART_TRANSMIT_TIMEOUT);
+ 8000cb0:	4b07      	ldr	r3, [pc, #28]	@ (8000cd0 <uart_transmit+0x28>)
  8000cb2:	681c      	ldr	r4, [r3, #0]
  8000cb4:	6878      	ldr	r0, [r7, #4]
  8000cb6:	f7ff fb1d 	bl	80002f4 <strlen>
@@ -1379,7 +1379,7 @@ void UART_Transmit(const char message[])
  8000cbe:	2364      	movs	r3, #100	@ 0x64
  8000cc0:	6879      	ldr	r1, [r7, #4]
  8000cc2:	4620      	mov	r0, r4
- 8000cc4:	f00b fc8e 	bl	800c5e4 <HAL_UART_Transmit>
+ 8000cc4:	f00b fc8e 	bl	800c5e4 <HAL_uart_transmit>
 }
  8000cc8:	bf00      	nop
  8000cca:	370c      	adds	r7, #12
@@ -1387,12 +1387,12 @@ void UART_Transmit(const char message[])
  8000cce:	bd90      	pop	{r4, r7, pc}
  8000cd0:	24000000 	.word	0x24000000
 
-08000cd4 <Command_WriteTerminal>:
+08000cd4 <command_write_terminal>:
 
 //
 
 
-void Command_WriteTerminal(const char message[])
+void command_write_terminal(const char message[])
 {
  8000cd4:	e92d 43f0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, lr}
  8000cd8:	b087      	sub	sp, #28
@@ -1401,12 +1401,12 @@ void Command_WriteTerminal(const char message[])
  8000cde:	466b      	mov	r3, sp
  8000ce0:	461e      	mov	r6, r3
 	uint8_t prefixLength = strlen(commandPrefix);
- 8000ce2:	482a      	ldr	r0, [pc, #168]	@ (8000d8c <Command_WriteTerminal+0xb8>)
+ 8000ce2:	482a      	ldr	r0, [pc, #168]	@ (8000d8c <command_write_terminal+0xb8>)
  8000ce4:	f7ff fb06 	bl	80002f4 <strlen>
  8000ce8:	4603      	mov	r3, r0
  8000cea:	75fb      	strb	r3, [r7, #23]
 	uint8_t commandLength = strlen(command);
- 8000cec:	4828      	ldr	r0, [pc, #160]	@ (8000d90 <Command_WriteTerminal+0xbc>)
+ 8000cec:	4828      	ldr	r0, [pc, #160]	@ (8000d90 <command_write_terminal+0xbc>)
  8000cee:	f7ff fb01 	bl	80002f4 <strlen>
  8000cf2:	4603      	mov	r3, r0
  8000cf4:	75bb      	strb	r3, [r7, #22]
@@ -1445,37 +1445,37 @@ void Command_WriteTerminal(const char message[])
  8000d44:	60fb      	str	r3, [r7, #12]
 
 	strcpy(commandline, commandPrefix);
- 8000d46:	4911      	ldr	r1, [pc, #68]	@ (8000d8c <Command_WriteTerminal+0xb8>)
+ 8000d46:	4911      	ldr	r1, [pc, #68]	@ (8000d8c <command_write_terminal+0xb8>)
  8000d48:	68f8      	ldr	r0, [r7, #12]
  8000d4a:	f00f fc2a 	bl	80105a2 <strcpy>
 	strcat(commandline, command);
- 8000d4e:	4910      	ldr	r1, [pc, #64]	@ (8000d90 <Command_WriteTerminal+0xbc>)
+ 8000d4e:	4910      	ldr	r1, [pc, #64]	@ (8000d90 <command_write_terminal+0xbc>)
  8000d50:	68f8      	ldr	r0, [r7, #12]
  8000d52:	f00f fadf 	bl	8010314 <strcat>
 
-	UART_Transmit("\r\033[2K");
- 8000d56:	480f      	ldr	r0, [pc, #60]	@ (8000d94 <Command_WriteTerminal+0xc0>)
- 8000d58:	f7ff ffa6 	bl	8000ca8 <UART_Transmit>
+	uart_transmit("\r\033[2K");
+ 8000d56:	480f      	ldr	r0, [pc, #60]	@ (8000d94 <command_write_terminal+0xc0>)
+ 8000d58:	f7ff ffa6 	bl	8000ca8 <uart_transmit>
 
-	if (!String_IsEmpty(message)) {
+	if (!string_is_empty(message)) {
  8000d5c:	6878      	ldr	r0, [r7, #4]
- 8000d5e:	f7ff ff23 	bl	8000ba8 <String_IsEmpty>
+ 8000d5e:	f7ff ff23 	bl	8000ba8 <string_is_empty>
  8000d62:	4603      	mov	r3, r0
  8000d64:	f083 0301 	eor.w	r3, r3, #1
  8000d68:	b2db      	uxtb	r3, r3
  8000d6a:	2b00      	cmp	r3, #0
- 8000d6c:	d005      	beq.n	8000d7a <Command_WriteTerminal+0xa6>
-		UART_Transmit(message);
+ 8000d6c:	d005      	beq.n	8000d7a <command_write_terminal+0xa6>
+		uart_transmit(message);
  8000d6e:	6878      	ldr	r0, [r7, #4]
- 8000d70:	f7ff ff9a 	bl	8000ca8 <UART_Transmit>
-		UART_Transmit("\r\n");
- 8000d74:	4808      	ldr	r0, [pc, #32]	@ (8000d98 <Command_WriteTerminal+0xc4>)
- 8000d76:	f7ff ff97 	bl	8000ca8 <UART_Transmit>
+ 8000d70:	f7ff ff9a 	bl	8000ca8 <uart_transmit>
+		uart_transmit("\r\n");
+ 8000d74:	4808      	ldr	r0, [pc, #32]	@ (8000d98 <command_write_terminal+0xc4>)
+ 8000d76:	f7ff ff97 	bl	8000ca8 <uart_transmit>
 	}
 
-	UART_Transmit(commandline);
+	uart_transmit(commandline);
  8000d7a:	68f8      	ldr	r0, [r7, #12]
- 8000d7c:	f7ff ff94 	bl	8000ca8 <UART_Transmit>
+ 8000d7c:	f7ff ff94 	bl	8000ca8 <uart_transmit>
  8000d80:	46b5      	mov	sp, r6
 }
  8000d82:	bf00      	nop
@@ -1487,9 +1487,9 @@ void Command_WriteTerminal(const char message[])
  8000d94:	08011374 	.word	0x08011374
  8000d98:	0801137c 	.word	0x0801137c
 
-08000d9c <Command_AppendCharacter>:
+08000d9c <command_append_character>:
 
-void Command_AppendCharacter(char character)
+void command_append_character(char character)
 {
  8000d9c:	b580      	push	{r7, lr}
  8000d9e:	b084      	sub	sp, #16
@@ -1497,14 +1497,14 @@ void Command_AppendCharacter(char character)
  8000da2:	4603      	mov	r3, r0
  8000da4:	71fb      	strb	r3, [r7, #7]
 	uint8_t length = strlen(command);
- 8000da6:	480b      	ldr	r0, [pc, #44]	@ (8000dd4 <Command_AppendCharacter+0x38>)
+ 8000da6:	480b      	ldr	r0, [pc, #44]	@ (8000dd4 <command_append_character+0x38>)
  8000da8:	f7ff faa4 	bl	80002f4 <strlen>
  8000dac:	4603      	mov	r3, r0
  8000dae:	73fb      	strb	r3, [r7, #15]
 	if (length >= COMMAND_MAX_LENGTH) return;
  8000db0:	7bfb      	ldrb	r3, [r7, #15]
  8000db2:	2b1d      	cmp	r3, #29
- 8000db4:	d80a      	bhi.n	8000dcc <Command_AppendCharacter+0x30>
+ 8000db4:	d80a      	bhi.n	8000dcc <command_append_character+0x30>
 
 	char string[] = {character, '\0'};
  8000db6:	79fb      	ldrb	r3, [r7, #7]
@@ -1514,9 +1514,9 @@ void Command_AppendCharacter(char character)
 	strcat(command, string);
  8000dbe:	f107 030c 	add.w	r3, r7, #12
  8000dc2:	4619      	mov	r1, r3
- 8000dc4:	4803      	ldr	r0, [pc, #12]	@ (8000dd4 <Command_AppendCharacter+0x38>)
+ 8000dc4:	4803      	ldr	r0, [pc, #12]	@ (8000dd4 <command_append_character+0x38>)
  8000dc6:	f00f faa5 	bl	8010314 <strcat>
- 8000dca:	e000      	b.n	8000dce <Command_AppendCharacter+0x32>
+ 8000dca:	e000      	b.n	8000dce <command_append_character+0x32>
 	if (length >= COMMAND_MAX_LENGTH) return;
  8000dcc:	bf00      	nop
 }
@@ -1525,30 +1525,30 @@ void Command_AppendCharacter(char character)
  8000dd2:	bd80      	pop	{r7, pc}
  8000dd4:	240000c4 	.word	0x240000c4
 
-08000dd8 <Command_RemoveCharacter>:
+08000dd8 <command_remove_character>:
 
-void Command_RemoveCharacter()
+void command_remove_character()
 {
  8000dd8:	b580      	push	{r7, lr}
  8000dda:	b082      	sub	sp, #8
  8000ddc:	af00      	add	r7, sp, #0
 	uint8_t length = strlen(command);
- 8000dde:	4809      	ldr	r0, [pc, #36]	@ (8000e04 <Command_RemoveCharacter+0x2c>)
+ 8000dde:	4809      	ldr	r0, [pc, #36]	@ (8000e04 <command_remove_character+0x2c>)
  8000de0:	f7ff fa88 	bl	80002f4 <strlen>
  8000de4:	4603      	mov	r3, r0
  8000de6:	71fb      	strb	r3, [r7, #7]
 	if (length <= 0) return;
  8000de8:	79fb      	ldrb	r3, [r7, #7]
  8000dea:	2b00      	cmp	r3, #0
- 8000dec:	d005      	beq.n	8000dfa <Command_RemoveCharacter+0x22>
+ 8000dec:	d005      	beq.n	8000dfa <command_remove_character+0x22>
 
 	command[length - 1] = '\0';
  8000dee:	79fb      	ldrb	r3, [r7, #7]
  8000df0:	3b01      	subs	r3, #1
- 8000df2:	4a04      	ldr	r2, [pc, #16]	@ (8000e04 <Command_RemoveCharacter+0x2c>)
+ 8000df2:	4a04      	ldr	r2, [pc, #16]	@ (8000e04 <command_remove_character+0x2c>)
  8000df4:	2100      	movs	r1, #0
  8000df6:	54d1      	strb	r1, [r2, r3]
- 8000df8:	e000      	b.n	8000dfc <Command_RemoveCharacter+0x24>
+ 8000df8:	e000      	b.n	8000dfc <command_remove_character+0x24>
 	if (length <= 0) return;
  8000dfa:	bf00      	nop
 }
@@ -1558,24 +1558,24 @@ void Command_RemoveCharacter()
  8000e02:	bf00      	nop
  8000e04:	240000c4 	.word	0x240000c4
 
-08000e08 <Command_Enter>:
+08000e08 <command_enter>:
 
-void Command_Enter()
+void command_enter()
 {
  8000e08:	b580      	push	{r7, lr}
  8000e0a:	af00      	add	r7, sp, #0
-	Commands_ExecuteCommand(command);
- 8000e0c:	4805      	ldr	r0, [pc, #20]	@ (8000e24 <Command_Enter+0x1c>)
- 8000e0e:	f7ff fcc5 	bl	800079c <Commands_ExecuteCommand>
+	commands_execute_command(command);
+ 8000e0c:	4805      	ldr	r0, [pc, #20]	@ (8000e24 <command_enter+0x1c>)
+ 8000e0e:	f7ff fcc5 	bl	800079c <commands_execute_command>
 //	char output[] = "Command not recognized";
 
 	command[0] = '\0';
- 8000e12:	4b04      	ldr	r3, [pc, #16]	@ (8000e24 <Command_Enter+0x1c>)
+ 8000e12:	4b04      	ldr	r3, [pc, #16]	@ (8000e24 <command_enter+0x1c>)
  8000e14:	2200      	movs	r2, #0
  8000e16:	701a      	strb	r2, [r3, #0]
-	Command_WriteTerminal("");
- 8000e18:	4803      	ldr	r0, [pc, #12]	@ (8000e28 <Command_Enter+0x20>)
- 8000e1a:	f7ff ff5b 	bl	8000cd4 <Command_WriteTerminal>
+	command_write_terminal("");
+ 8000e18:	4803      	ldr	r0, [pc, #12]	@ (8000e28 <command_enter+0x20>)
+ 8000e1a:	f7ff ff5b 	bl	8000cd4 <command_write_terminal>
 }
  8000e1e:	bf00      	nop
  8000e20:	bd80      	pop	{r7, pc}
@@ -1583,29 +1583,29 @@ void Command_Enter()
  8000e24:	240000c4 	.word	0x240000c4
  8000e28:	08011360 	.word	0x08011360
 
-08000e2c <Debug_PrintRaw>:
+08000e2c <debug_print_raw>:
 
 //
 
 
-void Debug_PrintRaw(const char message[])
+void debug_print_raw(const char message[])
 {
  8000e2c:	b580      	push	{r7, lr}
  8000e2e:	b082      	sub	sp, #8
  8000e30:	af00      	add	r7, sp, #0
  8000e32:	6078      	str	r0, [r7, #4]
-	Command_WriteTerminal(message);
+	command_write_terminal(message);
  8000e34:	6878      	ldr	r0, [r7, #4]
- 8000e36:	f7ff ff4d 	bl	8000cd4 <Command_WriteTerminal>
+ 8000e36:	f7ff ff4d 	bl	8000cd4 <command_write_terminal>
 }
  8000e3a:	bf00      	nop
  8000e3c:	3708      	adds	r7, #8
  8000e3e:	46bd      	mov	sp, r7
  8000e40:	bd80      	pop	{r7, pc}
 
-08000e42 <Debug_Print>:
+08000e42 <debug_print>:
 
-void Debug_Print(const char message[], ...)
+void debug_print(const char message[], ...)
 {
  8000e42:	b40f      	push	{r0, r1, r2, r3}
  8000e44:	b590      	push	{r4, r7, lr}
@@ -1626,7 +1626,7 @@ void Debug_Print(const char message[], ...)
     for (uint16_t i = 0; i < strlen(message); i++) {
  8000e5e:	2300      	movs	r3, #0
  8000e60:	f8a7 3046 	strh.w	r3, [r7, #70]	@ 0x46
- 8000e64:	e03b      	b.n	8000ede <Debug_Print+0x9c>
+ 8000e64:	e03b      	b.n	8000ede <debug_print+0x9c>
     	char character = message[i];
  8000e66:	f8b7 3046 	ldrh.w	r3, [r7, #70]	@ 0x46
  8000e6a:	6dba      	ldr	r2, [r7, #88]	@ 0x58
@@ -1637,7 +1637,7 @@ void Debug_Print(const char message[], ...)
     	if (character == '%') {
  8000e74:	f897 3045 	ldrb.w	r3, [r7, #69]	@ 0x45
  8000e78:	2b25      	cmp	r3, #37	@ 0x25
- 8000e7a:	d116      	bne.n	8000eaa <Debug_Print+0x68>
+ 8000e7a:	d116      	bne.n	8000eaa <debug_print+0x68>
     		const char *argument = va_arg(Arguments, const char *);
  8000e7c:	68bb      	ldr	r3, [r7, #8]
  8000e7e:	1d1a      	adds	r2, r3, #4
@@ -1647,21 +1647,21 @@ void Debug_Print(const char message[], ...)
     		if (argument == NULL) break;
  8000e86:	6c3b      	ldr	r3, [r7, #64]	@ 0x40
  8000e88:	2b00      	cmp	r3, #0
- 8000e8a:	d031      	beq.n	8000ef0 <Debug_Print+0xae>
+ 8000e8a:	d031      	beq.n	8000ef0 <debug_print+0xae>
 
-    		bool filled = ConcatinateWithinBounds(output, argument, DEBUG_PRINT_MAX_LENGTH);
+    		bool filled = concatinate_within_bounds(output, argument, DEBUG_PRINT_MAX_LENGTH);
  8000e8c:	f107 030c 	add.w	r3, r7, #12
  8000e90:	2232      	movs	r2, #50	@ 0x32
  8000e92:	6c39      	ldr	r1, [r7, #64]	@ 0x40
  8000e94:	4618      	mov	r0, r3
- 8000e96:	f7ff fe9e 	bl	8000bd6 <ConcatinateWithinBounds>
+ 8000e96:	f7ff fe9e 	bl	8000bd6 <concatinate_within_bounds>
  8000e9a:	4603      	mov	r3, r0
  8000e9c:	f887 303f 	strb.w	r3, [r7, #63]	@ 0x3f
     		if (filled) break;
  8000ea0:	f897 303f 	ldrb.w	r3, [r7, #63]	@ 0x3f
  8000ea4:	2b00      	cmp	r3, #0
- 8000ea6:	d014      	beq.n	8000ed2 <Debug_Print+0x90>
- 8000ea8:	e025      	b.n	8000ef6 <Debug_Print+0xb4>
+ 8000ea6:	d014      	beq.n	8000ed2 <debug_print+0x90>
+ 8000ea8:	e025      	b.n	8000ef6 <debug_print+0xb4>
 
     		continue;
     	}
@@ -1671,19 +1671,19 @@ void Debug_Print(const char message[], ...)
  8000eae:	713b      	strb	r3, [r7, #4]
  8000eb0:	2300      	movs	r3, #0
  8000eb2:	717b      	strb	r3, [r7, #5]
-		bool filled = ConcatinateWithinBounds(output, string, DEBUG_PRINT_MAX_LENGTH); // TODO DOES NOT NEED TO CALL THIS BOHEMITH
+		bool filled = concatinate_within_bounds(output, string, DEBUG_PRINT_MAX_LENGTH); // TODO DOES NOT NEED TO CALL THIS BOHEMITH
  8000eb4:	1d39      	adds	r1, r7, #4
  8000eb6:	f107 030c 	add.w	r3, r7, #12
  8000eba:	2232      	movs	r2, #50	@ 0x32
  8000ebc:	4618      	mov	r0, r3
- 8000ebe:	f7ff fe8a 	bl	8000bd6 <ConcatinateWithinBounds>
+ 8000ebe:	f7ff fe8a 	bl	8000bd6 <concatinate_within_bounds>
  8000ec2:	4603      	mov	r3, r0
  8000ec4:	f887 3044 	strb.w	r3, [r7, #68]	@ 0x44
 		if (filled) break;
  8000ec8:	f897 3044 	ldrb.w	r3, [r7, #68]	@ 0x44
  8000ecc:	2b00      	cmp	r3, #0
- 8000ece:	d111      	bne.n	8000ef4 <Debug_Print+0xb2>
- 8000ed0:	e000      	b.n	8000ed4 <Debug_Print+0x92>
+ 8000ece:	d111      	bne.n	8000ef4 <debug_print+0xb2>
+ 8000ed0:	e000      	b.n	8000ed4 <debug_print+0x92>
     		continue;
  8000ed2:	bf00      	nop
     for (uint16_t i = 0; i < strlen(message); i++) {
@@ -1695,21 +1695,21 @@ void Debug_Print(const char message[], ...)
  8000ee4:	f7ff fa06 	bl	80002f4 <strlen>
  8000ee8:	4603      	mov	r3, r0
  8000eea:	429c      	cmp	r4, r3
- 8000eec:	d3bb      	bcc.n	8000e66 <Debug_Print+0x24>
- 8000eee:	e002      	b.n	8000ef6 <Debug_Print+0xb4>
+ 8000eec:	d3bb      	bcc.n	8000e66 <debug_print+0x24>
+ 8000eee:	e002      	b.n	8000ef6 <debug_print+0xb4>
     		if (argument == NULL) break;
  8000ef0:	bf00      	nop
- 8000ef2:	e000      	b.n	8000ef6 <Debug_Print+0xb4>
+ 8000ef2:	e000      	b.n	8000ef6 <debug_print+0xb4>
 		if (filled) break;
  8000ef4:	bf00      	nop
     }
 
     va_end(Arguments);
 
-    Command_WriteTerminal(output);
+    command_write_terminal(output);
  8000ef6:	f107 030c 	add.w	r3, r7, #12
  8000efa:	4618      	mov	r0, r3
- 8000efc:	f7ff feea 	bl	8000cd4 <Command_WriteTerminal>
+ 8000efc:	f7ff feea 	bl	8000cd4 <command_write_terminal>
 }
  8000f00:	bf00      	nop
  8000f02:	374c      	adds	r7, #76	@ 0x4c
@@ -1719,15 +1719,15 @@ void Debug_Print(const char message[], ...)
  8000f0c:	4770      	bx	lr
 	...
 
-08000f10 <Debug_ReadUART>:
+08000f10 <debug_read_uart>:
 
-void Debug_ReadUART()
+void debug_read_uart()
 {
  8000f10:	b580      	push	{r7, lr}
  8000f12:	b082      	sub	sp, #8
  8000f14:	af00      	add	r7, sp, #0
 	uint8_t dataWaiting = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_RXNE);
- 8000f16:	4b2a      	ldr	r3, [pc, #168]	@ (8000fc0 <Debug_ReadUART+0xb0>)
+ 8000f16:	4b2a      	ldr	r3, [pc, #168]	@ (8000fc0 <debug_read_uart+0xb0>)
  8000f18:	681b      	ldr	r3, [r3, #0]
  8000f1a:	681b      	ldr	r3, [r3, #0]
  8000f1c:	69db      	ldr	r3, [r3, #28]
@@ -1739,7 +1739,7 @@ void Debug_ReadUART()
  8000f2a:	b2db      	uxtb	r3, r3
  8000f2c:	71fb      	strb	r3, [r7, #7]
 	uint8_t dataOverflow = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_ORE);
- 8000f2e:	4b24      	ldr	r3, [pc, #144]	@ (8000fc0 <Debug_ReadUART+0xb0>)
+ 8000f2e:	4b24      	ldr	r3, [pc, #144]	@ (8000fc0 <debug_read_uart+0xb0>)
  8000f30:	681b      	ldr	r3, [r3, #0]
  8000f32:	681b      	ldr	r3, [r3, #0]
  8000f34:	69db      	ldr	r3, [r3, #28]
@@ -1757,10 +1757,10 @@ void Debug_ReadUART()
 	if (dataWaiting) {
  8000f4c:	79fb      	ldrb	r3, [r7, #7]
  8000f4e:	2b00      	cmp	r3, #0
- 8000f50:	d026      	beq.n	8000fa0 <Debug_ReadUART+0x90>
+ 8000f50:	d026      	beq.n	8000fa0 <debug_read_uart+0x90>
 		uint8_t receivedByte;
 		HAL_UART_Receive(COMMUNICATION_PORT, &receivedByte, 1, 0);
- 8000f52:	4b1b      	ldr	r3, [pc, #108]	@ (8000fc0 <Debug_ReadUART+0xb0>)
+ 8000f52:	4b1b      	ldr	r3, [pc, #108]	@ (8000fc0 <debug_read_uart+0xb0>)
  8000f54:	6818      	ldr	r0, [r3, #0]
  8000f56:	1d39      	adds	r1, r7, #4
  8000f58:	2300      	movs	r3, #0
@@ -1770,63 +1770,63 @@ void Debug_ReadUART()
 		switch(receivedByte) {
  8000f60:	793b      	ldrb	r3, [r7, #4]
  8000f62:	2b0d      	cmp	r3, #13
- 8000f64:	d004      	beq.n	8000f70 <Debug_ReadUART+0x60>
+ 8000f64:	d004      	beq.n	8000f70 <debug_read_uart+0x60>
  8000f66:	2b7f      	cmp	r3, #127	@ 0x7f
- 8000f68:	d105      	bne.n	8000f76 <Debug_ReadUART+0x66>
+ 8000f68:	d105      	bne.n	8000f76 <debug_read_uart+0x66>
 			case '\x7f':
-				Command_RemoveCharacter();
- 8000f6a:	f7ff ff35 	bl	8000dd8 <Command_RemoveCharacter>
+				command_remove_character();
+ 8000f6a:	f7ff ff35 	bl	8000dd8 <command_remove_character>
 				break;
- 8000f6e:	e013      	b.n	8000f98 <Debug_ReadUART+0x88>
+ 8000f6e:	e013      	b.n	8000f98 <debug_read_uart+0x88>
 			case '\r':
-				Command_Enter();
- 8000f70:	f7ff ff4a 	bl	8000e08 <Command_Enter>
+				command_enter();
+ 8000f70:	f7ff ff4a 	bl	8000e08 <command_enter>
 				break;
- 8000f74:	e010      	b.n	8000f98 <Debug_ReadUART+0x88>
+ 8000f74:	e010      	b.n	8000f98 <debug_read_uart+0x88>
 			default:
 				uint8_t normalCharacter = receivedByte >= ' ' && receivedByte <= '~';
  8000f76:	793b      	ldrb	r3, [r7, #4]
  8000f78:	2b1f      	cmp	r3, #31
- 8000f7a:	d904      	bls.n	8000f86 <Debug_ReadUART+0x76>
+ 8000f7a:	d904      	bls.n	8000f86 <debug_read_uart+0x76>
  8000f7c:	793b      	ldrb	r3, [r7, #4]
  8000f7e:	2b7e      	cmp	r3, #126	@ 0x7e
- 8000f80:	d801      	bhi.n	8000f86 <Debug_ReadUART+0x76>
+ 8000f80:	d801      	bhi.n	8000f86 <debug_read_uart+0x76>
  8000f82:	2301      	movs	r3, #1
- 8000f84:	e000      	b.n	8000f88 <Debug_ReadUART+0x78>
+ 8000f84:	e000      	b.n	8000f88 <debug_read_uart+0x78>
  8000f86:	2300      	movs	r3, #0
  8000f88:	717b      	strb	r3, [r7, #5]
-				if (normalCharacter) Command_AppendCharacter(receivedByte);
+				if (normalCharacter) command_append_character(receivedByte);
  8000f8a:	797b      	ldrb	r3, [r7, #5]
  8000f8c:	2b00      	cmp	r3, #0
- 8000f8e:	d003      	beq.n	8000f98 <Debug_ReadUART+0x88>
+ 8000f8e:	d003      	beq.n	8000f98 <debug_read_uart+0x88>
  8000f90:	793b      	ldrb	r3, [r7, #4]
  8000f92:	4618      	mov	r0, r3
- 8000f94:	f7ff ff02 	bl	8000d9c <Command_AppendCharacter>
+ 8000f94:	f7ff ff02 	bl	8000d9c <command_append_character>
 		}
 
-		Command_WriteTerminal("");
- 8000f98:	480a      	ldr	r0, [pc, #40]	@ (8000fc4 <Debug_ReadUART+0xb4>)
- 8000f9a:	f7ff fe9b 	bl	8000cd4 <Command_WriteTerminal>
+		command_write_terminal("");
+ 8000f98:	480a      	ldr	r0, [pc, #40]	@ (8000fc4 <debug_read_uart+0xb4>)
+ 8000f9a:	f7ff fe9b 	bl	8000cd4 <command_write_terminal>
 
 	} else if (dataOverflow) {
 		__HAL_UART_CLEAR_OREFLAG(COMMUNICATION_PORT);
-		Debug_PrintRaw("UART Overflow ");
+		debug_print_raw("UART Overflow ");
 	}
 }
- 8000f9e:	e00a      	b.n	8000fb6 <Debug_ReadUART+0xa6>
+ 8000f9e:	e00a      	b.n	8000fb6 <debug_read_uart+0xa6>
 	} else if (dataOverflow) {
  8000fa0:	79bb      	ldrb	r3, [r7, #6]
  8000fa2:	2b00      	cmp	r3, #0
- 8000fa4:	d007      	beq.n	8000fb6 <Debug_ReadUART+0xa6>
+ 8000fa4:	d007      	beq.n	8000fb6 <debug_read_uart+0xa6>
 		__HAL_UART_CLEAR_OREFLAG(COMMUNICATION_PORT);
- 8000fa6:	4b06      	ldr	r3, [pc, #24]	@ (8000fc0 <Debug_ReadUART+0xb0>)
+ 8000fa6:	4b06      	ldr	r3, [pc, #24]	@ (8000fc0 <debug_read_uart+0xb0>)
  8000fa8:	681b      	ldr	r3, [r3, #0]
  8000faa:	681b      	ldr	r3, [r3, #0]
  8000fac:	2208      	movs	r2, #8
  8000fae:	621a      	str	r2, [r3, #32]
-		Debug_PrintRaw("UART Overflow ");
- 8000fb0:	4805      	ldr	r0, [pc, #20]	@ (8000fc8 <Debug_ReadUART+0xb8>)
- 8000fb2:	f7ff ff3b 	bl	8000e2c <Debug_PrintRaw>
+		debug_print_raw("UART Overflow ");
+ 8000fb0:	4805      	ldr	r0, [pc, #20]	@ (8000fc8 <debug_read_uart+0xb8>)
+ 8000fb2:	f7ff ff3b 	bl	8000e2c <debug_print_raw>
 }
  8000fb6:	bf00      	nop
  8000fb8:	3708      	adds	r7, #8
@@ -1837,41 +1837,41 @@ void Debug_ReadUART()
  8000fc4:	08011360 	.word	0x08011360
  8000fc8:	08011380 	.word	0x08011380
 
-08000fcc <PWM_Init>:
+08000fcc <pwm_init>:
 #include <Embedded/Debug.h>
 #include <Embedded/PWM.h>
 
 extern TIM_HandleTypeDef htim1;
 
-void PWM_Init() {
+void pwm_init() {
  8000fcc:	b580      	push	{r7, lr}
  8000fce:	af00      	add	r7, sp, #0
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
  8000fd0:	2100      	movs	r1, #0
- 8000fd2:	4802      	ldr	r0, [pc, #8]	@ (8000fdc <PWM_Init+0x10>)
+ 8000fd2:	4802      	ldr	r0, [pc, #8]	@ (8000fdc <pwm_init+0x10>)
  8000fd4:	f00a fa8e 	bl	800b4f4 <HAL_TIM_PWM_Start>
 }
  8000fd8:	bf00      	nop
  8000fda:	bd80      	pop	{r7, pc}
  8000fdc:	240004e4 	.word	0x240004e4
 
-08000fe0 <PWM_SetDuty>:
+08000fe0 <pwm_set_duty>:
 
-void PWM_SetDuty(uint16_t power) {
+void pwm_set_duty(uint16_t power) {
  8000fe0:	b580      	push	{r7, lr}
  8000fe2:	b084      	sub	sp, #16
  8000fe4:	af00      	add	r7, sp, #0
  8000fe6:	4603      	mov	r3, r0
  8000fe8:	80fb      	strh	r3, [r7, #6]
 	uint16_t ARR = htim1.Init.Period;
- 8000fea:	4b1a      	ldr	r3, [pc, #104]	@ (8001054 <PWM_SetDuty+0x74>)
+ 8000fea:	4b1a      	ldr	r3, [pc, #104]	@ (8001054 <pwm_set_duty+0x74>)
  8000fec:	68db      	ldr	r3, [r3, #12]
  8000fee:	81bb      	strh	r3, [r7, #12]
 	float_t percentage = (float_t)power / 255;
  8000ff0:	88fb      	ldrh	r3, [r7, #6]
  8000ff2:	ee07 3a90 	vmov	s15, r3
  8000ff6:	eeb8 7a67 	vcvt.f32.u32	s14, s15
- 8000ffa:	eddf 6a17 	vldr	s13, [pc, #92]	@ 8001058 <PWM_SetDuty+0x78>
+ 8000ffa:	eddf 6a17 	vldr	s13, [pc, #92]	@ 8001058 <pwm_set_duty+0x78>
  8000ffe:	eec7 7a26 	vdiv.f32	s15, s14, s13
  8001002:	edc7 7a02 	vstr	s15, [r7, #8]
 	uint16_t duty = (uint16_t)round(percentage * ARR);
@@ -1892,11 +1892,11 @@ void PWM_SetDuty(uint16_t power) {
  8001032:	88fa      	ldrh	r2, [r7, #6]
  8001034:	89bb      	ldrh	r3, [r7, #12]
  8001036:	429a      	cmp	r2, r3
- 8001038:	d902      	bls.n	8001040 <PWM_SetDuty+0x60>
+ 8001038:	d902      	bls.n	8001040 <pwm_set_duty+0x60>
 		duty = ARR;
  800103a:	89bb      	ldrh	r3, [r7, #12]
  800103c:	81fb      	strh	r3, [r7, #14]
- 800103e:	e001      	b.n	8001044 <PWM_SetDuty+0x64>
+ 800103e:	e001      	b.n	8001044 <pwm_set_duty+0x64>
 	}else{
 		duty = power;
  8001040:	88fb      	ldrh	r3, [r7, #6]
@@ -1904,7 +1904,7 @@ void PWM_SetDuty(uint16_t power) {
 	}
 
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, duty);
- 8001044:	4b03      	ldr	r3, [pc, #12]	@ (8001054 <PWM_SetDuty+0x74>)
+ 8001044:	4b03      	ldr	r3, [pc, #12]	@ (8001054 <pwm_set_duty+0x74>)
  8001046:	681b      	ldr	r3, [r3, #0]
  8001048:	89fa      	ldrh	r2, [r7, #14]
  800104a:	635a      	str	r2, [r3, #52]	@ 0x34
@@ -1934,9 +1934,9 @@ void Weight_Init()
  800106c:	2b00      	cmp	r3, #0
  800106e:	d002      	beq.n	8001076 <Weight_Init+0x1a>
 	{
-		Debug_Print("Something went wrong with ADC calibration");
+		debug_print("Something went wrong with ADC calibration");
  8001070:	4806      	ldr	r0, [pc, #24]	@ (800108c <Weight_Init+0x30>)
- 8001072:	f7ff fee6 	bl	8000e42 <Debug_Print>
+ 8001072:	f7ff fee6 	bl	8000e42 <debug_print>
 	}
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t *)Voltages, 2);
@@ -3194,9 +3194,9 @@ static void MX_TIM1_Init(void)
  8001784:	4b2f      	ldr	r3, [pc, #188]	@ (8001844 <MX_TIM1_Init+0x118>)
  8001786:	2280      	movs	r2, #128	@ 0x80
  8001788:	619a      	str	r2, [r3, #24]
-  if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
+  if (HAL_TIM_pwm_init(&htim1) != HAL_OK)
  800178a:	482e      	ldr	r0, [pc, #184]	@ (8001844 <MX_TIM1_Init+0x118>)
- 800178c:	f009 fe5a 	bl	800b444 <HAL_TIM_PWM_Init>
+ 800178c:	f009 fe5a 	bl	800b444 <HAL_TIM_pwm_init>
  8001790:	4603      	mov	r3, r0
  8001792:	2b00      	cmp	r3, #0
  8001794:	d001      	beq.n	800179a <MX_TIM1_Init+0x6e>
@@ -3495,17 +3495,17 @@ void RTOS_Main(void *argument)
  8001998:	af00      	add	r7, sp, #0
  800199a:	6078      	str	r0, [r7, #4]
   /* USER CODE BEGIN 5 */
-	Controller_Init();
- 800199c:	f7fe ffb6 	bl	800090c <Controller_Init>
+	controller_init();
+ 800199c:	f7fe ffb6 	bl	800090c <controller_init>
   /* Infinite loop */
   for(;;)
   {
-	  Controller_Main();
- 80019a0:	f7fe ffbc 	bl	800091c <Controller_Main>
+	  controller_main();
+ 80019a0:	f7fe ffbc 	bl	800091c <controller_main>
     osDelay(50);
  80019a4:	2032      	movs	r0, #50	@ 0x32
  80019a6:	f00c f85a 	bl	800da5e <osDelay>
-	  Controller_Main();
+	  controller_main();
  80019aa:	bf00      	nop
  80019ac:	e7f8      	b.n	80019a0 <RTOS_Main+0xc>
 
@@ -3524,13 +3524,13 @@ void RTOS_Blinky(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  Controller_Blinky();
- 80019b6:	f7fe ffb7 	bl	8000928 <Controller_Blinky>
+	  controller_blinky();
+ 80019b6:	f7fe ffb7 	bl	8000928 <controller_blinky>
 //    osDelay(1000/1000);
 	  osDelay(250);
  80019ba:	20fa      	movs	r0, #250	@ 0xfa
  80019bc:	f00c f84f 	bl	800da5e <osDelay>
-	  Controller_Blinky();
+	  controller_blinky();
  80019c0:	bf00      	nop
  80019c2:	e7f8      	b.n	80019b6 <RTOS_Blinky+0x8>
 
@@ -3549,12 +3549,12 @@ void RTOS_CAN(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  Controller_CAN();
- 80019cc:	f7fe ffc5 	bl	800095a <Controller_CAN>
+	  controller_can();
+ 80019cc:	f7fe ffc5 	bl	800095a <controller_can>
     osDelay(2000);
  80019d0:	f44f 60fa 	mov.w	r0, #2000	@ 0x7d0
  80019d4:	f00c f843 	bl	800da5e <osDelay>
-	  Controller_CAN();
+	  controller_can();
  80019d8:	bf00      	nop
  80019da:	e7f7      	b.n	80019cc <RTOS_CAN+0x8>
 
@@ -6168,7 +6168,7 @@ __weak HAL_StatusTypeDef MX_USART3_Init(UART_HandleTypeDef *huart, MX_UART_InitT
  80028d6:	b082      	sub	sp, #8
  80028d8:	af00      	add	r7, sp, #0
  80028da:	6078      	str	r0, [r7, #4]
-  HAL_UART_Transmit (&hcom_uart [COM_ActiveLogPort], (uint8_t *) &ch, 1, COM_POLL_TIMEOUT);
+  HAL_uart_transmit (&hcom_uart [COM_ActiveLogPort], (uint8_t *) &ch, 1, COM_POLL_TIMEOUT);
  80028dc:	4b09      	ldr	r3, [pc, #36]	@ (8002904 <__io_putchar+0x30>)
  80028de:	781b      	ldrb	r3, [r3, #0]
  80028e0:	461a      	mov	r2, r3
@@ -6179,7 +6179,7 @@ __weak HAL_StatusTypeDef MX_USART3_Init(UART_HandleTypeDef *huart, MX_UART_InitT
  80028ec:	1d39      	adds	r1, r7, #4
  80028ee:	f44f 737a 	mov.w	r3, #1000	@ 0x3e8
  80028f2:	2201      	movs	r2, #1
- 80028f4:	f009 fe76 	bl	800c5e4 <HAL_UART_Transmit>
+ 80028f4:	f009 fe76 	bl	800c5e4 <HAL_uart_transmit>
   return ch;
  80028f8:	687b      	ldr	r3, [r7, #4]
 }
@@ -27967,12 +27967,12 @@ HAL_StatusTypeDef HAL_TIM_Base_Start_IT(TIM_HandleTypeDef *htim)
  800b43c:	40014000 	.word	0x40014000
  800b440:	00010007 	.word	0x00010007
 
-0800b444 <HAL_TIM_PWM_Init>:
-  *         Ex: call @ref HAL_TIM_PWM_DeInit() before HAL_TIM_PWM_Init()
+0800b444 <HAL_TIM_pwm_init>:
+  *         Ex: call @ref HAL_TIM_PWM_DeInit() before HAL_TIM_pwm_init()
   * @param  htim TIM PWM handle
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_TIM_PWM_Init(TIM_HandleTypeDef *htim)
+HAL_StatusTypeDef HAL_TIM_pwm_init(TIM_HandleTypeDef *htim)
 {
  800b444:	b580      	push	{r7, lr}
  800b446:	b082      	sub	sp, #8
@@ -27982,11 +27982,11 @@ HAL_StatusTypeDef HAL_TIM_PWM_Init(TIM_HandleTypeDef *htim)
   if (htim == NULL)
  800b44c:	687b      	ldr	r3, [r7, #4]
  800b44e:	2b00      	cmp	r3, #0
- 800b450:	d101      	bne.n	800b456 <HAL_TIM_PWM_Init+0x12>
+ 800b450:	d101      	bne.n	800b456 <HAL_TIM_pwm_init+0x12>
   {
     return HAL_ERROR;
  800b452:	2301      	movs	r3, #1
- 800b454:	e049      	b.n	800b4ea <HAL_TIM_PWM_Init+0xa6>
+ 800b454:	e049      	b.n	800b4ea <HAL_TIM_pwm_init+0xa6>
   assert_param(IS_TIM_COUNTER_MODE(htim->Init.CounterMode));
   assert_param(IS_TIM_CLOCKDIVISION_DIV(htim->Init.ClockDivision));
   assert_param(IS_TIM_PERIOD(htim, htim->Init.Period));
@@ -27997,7 +27997,7 @@ HAL_StatusTypeDef HAL_TIM_PWM_Init(TIM_HandleTypeDef *htim)
  800b458:	f893 303d 	ldrb.w	r3, [r3, #61]	@ 0x3d
  800b45c:	b2db      	uxtb	r3, r3
  800b45e:	2b00      	cmp	r3, #0
- 800b460:	d106      	bne.n	800b470 <HAL_TIM_PWM_Init+0x2c>
+ 800b460:	d106      	bne.n	800b470 <HAL_TIM_pwm_init+0x2c>
   {
     /* Allocate lock resource and initialize it */
     htim->Lock = HAL_UNLOCKED;
@@ -31080,12 +31080,12 @@ __weak void HAL_UART_MspInit(UART_HandleTypeDef *huart)
  800c5de:	f85d 7b04 	ldr.w	r7, [sp], #4
  800c5e2:	4770      	bx	lr
 
-0800c5e4 <HAL_UART_Transmit>:
+0800c5e4 <HAL_uart_transmit>:
   * @param Size    Amount of data elements (u8 or u16) to be sent.
   * @param Timeout Timeout duration.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size, uint32_t Timeout)
+HAL_StatusTypeDef HAL_uart_transmit(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size, uint32_t Timeout)
 {
  800c5e4:	b580      	push	{r7, lr}
  800c5e6:	b08a      	sub	sp, #40	@ 0x28
@@ -31104,19 +31104,19 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
  800c5f4:	68fb      	ldr	r3, [r7, #12]
  800c5f6:	f8d3 3088 	ldr.w	r3, [r3, #136]	@ 0x88
  800c5fa:	2b20      	cmp	r3, #32
- 800c5fc:	f040 8086 	bne.w	800c70c <HAL_UART_Transmit+0x128>
+ 800c5fc:	f040 8086 	bne.w	800c70c <HAL_uart_transmit+0x128>
   {
     if ((pData == NULL) || (Size == 0U))
  800c600:	68bb      	ldr	r3, [r7, #8]
  800c602:	2b00      	cmp	r3, #0
- 800c604:	d002      	beq.n	800c60c <HAL_UART_Transmit+0x28>
+ 800c604:	d002      	beq.n	800c60c <HAL_uart_transmit+0x28>
  800c606:	88fb      	ldrh	r3, [r7, #6]
  800c608:	2b00      	cmp	r3, #0
- 800c60a:	d101      	bne.n	800c610 <HAL_UART_Transmit+0x2c>
+ 800c60a:	d101      	bne.n	800c610 <HAL_uart_transmit+0x2c>
     {
       return  HAL_ERROR;
  800c60c:	2301      	movs	r3, #1
- 800c60e:	e07e      	b.n	800c70e <HAL_UART_Transmit+0x12a>
+ 800c60e:	e07e      	b.n	800c70e <HAL_uart_transmit+0x12a>
     }
 
     huart->ErrorCode = HAL_UART_ERROR_NONE;
@@ -31147,11 +31147,11 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
  800c636:	68fb      	ldr	r3, [r7, #12]
  800c638:	689b      	ldr	r3, [r3, #8]
  800c63a:	f5b3 5f80 	cmp.w	r3, #4096	@ 0x1000
- 800c63e:	d108      	bne.n	800c652 <HAL_UART_Transmit+0x6e>
+ 800c63e:	d108      	bne.n	800c652 <HAL_uart_transmit+0x6e>
  800c640:	68fb      	ldr	r3, [r7, #12]
  800c642:	691b      	ldr	r3, [r3, #16]
  800c644:	2b00      	cmp	r3, #0
- 800c646:	d104      	bne.n	800c652 <HAL_UART_Transmit+0x6e>
+ 800c646:	d104      	bne.n	800c652 <HAL_uart_transmit+0x6e>
     {
       pdata8bits  = NULL;
  800c648:	2300      	movs	r3, #0
@@ -31159,7 +31159,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
       pdata16bits = (const uint16_t *) pData;
  800c64c:	68bb      	ldr	r3, [r7, #8]
  800c64e:	61bb      	str	r3, [r7, #24]
- 800c650:	e003      	b.n	800c65a <HAL_UART_Transmit+0x76>
+ 800c650:	e003      	b.n	800c65a <HAL_uart_transmit+0x76>
     }
     else
     {
@@ -31172,7 +31172,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
     }
 
     while (huart->TxXferCount > 0U)
- 800c65a:	e03a      	b.n	800c6d2 <HAL_UART_Transmit+0xee>
+ 800c65a:	e03a      	b.n	800c6d2 <HAL_uart_transmit+0xee>
     {
       if (UART_WaitOnFlagUntilTimeout(huart, UART_FLAG_TXE, RESET, tickstart, Timeout) != HAL_OK)
  800c65c:	683b      	ldr	r3, [r7, #0]
@@ -31184,7 +31184,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
  800c668:	f000 ffda 	bl	800d620 <UART_WaitOnFlagUntilTimeout>
  800c66c:	4603      	mov	r3, r0
  800c66e:	2b00      	cmp	r3, #0
- 800c670:	d005      	beq.n	800c67e <HAL_UART_Transmit+0x9a>
+ 800c670:	d005      	beq.n	800c67e <HAL_uart_transmit+0x9a>
       {
 
         huart->gState = HAL_UART_STATE_READY;
@@ -31194,12 +31194,12 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
 
         return HAL_TIMEOUT;
  800c67a:	2303      	movs	r3, #3
- 800c67c:	e047      	b.n	800c70e <HAL_UART_Transmit+0x12a>
+ 800c67c:	e047      	b.n	800c70e <HAL_uart_transmit+0x12a>
       }
       if (pdata8bits == NULL)
  800c67e:	69fb      	ldr	r3, [r7, #28]
  800c680:	2b00      	cmp	r3, #0
- 800c682:	d10b      	bne.n	800c69c <HAL_UART_Transmit+0xb8>
+ 800c682:	d10b      	bne.n	800c69c <HAL_uart_transmit+0xb8>
       {
         huart->Instance->TDR = (uint16_t)(*pdata16bits & 0x01FFU);
  800c684:	69bb      	ldr	r3, [r7, #24]
@@ -31213,7 +31213,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
  800c694:	69bb      	ldr	r3, [r7, #24]
  800c696:	3302      	adds	r3, #2
  800c698:	61bb      	str	r3, [r7, #24]
- 800c69a:	e007      	b.n	800c6ac <HAL_UART_Transmit+0xc8>
+ 800c69a:	e007      	b.n	800c6ac <HAL_uart_transmit+0xc8>
       }
       else
       {
@@ -31233,7 +31233,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
  800c6ae:	f8d3 3088 	ldr.w	r3, [r3, #136]	@ 0x88
  800c6b2:	f003 0321 	and.w	r3, r3, #33	@ 0x21
  800c6b6:	2b21      	cmp	r3, #33	@ 0x21
- 800c6b8:	d109      	bne.n	800c6ce <HAL_UART_Transmit+0xea>
+ 800c6b8:	d109      	bne.n	800c6ce <HAL_uart_transmit+0xea>
       {
         huart->TxXferCount--;
  800c6ba:	68fb      	ldr	r3, [r7, #12]
@@ -31243,20 +31243,20 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
  800c6c4:	b29a      	uxth	r2, r3
  800c6c6:	68fb      	ldr	r3, [r7, #12]
  800c6c8:	f8a3 2056 	strh.w	r2, [r3, #86]	@ 0x56
- 800c6cc:	e001      	b.n	800c6d2 <HAL_UART_Transmit+0xee>
+ 800c6cc:	e001      	b.n	800c6d2 <HAL_uart_transmit+0xee>
       }
       else
       {
         /* Process was aborted during the transmission */
         return HAL_ERROR;
  800c6ce:	2301      	movs	r3, #1
- 800c6d0:	e01d      	b.n	800c70e <HAL_UART_Transmit+0x12a>
+ 800c6d0:	e01d      	b.n	800c70e <HAL_uart_transmit+0x12a>
     while (huart->TxXferCount > 0U)
  800c6d2:	68fb      	ldr	r3, [r7, #12]
  800c6d4:	f8b3 3056 	ldrh.w	r3, [r3, #86]	@ 0x56
  800c6d8:	b29b      	uxth	r3, r3
  800c6da:	2b00      	cmp	r3, #0
- 800c6dc:	d1be      	bne.n	800c65c <HAL_UART_Transmit+0x78>
+ 800c6dc:	d1be      	bne.n	800c65c <HAL_uart_transmit+0x78>
       }
     }
 
@@ -31270,7 +31270,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
  800c6ea:	f000 ff99 	bl	800d620 <UART_WaitOnFlagUntilTimeout>
  800c6ee:	4603      	mov	r3, r0
  800c6f0:	2b00      	cmp	r3, #0
- 800c6f2:	d005      	beq.n	800c700 <HAL_UART_Transmit+0x11c>
+ 800c6f2:	d005      	beq.n	800c700 <HAL_uart_transmit+0x11c>
     {
       huart->gState = HAL_UART_STATE_READY;
  800c6f4:	68fb      	ldr	r3, [r7, #12]
@@ -31279,7 +31279,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
 
       return HAL_TIMEOUT;
  800c6fc:	2303      	movs	r3, #3
- 800c6fe:	e006      	b.n	800c70e <HAL_UART_Transmit+0x12a>
+ 800c6fe:	e006      	b.n	800c70e <HAL_uart_transmit+0x12a>
     }
 
     /* At end of Tx process, restore huart->gState to Ready */
@@ -31290,7 +31290,7 @@ HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pD
 
     return HAL_OK;
  800c708:	2300      	movs	r3, #0
- 800c70a:	e000      	b.n	800c70e <HAL_UART_Transmit+0x12a>
+ 800c70a:	e000      	b.n	800c70e <HAL_uart_transmit+0x12a>
   }
   else
   {

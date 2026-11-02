@@ -8,7 +8,7 @@ float reference_thrust[4] = {0};
 
 ControlErrorCode control_init()
 {
-	Debug_Print("Hello, world!");
+	debug_print("Hello, world!");
 	return ControlErrorCode.SUCCESS;
 }
 

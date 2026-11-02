@@ -1,9 +1,9 @@
 #ifndef EXAMPLE_H_
 #define EXAMPLE_H_
 
+#include <debug.h>
 #include <stdint.h>
-#include <Interface/Bridge.h>
-#include <Embedded/Debug.h>
+#include <Interface/bridge.h>
 
 typedef enum
 {

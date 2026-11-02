@@ -1,14 +1,14 @@
-#include <Embedded/Converter.h>
-#include <Embedded/Debug.h>
-#include <Embedded/PWM.h>
+#include <converter.h>
+#include <debug.h>
+#include <pwm.h>
 
 extern TIM_HandleTypeDef htim1;
 
-void PWM_Init() {
+void pwm_init() {
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 }
 
-void PWM_SetDuty(uint16_t power) {
+void pwm_set_duty(uint16_t power) {
 	uint16_t ARR = htim1.Init.Period;
 	float_t percentage = (float_t)power / 255;
 	uint16_t duty = (uint16_t)round(percentage * ARR);

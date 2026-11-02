@@ -30,7 +30,7 @@
 //
 //uint16_t currentDuty = 0;
 //
-//void DShot_Update()
+//void dshot_update()
 //{
 ////	if (HAL_SPI_GetState(&hspi1) != HAL_SPI_STATE_READY) {
 ////		return false; // previous frame still sending
@@ -44,7 +44,7 @@
 //
 //
 //// throttle: 0-2047 (0 = disarmed, 48-2047 = range)
-//void DShot_SetDuty(uint16_t throttle, bool telemetry)
+//void dshot_set_duty(uint16_t throttle, bool telemetry)
 //{
 //	currentDuty = throttle;
 //}
@@ -60,14 +60,14 @@ static uint16_t dshot_buf[DSHOT_BITS + 1];
 static uint16_t BIT0, BIT1;
 
 
-void DShot_Init()
+void dshot_init()
 {
 	uint16_t period = __HAL_TIM_GET_AUTORELOAD(&htim1) + 1;  // 107 ved ARR = 106
 	BIT0 = (period * 3 + 4) / 8;   // 40
 	BIT1 = (period * 3 + 2) / 4;   // 80
 }
 
-void DShot_SendPacket(uint16_t throttle, bool telem)
+void dshot_send_packet(uint16_t throttle, bool telem)
 {
     uint16_t v = (throttle << 1) | (telem ? 1 : 0);
     uint16_t crc = (v ^ (v >> 4) ^ (v >> 8)) & 0xF;
@@ -97,12 +97,12 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
 uint16_t currentDuty = 0;
 
 
-void DShot_Update()
+void dshot_update()
 {
-	DShot_SendPacket(currentDuty, false);
+	dshot_send_packet(currentDuty, false);
 }
 
-void DShot_SetDuty(uint16_t throttle, bool telemetry)
+void dshot_set_duty(uint16_t throttle, bool telemetry)
 {
 	currentDuty = throttle;
 }
