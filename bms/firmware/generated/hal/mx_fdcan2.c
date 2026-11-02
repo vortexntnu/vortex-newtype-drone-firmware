@@ -59,16 +59,20 @@ hal_fdcan_handle_t *mx_fdcan2_init(void)
   fdcan_nominal_bit_timing.nominal_time_seg2  = 4;
   fdcan_nominal_bit_timing.nominal_jump_width = 1;
 
-  /* Data bit timing parameters are not used in Classic CAN or non-BRS modes */
-  /* hal_fdcan_data_bit_timing_t fdcan_data_bit_timing;                      */
-  /* fdcan_data_bit_timing.data_prescaler     = 1U;                          */
-  /* fdcan_data_bit_timing.data_time_seg1     = 1U;                          */
-  /* fdcan_data_bit_timing.data_time_seg2     = 1U;                          */
-  /* fdcan_data_bit_timing.data_jump_width    = 1U;                          */
+  /* Data bitrate                             = 1000.000 kbps */
+  /* Data time quanta                         = 62.50 ns */
+  /* Data sample point                        = 75.00 % */
+
+  hal_fdcan_data_bit_timing_t fdcan_data_bit_timing;
+  fdcan_data_bit_timing.data_prescaler        = 1;
+  fdcan_data_bit_timing.data_time_seg1        = 11;
+  fdcan_data_bit_timing.data_time_seg2        = 4;
+  fdcan_data_bit_timing.data_jump_width       = 1;
 
   fdcan_config.nominal_bit_timing   = fdcan_nominal_bit_timing;
+  fdcan_config.data_bit_timing      = fdcan_data_bit_timing;
 
-  fdcan_config.frame_format         = HAL_FDCAN_FRAME_FORMAT_CLASSIC_CAN;
+  fdcan_config.frame_format         = HAL_FDCAN_FRAME_FORMAT_FD_BRS;
   fdcan_config.mode                 = HAL_FDCAN_MODE_NORMAL;
   fdcan_config.auto_retransmission  = HAL_FDCAN_AUTO_RETRANSMISSION_ENABLE;
   fdcan_config.transmit_pause       = HAL_FDCAN_TRANSMIT_PAUSE_DISABLE;
@@ -93,6 +97,15 @@ hal_fdcan_handle_t *mx_fdcan2_init(void)
   global_filter_cfg.acceptance_remote_std       = HAL_FDCAN_REMOTE_REJECT;
   global_filter_cfg.acceptance_remote_ext       = HAL_FDCAN_REMOTE_REJECT;
   if (HAL_FDCAN_SetGlobalFilter(&hFDCAN2, &global_filter_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  hal_fdcan_tx_delay_comp_config_t tx_delay_compensation_cfg;
+  tx_delay_compensation_cfg.tx_delay_comp_offset      = 0;
+  tx_delay_compensation_cfg.tx_delay_comp_win_length  = 0;
+
+  if (HAL_FDCAN_SetConfigTxDelayCompensation(&hFDCAN2, &tx_delay_compensation_cfg) != HAL_OK)
   {
     return NULL;
   }

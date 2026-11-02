@@ -648,7 +648,7 @@
   "export": {
     "configurations": {
       "CMake": {
-        "outputPath": "vortex-newtype-drone-firmware/bms/firmware",
+        "outputPath": "firmware",
         "toolchain": "GCC",
         "exportSource": "include-packs-from-local",
         "removeBoard": true
@@ -5270,7 +5270,7 @@
               },
               "basic": {
                 "mode": "NORMAL",
-                "frame_format": "CLASSIC_CAN",
+                "frame_format": "FD_BRS",
                 "auto_retransmission": true,
                 "transmit_pause": false,
                 "protocol_exception": true,
@@ -5323,7 +5323,7 @@
                 "fdcan_kernel_clock": "16 MHz"
               },
               "additional": {
-                "enable_tx_delay_compensation": false,
+                "enable_tx_delay_compensation": true,
                 "tx_delay_compensation_config": {
                   "tx_delay_comp_offset": 0,
                   "tx_delay_comp_win_length": 0

@@ -1,7 +1,7 @@
 {
   "disclaimer": "Do not modify this file as it is used by STM32CubeMX2 to determine what and how to update your project with new configuration",
   "version": "1.0.0",
-  "timestamp": "2026-10-28T17:18:46.389Z",
+  "timestamp": "2026-11-02T18:32:34.477Z",
   "files": [
     {
       "fileGroup": "project_file",
@@ -79,7 +79,7 @@
       "fileGroup": "project_file",
       "checksum": {
         "algo": "sha256",
-        "digest": "8edd503c731e0b2b457699d746ac15e516122a465625296e60702b394d2071b7"
+        "digest": "1c1a9bf9f9eb7a45d15c12a2d509ce2b61f35065289f6e3ce5990cc980c8261d"
       },
       "file": "stm32c5xx_dfp/CMakeLists.txt"
     },
@@ -103,7 +103,7 @@
       "fileGroup": "pack",
       "checksum": {
         "algo": "sha256",
-        "digest": "23a6cd6dec61f4feca7b05a8851aea7f6c0a3a530c6c872b95767ac8f0fc3901"
+        "digest": "253316e5a48335df29db61a884d2a49834d74784130e486bbb7bc0b5f3152dd1"
       },
       "file": "stm32c5xx_dfp/RTE_Components.h"
     },
@@ -287,7 +287,7 @@
       "fileGroup": "generated",
       "checksum": {
         "algo": "sha256",
-        "digest": "f57e85997df75b4b7e41db22808f4462ca10c3d2f286a33c4d7c320dd35eb64d"
+        "digest": "3eb195271dc77491815a275059c292e128a2653a13f50773c897f4f852f506a5"
       },
       "file": "generated/hal/mx_fdcan2.c"
     },
