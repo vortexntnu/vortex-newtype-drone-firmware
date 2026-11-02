@@ -65,8 +65,8 @@ all: main-build
 main-build: STIM300dev.elf secondary-outputs
 
 # Tool invocations
-STIM300dev.elf STIM300dev.map: $(OBJS) $(USER_OBJS) /home/georgsk/Programming/stim300-2027/STM32H753ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "STIM300dev.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"/home/georgsk/Programming/stim300-2027/STM32H753ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STIM300dev.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+STIM300dev.elf STIM300dev.map: $(OBJS) $(USER_OBJS) /home/georgsk/Programming/vortex-newtype-drone-firmware/sensor-interface/firmware/STM32H753ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "STIM300dev.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"/home/georgsk/Programming/vortex-newtype-drone-firmware/sensor-interface/firmware/STM32H753ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STIM300dev.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

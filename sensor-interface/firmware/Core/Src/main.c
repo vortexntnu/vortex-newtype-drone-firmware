@@ -137,6 +137,10 @@ void StartDefaultTask(void *argument);
 static void stim_feed(const uint8_t *data, uint16_t len);
 static void stim_decode(const uint8_t *frame, stim_sample_t *out);
 
+static uint8_t stim_crc8(const char *s, size_t len);
+static void stim_send_cmd(const char *body);
+static void stim_configure(void);
+
 static int32_t stim_s24(const uint8_t *p);
 static int16_t stim_s16(const uint8_t *p);
 
@@ -245,10 +249,10 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-	    /* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	    // unreachable: the scheduler runs the tasks after osKernelStart()
 	  }
-	  /* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
@@ -450,6 +454,38 @@ static int16_t stim_s16(const uint8_t *p)
   return (int16_t)v;
 }
 
+// CRC-8 for Utility Mode (11.2.3): poly 0x07, seed 0xFF
+static uint8_t stim_crc8(const char *s, size_t len)
+{
+  uint8_t crc = 0xFF;
+  for (size_t i = 0; i < len; i++)
+  {
+    crc ^= (uint8_t)s[i];
+    for (int b = 0; b < 8; b++)
+      crc = (crc & 0x80u) ? (uint8_t)((crc << 1) ^ 0x07u) : (uint8_t)(crc << 1);
+  }
+  return crc;
+}
+
+// Build "$<body>,<crc><CR>" and send it, e.g. body = "sgf,x,1"
+static void stim_send_cmd(const char *body)
+{
+  char cmd[100];
+  int n = snprintf(cmd, sizeof cmd, "$%s,", body);                       // "$sgf,x,1,"
+  n += snprintf(cmd + n, sizeof cmd - n, "%u\r", (unsigned)stim_crc8(cmd, (size_t)n));
+  HAL_UART_Transmit(&huart2, (uint8_t *)cmd, (uint16_t)n, 100);
+}
+
+static void stim_configure(void)
+{
+  HAL_UART_Transmit(&huart2, (uint8_t *)"\rSERVICEMODE\r", 13, 100);
+  osDelay(500);                                             // let it print its info block
+  HAL_UART_Transmit(&huart2, (uint8_t *)"m 3\r", 4, 100);  // sample rate -> 1000 samples/s
+  osDelay(100);
+  HAL_UART_Transmit(&huart2, (uint8_t *)"x N\r", 4, 100);  // back to Normal Mode, not saved
+}
+
+
 // Called by HAL (from interrupt) on DMA half-full, DMA full, and UART idle line
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t pos)
 {
@@ -609,7 +645,7 @@ static void stim_feed(const uint8_t *data, uint16_t len) // personal note: i get
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-	  /* USER CODE BEGIN 5 */
+  /* USER CODE BEGIN 5 */
 	  // Start STIM reception (moved here from main so it begins once the RTOS is running)
 	  __HAL_UART_SEND_REQ(&huart2, UART_RXDATA_FLUSH_REQUEST);  // throw away the stale byte sitting in RDR
 	  __HAL_UART_CLEAR_OREFLAG(&huart2);                        // clear the overrun flag left over from before
@@ -618,6 +654,11 @@ void StartDefaultTask(void *argument)
 	    printf("DMA start failed\r\n");
 	  }
 
+	  while (stim_frames == 0) osDelay(10);   // wait until the STIM is in Normal Mode
+	  stim_configure();                       // apply our settings via Utility Mode
+	  printf("STIM configured\r\n");
+	  //static const uint8_t zeros[64] = {0};
+	  //for (;;) HAL_UART_Transmit(&huart2, (uint8_t *)zeros, sizeof zeros, 100);   // TEST: line mostly low
 	  for (;;)
 	  {
 	    osDelay(1000);   // sleep 1 s; the CPU is free for other tasks meanwhile
@@ -631,7 +672,7 @@ void StartDefaultTask(void *argument)
 	           (int)stim_latest.gyro_temp.xyz[0], (unsigned)stim_latest.latency_us,
 	           (unsigned)stim_latest.counter, (unsigned)stim_latest.valid);
 	  }
-	  /* USER CODE END 5 */
+  /* USER CODE END 5 */
 }
 
  /* MPU Configuration */
