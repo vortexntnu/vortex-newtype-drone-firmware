@@ -122,6 +122,7 @@ int power_spi_errcallback(void* unused)
 	return 0;
 }
 
+// this function runs automatically once in a while
 int power_stick_callback(void* stock)
 {
 	uint32_t stick = *(uint32_t*)stock;

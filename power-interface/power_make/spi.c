@@ -61,10 +61,10 @@ int spi_init_master(void)
 		.output_type = HAL_GPIO_OUTPUT_PUSHPULL,
 		.pull = HAL_GPIO_PULL_NO,
 		.speed = HAL_GPIO_SPEED_FREQ_MEDIUM,
-		.alternate = HAL_GPIO_AF_5,
+		.alternate = HAL_GPIO_AF_6,
 	};
-	// cant do pin 5, that is blinky // do it anyway, and just debug over can
-	HAL_GPIO_Init(HAL_GPIOA, HAL_GPIO_PIN_5 | HAL_GPIO_PIN_6 | HAL_GPIO_PIN_7, &gpioconf);
+	// dont do pin 5a, that is blinky
+	HAL_GPIO_Init(HAL_GPIOB, HAL_GPIO_PIN_6 | HAL_GPIO_PIN_7 | HAL_GPIO_PIN_15, &gpioconf);
 
 	HAL_CORTEX_NVIC_SetPriority(SPI1_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_0, HAL_CORTEX_NVIC_SUB_PRIORITY_0);
 	HAL_CORTEX_NVIC_EnableIRQ(SPI1_IRQn);
