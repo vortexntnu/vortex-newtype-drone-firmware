@@ -1,0 +1,10 @@
+../Core/Src/Embedded/debug.c:18:6:string_is_empty	3
+../Core/Src/Embedded/debug.c:26:6:concatinate_within_bounds	3
+../Core/Src/Embedded/debug.c:49:6:uart_transmit	1
+../Core/Src/Embedded/debug.c:58:6:command_write_terminal	2
+../Core/Src/Embedded/debug.c:78:6:command_append_character	2
+../Core/Src/Embedded/debug.c:87:6:command_remove_character	2
+../Core/Src/Embedded/debug.c:95:6:command_enter	1
+../Core/Src/Embedded/debug.c:108:6:debug_print_raw	1
+../Core/Src/Embedded/debug.c:113:6:debug_print	6
+../Core/Src/Embedded/debug.c:143:6:debug_read_uart	8

@@ -23,7 +23,7 @@ This is where all the firmware and firmware related files are
 | [Power Interface](power-interface) | [STM32C542] | Control house | Provide an interface to the actuator houses + some more| Elias | Conceptualized |
 | [Torpedo/dropper Controller](torpedokontroller) | [STM32C542] | Actuator house | Provide an interface to the torpedo or marker dropper | Simon | PCB first |
 | [BMS](bms) | [STM32C542] | Actuator house | A system for managing the battery | Stian | Good |
-| [Motorcontroller](motorkontroller) | [STM32H753] | Actuator house | Provide a way to control the thrusters | Espen/Filip | DShot working |
+| [Motorcontroller](motorcontroller) | [STM32H753] | Actuator house | Provide a way to control the thrusters | Espen/Filip | DShot working |
 | [CAN-bootloader](can-bootloader) | [Both] | Everywhere | Provide a way to program the MCUs over CAN-bus | Elias | Seems good |
 | [Gripper](gripper) | [STM32C542] | Gripper | Provide a way to control the gripper | IDK | Eirik knows |
 
