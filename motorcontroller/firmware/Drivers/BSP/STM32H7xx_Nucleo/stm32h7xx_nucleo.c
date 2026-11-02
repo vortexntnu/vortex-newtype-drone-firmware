@@ -593,7 +593,7 @@ int32_t BSP_COM_SelectLogPort(COM_TypeDef COM)
  int fputc (int ch, FILE *f)
  #endif /* __GNUC__ */
 {
-  HAL_UART_Transmit (&hcom_uart [COM_ActiveLogPort], (uint8_t *) &ch, 1, COM_POLL_TIMEOUT);
+  HAL_uart_transmit (&hcom_uart [COM_ActiveLogPort], (uint8_t *) &ch, 1, COM_POLL_TIMEOUT);
   return ch;
 }
 #endif /* USE_COM_LOG */
