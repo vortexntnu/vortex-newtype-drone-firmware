@@ -24,6 +24,7 @@ C_DEPS :=
 SUBDIRS := \
 Core/Src/Control \
 Core/Src/Embedded \
+Core/Src/Interface \
 Core/Src \
 Core/Startup \
 Drivers/BSP/STM32H7xx_Nucleo \

@@ -1,4 +1,4 @@
-../Core/Src/Embedded/Controller.c:20:6:Controller_Init	1
-../Core/Src/Embedded/Controller.c:25:6:Controller_Main	1
-../Core/Src/Embedded/Controller.c:31:6:Controller_Blinky	1
-../Core/Src/Embedded/Controller.c:41:6:Controller_CAN	1
+../Core/Src/Embedded/controller.c:20:6:controller_init	1
+../Core/Src/Embedded/controller.c:25:6:controller_main	1
+../Core/Src/Embedded/controller.c:31:6:controller_blinky	1
+../Core/Src/Embedded/controller.c:41:6:controller_can	1
