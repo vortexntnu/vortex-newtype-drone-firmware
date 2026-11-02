@@ -1,6 +1,6 @@
-#include <Embedded/Converter.h>
-#include <Embedded/Debug.h>
-#include <Embedded/PWM.h>
+#include <converter.h>
+#include <debug.h>
+#include <pwm.h>
 
 extern TIM_HandleTypeDef htim1;
 

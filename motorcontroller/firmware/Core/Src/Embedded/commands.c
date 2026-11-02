@@ -1,8 +1,8 @@
+#include <converter.h>
+#include <dshot.h>
 #include <Embedded/Commands.h>
-#include "Embedded/Converter.h"
+#include <pwm.h>
 
-#include "Embedded/DShot.h"
-#include "Embedded/PWM.h"
 
 
 //

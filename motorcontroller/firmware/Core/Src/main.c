@@ -17,13 +17,13 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <controller.h>
 #include "main.h"
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "Controller.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

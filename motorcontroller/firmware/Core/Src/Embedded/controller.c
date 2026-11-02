@@ -1,9 +1,9 @@
-#include <Embedded/Controller.h>
-#include <Embedded/Converter.h>
-#include <Embedded/Debug.h>
-#include <Embedded/DShot.h>
-#include <Embedded/PWM.h>
-#include <Embedded/Weight.h>
+#include <controller.h>
+#include <converter.h>
+#include <debug.h>
+#include <dshot.h>
+#include <pwm.h>
+#include <weight.h>
 #include "main.h"
 
 UART_HandleTypeDef *COMMUNICATION_PORT = &hcom_uart[COM1];
