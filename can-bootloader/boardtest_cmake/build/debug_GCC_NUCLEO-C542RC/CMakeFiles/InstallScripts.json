@@ -1,0 +1,16 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/arch/cmsis/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/part_drivers/button/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/part_drivers/led/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/stm32c5xx_dfp/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/stm32c5xx_drivers/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/utilities/syscalls/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/generated/hal/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/generated/parts/cmake_install.cmake",
+		"/home/elias-gravdal/uni/vortex/stm32/boardtest_cmake/build/debug_GCC_NUCLEO-C542RC/generated/utilities/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
