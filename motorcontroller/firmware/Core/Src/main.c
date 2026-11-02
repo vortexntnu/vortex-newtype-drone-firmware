@@ -685,7 +685,7 @@ void RTOS_Main(void *argument)
   for(;;)
   {
 	  controller_main();
-    osDelay(50);
+	  osDelay(50);
   }
   /* USER CODE END 5 */
 }

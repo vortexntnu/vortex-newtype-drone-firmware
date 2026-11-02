@@ -23,7 +23,7 @@ bool string_is_empty(const char string[]) {
 //
 
 
-bool concatinate_within_bounds(char output[], const char append[], uint8_t bound) // -> isFilled
+bool concatenate_within_bounds(char output[], const char append[], uint8_t bound) // -> isFilled
 {
 	uint8_t outputLength = strlen(output);
 	uint8_t appendLength = strlen(append);
@@ -124,14 +124,14 @@ void debug_print(const char message[], ...)
     		const char *argument = va_arg(arguments, const char *);
     		if (argument == NULL) break;
 
-    		bool filled = concatinate_within_bounds(output, argument, DEBUG_PRINT_MAX_LENGTH);
+    		bool filled = concatenate_within_bounds(output, argument, DEBUG_PRINT_MAX_LENGTH);
     		if (filled) break;
 
     		continue;
     	}
 
 		char string[] = {character, '\0'};
-		bool filled = concatinate_within_bounds(output, string, DEBUG_PRINT_MAX_LENGTH); // TODO DOES NOT NEED TO CALL THIS BOHEMITH
+		bool filled = concatenate_within_bounds(output, string, DEBUG_PRINT_MAX_LENGTH); // TODO DOES NOT NEED TO CALL THIS BOHEMITH
 		if (filled) break;
     }
 
@@ -144,7 +144,6 @@ void debug_read_uart()
 {
 	uint8_t data_waiting = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_RXNE);
 	uint8_t data_overflow = __HAL_UART_GET_FLAG(COMMUNICATION_PORT, UART_FLAG_ORE);
-	BSP_LED_Toggle(LED_RED);
 
 	if (data_waiting) {
 		uint8_t received_byte;

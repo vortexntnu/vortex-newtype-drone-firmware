@@ -1,7 +1,6 @@
 #include <commands.h>
 #include <converter.h>
 #include <dshot.h>
-#include <pwm.h>
 
 
 
@@ -22,25 +21,6 @@ typedef struct {
 
 //
 
-
-void command_pwm_set_duty(CommandContext *context)
-{
-	if (context->arguments_count == 0) {
-		debug_print("No duty given");
-		return;
-	}
-
-	char *duty_string = context->arguments_vector[0];
-	uint32_t duty;
-
-	if (!converter_string_to_uint(&duty, duty_string)) {
-		debug_print("Invalid DShot duty");
-		return;
-	}
-
-	debug_print("Setting PWM duty to %", duty_string);
-	pwm_set_duty(duty);
-}
 
 void command_dshot_set_duty(CommandContext *context)
 {
@@ -66,8 +46,7 @@ void command_dshot_set_duty(CommandContext *context)
 
 
 static const StaticCommand COMMAND_TABLE[] = {
-    {"PWM",  "SetDuty", command_pwm_set_duty},
-	{"DShot",  "SetDuty", command_dshot_set_duty},
+	{"dshot", "setduty", command_dshot_set_duty},
 };
 
 #define COMMAND_COUNT (sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]))
