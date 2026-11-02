@@ -48,7 +48,7 @@ bool concatinate_within_bounds(char output[], const char append[], uint8_t bound
 
 void uart_transmit(const char message[])
 {
-	HAL_uart_transmit(COMMUNICATION_PORT, (uint8_t*)message, strlen(message), UART_TRANSMIT_TIMEOUT);
+	HAL_UART_Transmit(COMMUNICATION_PORT, (uint8_t*)message, strlen(message), UART_TRANSMIT_TIMEOUT);
 }
 
 

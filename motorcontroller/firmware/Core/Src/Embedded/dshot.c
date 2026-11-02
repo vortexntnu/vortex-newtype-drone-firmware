@@ -47,12 +47,23 @@
 //void dshot_set_duty(uint16_t throttle, bool telemetry)
 //{
 //	currentDuty = throttle;
-//}
+//}//#include <stdbool.h>
+//#include <stdint.h>
+//#include "main.h"//#include <stdbool.h>
+//#include <stdint.h>
+//#include "main.h"//#include <stdbool.h>
+//#include <stdint.h>
+//#include "main.h"
 
 
 
 
 
+#include <stdbool.h>
+#include <stdint.h>
+#include "main.h"
+
+extern TIM_HandleTypeDef htim1;
 
 
 #define DSHOT_BITS 16
@@ -88,9 +99,6 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
         HAL_TIM_PWM_Stop_DMA(htim, TIM_CHANNEL_1);
     }
 }
-
-
-
 
 
 

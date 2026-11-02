@@ -7,8 +7,8 @@
 
 typedef enum
 {
-	SUCCESS,
-	FAILED_TO_INITIALIZE,
+	CONTROL_SUCCESS,
+	CONTROL_FAILED_TO_INITIALIZE,
 } ControlErrorCode;
 
 typedef struct{

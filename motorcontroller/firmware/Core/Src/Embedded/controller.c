@@ -19,7 +19,7 @@ UART_HandleTypeDef *COMMUNICATION_PORT = &hcom_uart[COM1];
 
 void controller_init() {
 	pwm_init();
-	Weight_Init();
+	weight_init();
 }
 
 void controller_main() {
@@ -32,7 +32,7 @@ void controller_blinky() {
 	BSP_LED_Toggle(LED_GREEN);
 //	dshot_update();
 
-	uint16_t weight = Weight_Read(1);
+	uint16_t weight = weight_read(1);
 	char string[10];
 	converter_uint_to_string(string, weight);
 	debug_print(string);

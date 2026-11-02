@@ -86,7 +86,7 @@
        (++) HAL_TIM_Base_Init: to use the Timer to generate a simple time base
        (++) HAL_TIM_OC_Init and HAL_TIM_OC_ConfigChannel: to use the Timer to generate an
             Output Compare signal.
-       (++) HAL_TIM_pwm_init and HAL_TIM_PWM_ConfigChannel: to use the Timer to generate a
+       (++) HAL_TIM_PWM_Init and HAL_TIM_PWM_ConfigChannel: to use the Timer to generate a
             PWM signal.
        (++) HAL_TIM_IC_Init and HAL_TIM_IC_ConfigChannel: to use the Timer to measure an
             external signal.
@@ -1315,11 +1315,11 @@ HAL_StatusTypeDef HAL_TIM_OC_Stop_DMA(TIM_HandleTypeDef *htim, uint32_t Channel)
   * @note   Switching from Center Aligned counter mode to Edge counter mode (or reverse)
   *         requires a timer reset to avoid unexpected direction
   *         due to DIR bit readonly in center aligned mode.
-  *         Ex: call @ref HAL_TIM_PWM_DeInit() before HAL_TIM_pwm_init()
+  *         Ex: call @ref HAL_TIM_PWM_DeInit() before HAL_TIM_PWM_Init()
   * @param  htim TIM PWM handle
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_TIM_pwm_init(TIM_HandleTypeDef *htim)
+HAL_StatusTypeDef HAL_TIM_PWM_Init(TIM_HandleTypeDef *htim)
 {
   /* Check the TIM handle allocation */
   if (htim == NULL)

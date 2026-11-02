@@ -1,3 +1,5 @@
+#include "bridge.h"
+
 struct MotorValues
 {
 	uint32_t eRPM;

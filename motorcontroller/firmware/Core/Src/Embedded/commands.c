@@ -25,12 +25,12 @@ typedef struct {
 
 void command_pwm_set_duty(CommandContext *context)
 {
-	if (*context_argument_count == 0) {
+	if (context->arguments_count == 0) {
 		debug_print("No duty given");
 		return;
 	}
 
-	char *duty_string = *context_argument_vector[0];
+	char *duty_string = context->arguments_vector[0];
 	uint32_t duty;
 
 	if (!converter_string_to_uint(&duty, duty_string)) {
@@ -44,12 +44,12 @@ void command_pwm_set_duty(CommandContext *context)
 
 void command_dshot_set_duty(CommandContext *context)
 {
-	if (*context_argument_count == 0) {
+	if (context->arguments_count == 0) {
 		debug_print("No duty given");
 		return;
 	}
 
-	char *duty_string = *context_argument_vector[0];
+	char *duty_string = context->arguments_vector[0];
 	uint32_t duty;
 
 	if (!converter_string_to_uint(&duty, duty_string)) {
