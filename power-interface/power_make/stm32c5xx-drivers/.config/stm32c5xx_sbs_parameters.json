@@ -1,0 +1,1420 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "componentid": "::Device:STM32CubeMX2 Config:SBS",
+  "grammarVersion": "3.7",
+  "version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": "",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ]
+              }
+            },
+            "layer": {
+              "title": "Software layer",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "LL",
+                  "const": "LL"
+                }
+              ],
+              "default": "HAL",
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_SBS_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ]
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "additional": {
+          "type": "object",
+          "title": "Advanced features",
+          "properties": {
+            "analog_io_switch_supply": {
+              "type": "string",
+              "title": "Analog I/O switch supply",
+              "description": "The I/O analog switch supply value.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.analog_io_switch_supply"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', 'PWR')",
+                  "message": "The analog I/O switch supply must be configured through PWR."
+                }
+              ],
+              "oneOf": [
+                {
+                  "title": "VDDA supply",
+                  "const": "VDDA_SUPPLY"
+                },
+                {
+                  "title": "VDD booster supply",
+                  "const": "BOOSTER_SUPPLY"
+                },
+                {
+                  "title": "VDD supply",
+                  "const": "VDD_SUPPLY"
+                },
+                {
+                  "title": "None",
+                  "const": "NONE"
+                }
+              ],
+              "default": "NONE",
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "analog_io_switch_supply",
+                "component": "HAL-PWR"
+              }
+            },
+            "fast_mode_plus_driving_capability": {
+              "type": "object",
+              "title": "Fast mode plus driving capability",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.fast_mode_plus"
+                }
+              ],
+              "properties": {
+                "fmp_on_pb6": {
+                  "type": "boolean",
+                  "title": "PB6",
+                  "description": "Enable the fast-mode plus driving capability on PB6.",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "warning",
+                      "condition": "$get('peripheral.isBound', 'I2C1')",
+                      "message": "Check that PB6 not used by I2C1."
+                    }
+                  ]
+                },
+                "fmp_on_pb7": {
+                  "type": "boolean",
+                  "title": "PB7",
+                  "description": "Enable the fast-mode plus driving capability on PB7.",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "warning",
+                      "condition": "$get('peripheral.isBound', 'I2C1')",
+                      "message": "Check that PB7 not used by I2C1."
+                    }
+                  ]
+                },
+                "fmp_on_pb8": {
+                  "type": "boolean",
+                  "title": "PB8",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.fmp_pb8"
+                    },
+                    {
+                      "type": "warning",
+                      "condition": "$get('peripheral.isBound', 'I2C1')",
+                      "message": "Check that PB8 not used by I2C1."
+                    }
+                  ],
+                  "description": "Enable the fast-mode plus driving capability on PB8.",
+                  "default": false
+                },
+                "fmp_on_pb9": {
+                  "type": "boolean",
+                  "title": "PB9",
+                  "description": "Enable the fast-mode plus driving capability on PB9.",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "warning",
+                      "condition": "$get('peripheral.isBound', 'I2C1')",
+                      "message": "Check that PB9 not used by I2C1."
+                    }
+                  ]
+                }
+              }
+            },
+            "i2c_smbus_selection": {
+              "type": "object",
+              "title": "I2C SMBUS 3.0 selection",
+              "description": "Select the I2C SMBUS (system management bus).",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.smbus_i2c"
+                }
+              ],
+              "properties": {
+                "i2c1_smbus": {
+                  "type": "boolean",
+                  "title": "I2C1",
+                  "description": "Enable I2C1 SMBUS 3.0.",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "warning",
+                      "message": "Check that SMBUS mode is active for I2C1."
+                    }
+                  ]
+                },
+                "i2c3_smbus": {
+                  "type": "boolean",
+                  "title": "I2C3",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.smb_i2c3"
+                    },
+                    {
+                      "type": "warning",
+                      "message": "Check that SMBUS mode is active for I2C3."
+                    }
+                  ],
+                  "description": "Enable I2C3 SMBUS 3.0.",
+                  "default": false
+                },
+                "i2c4_smbus": {
+                  "type": "boolean",
+                  "title": "I2C4",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.smb_i2c4 && $get('peripheral.isPhysicallyAvailableInCurrentDevice', 'I2C4')"
+                    },
+                    {
+                      "type": "warning",
+                      "message": "Check that SMBUS mode is active for I2C4."
+                    }
+                  ],
+                  "description": "Enable I2C4 SMBUS 3.0.",
+                  "default": false
+                }
+              }
+            },
+            "timer_break_inputs_lockup": {
+              "type": "object",
+              "title": "Timer break inputs lockup",
+              "properties": {
+                "lockup_output": {
+                  "type": "boolean",
+                  "title": "Lockup output",
+                  "description": "Enable timer break inputs connection to the lockup (HardFault) output.",
+                  "default": false
+                },
+                "flash_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "FLASH ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.flash_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the FLASH ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to the FLASH ECC double error flag.",
+                  "default": false
+                },
+                "pvd_interrupt": {
+                  "type": "boolean",
+                  "title": "PVD interrupt",
+                  "description": "Enable timer break inputs connection to PVD interrupt.",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the PVD interrupt feature is enabled."
+                    }
+                  ]
+                },
+                "sram_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "SRAM ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.sram_ecc_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the SRAM ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to SRAM ECC double error flag.",
+                  "default": false
+                },
+                "sram1_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "SRAM1 ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.sram1_ecc_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the SRAM1 ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to SRAM1 ECC double error flag.",
+                  "default": false
+                },
+                "sram2_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "SRAM2 ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.sram2_ecc_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the SRAM2 ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to SRAM2 ECC double error flag.",
+                  "default": false
+                },
+                "sram3_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "SRAM3 ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.sram3_ecc_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the SRAM3 ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to SRAM3 ECC double error flag.",
+                  "default": false
+                },
+                "sram4_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "SRAM4 ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.sram4_ecc_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the SRAM4 ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to SRAM4 ECC double error flag.",
+                  "default": false
+                },
+                "dcache_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "DCACHE ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.dcache_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the DCACHE ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to DCACHE ECC double error flag.",
+                  "default": false
+                },
+                "dtcm_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "DTCM ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.dtcm_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the DTCM ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to DTCM ECC double error flag.",
+                  "default": false
+                },
+                "itcm_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "ITCM ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.itcm_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the ITCM ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to ITCM ECC double error flag.",
+                  "default": false
+                },
+                "bkpram_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "BKPRAM ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.bkpram_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the BKPRAM ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to BKPRAM ECC double error flag.",
+                  "default": false
+                },
+                "nvm_ecc_triple_error_flag": {
+                  "type": "boolean",
+                  "title": "NVM ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.nvm_ecc_triple_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the NVM ECC triple error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to NVM ECC triple error flag.",
+                  "default": false
+                },
+                "axiram6_fix_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "AXIRAM6 FIX ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.axiram6_fix_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the AXIRAM6 FIX ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to AXIRAM6 FIX ECC double error flag.",
+                  "default": false
+                },
+                "axiram6_flex_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "AXIRAM6 FLEX ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.axiram6_flex_ecc_double"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the AXIRAM6 FLEX ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to AXIRAM6 FLEX ECC double error flag.",
+                  "default": false
+                },
+                "axiram1_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "AXIRAM1 ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.axiram1_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the AXIRAM1 ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to AXIRAM1 ECC double error flag.",
+                  "default": false
+                },
+                "axiram7_ecc_double_error_flag": {
+                  "type": "boolean",
+                  "title": "AXIRAM7 ECC double error flag",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.axiram7_ecc_double_error"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "Check that the AXIRAM7 ECC double error feature is enabled."
+                    }
+                  ],
+                  "description": "Enable timer break inputs connection to AXIRAM7 ECC double error flag.",
+                  "default": false
+                }
+              }
+            },
+            "compensation_cell": {
+              "type": "object",
+              "title": "Compensation cell",
+              "properties": {
+                "vddio": {
+                  "type": "object",
+                  "title": "VDDIO",
+                  "properties": {
+                    "vddio": {
+                      "type": "boolean",
+                      "title": "VDDIO",
+                      "default": false
+                    },
+                    "code_selection_source": {
+                      "type": "string",
+                      "title": "Code selection source",
+                      "description": "Select the source code to be applied for the I/O compensation cell.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.vddio.vddio"
+                        }
+                      ],
+                      "oneOf": [
+                        {
+                          "title": "Default",
+                          "description": "Default value provided by the cell.",
+                          "const": "default"
+                        },
+                        {
+                          "title": "Custom",
+                          "description": "Allows to manually specify a value.",
+                          "const": "custom"
+                        }
+                      ],
+                      "default": "default"
+                    },
+                    "nmos": {
+                      "type": "integer",
+                      "title": "NMOS",
+                      "description": "Set the I/O compensation code of NMOS transistors.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.vddio.code_selection_source === 'custom'"
+                        }
+                      ],
+                      "minimum": 0,
+                      "maximum": 15,
+                      "default": 8
+                    },
+                    "pmos": {
+                      "type": "integer",
+                      "title": "PMOS",
+                      "description": "Set the I/O compensation code of PMOS transistors.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.vddio.code_selection_source === 'custom'"
+                        }
+                      ],
+                      "minimum": 0,
+                      "maximum": 15,
+                      "default": 8
+                    }
+                  }
+                },
+                "xspi1": {
+                  "type": "object",
+                  "title": "XSPI1",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.xspi1 && $get('peripheral.isPhysicallyAvailableInCurrentDevice', 'XSPI1')"
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "$get('peripheral.isBound', 'XSPI1')",
+                      "message": "This option is available only when XSPI1 is enabled."
+                    }
+                  ],
+                  "properties": {
+                    "xspi1": {
+                      "type": "boolean",
+                      "title": "XSPI1",
+                      "synchronize": true,
+                      "synchronizeOn": {
+                        "path": "xspi1",
+                        "component": "HAL-SBS"
+                      },
+                      "default": false
+                    },
+                    "code_selection_source": {
+                      "type": "string",
+                      "title": "Code selection source",
+                      "description": "Select the source code to be applied for the XSPI1 compensation cell.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.xspi1.xspi1"
+                        }
+                      ],
+                      "oneOf": [
+                        {
+                          "title": "Default",
+                          "description": "Default value provided by the cell.",
+                          "const": "default"
+                        },
+                        {
+                          "title": "Custom",
+                          "description": "Allows to manually specify a value.",
+                          "const": "custom"
+                        }
+                      ],
+                      "default": "default"
+                    },
+                    "nmos": {
+                      "type": "integer",
+                      "title": "NMOS",
+                      "description": "Set the XSPI1 compensation code of NMOS transistors.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.xspi1.code_selection_source === 'custom'"
+                        }
+                      ],
+                      "minimum": 0,
+                      "maximum": 15,
+                      "default": 8
+                    },
+                    "pmos": {
+                      "type": "integer",
+                      "title": "PMOS",
+                      "description": "Set the XSPI1 compensation code of PMOS transistors.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.xspi1.code_selection_source === 'custom'"
+                        }
+                      ],
+                      "minimum": 0,
+                      "maximum": 15,
+                      "default": 8
+                    }
+                  }
+                },
+                "xspi2": {
+                  "type": "object",
+                  "title": "XSPI2",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.xspi2 && $get('peripheral.isPhysicallyAvailableInCurrentDevice', 'XSPI2')"
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "$get('peripheral.isBound', 'XSPI2')",
+                      "message": "This option is available only when XSPI2 is enabled."
+                    }
+                  ],
+                  "properties": {
+                    "xspi2": {
+                      "type": "boolean",
+                      "title": "XSPI2",
+                      "synchronize": true,
+                      "synchronizeOn": {
+                        "path": "xspi2",
+                        "component": "HAL-SBS"
+                      },
+                      "default": false
+                    },
+                    "code_selection_source": {
+                      "type": "string",
+                      "title": "Code selection source",
+                      "description": "Select the source code to be applied for the XSPI2 compensation cell.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.xspi2.xspi2"
+                        }
+                      ],
+                      "oneOf": [
+                        {
+                          "title": "Default",
+                          "description": "Default value provided by the cell.",
+                          "const": "default"
+                        },
+                        {
+                          "title": "Custom",
+                          "description": "Allows to manually specify a value.",
+                          "const": "custom"
+                        }
+                      ],
+                      "default": "default"
+                    },
+                    "nmos": {
+                      "type": "integer",
+                      "title": "NMOS",
+                      "description": "Set the XSPI2 compensation code of NMOS transistors.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.xspi2.code_selection_source === 'custom'"
+                        }
+                      ],
+                      "minimum": 0,
+                      "maximum": 15,
+                      "default": 8
+                    },
+                    "pmos": {
+                      "type": "integer",
+                      "title": "PMOS",
+                      "description": "Set the XSPI1 compensation code of PMOS transistors.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.compensation_cell.xspi2.code_selection_source === 'custom'"
+                        }
+                      ],
+                      "minimum": 0,
+                      "maximum": 15,
+                      "default": 8
+                    }
+                  }
+                }
+              },
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "SBS_CORE_USE_COMP_CELL",
+                  "condition": "$additional.compensation_cell.vddio.vddio || $additional.compensation_cell.xspi1.xspi1 || $additional.compensation_cell.xspi2.xspi2",
+                  "semaphore": true
+                }
+              ]
+            },
+            "flash_eccnmi": {
+              "type": "boolean",
+              "title": "FLASH ECCNMI",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.flash_eccnmi"
+                }
+              ],
+              "default": true
+            },
+            "epoch": {
+              "type": "string",
+              "title": "EPOCH",
+              "description": "Select EPOCH value to be sent to the SAES.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "epoch",
+                "component": "HAL-SBS"
+              },
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.epoch && $get('peripheral.isPhysicallyAvailableInCurrentDevice', 'SAES')"
+                },
+                {
+                  "type": "enable",
+                  "condition": "$get('peripheral.isBound', 'SAES')",
+                  "message": "The EPOCH must be configured when using SAES."
+                }
+              ],
+              "oneOf": [
+                {
+                  "title": "Non secure EPOCH",
+                  "const": "nsec"
+                },
+                {
+                  "title": "Secure EPOCH",
+                  "const": "sec"
+                },
+                {
+                  "title": "EPOCH forced to zero",
+                  "const": "clear"
+                },
+                {
+                  "title": "None",
+                  "const": "none"
+                }
+              ],
+              "default": "none"
+            },
+            "ethernet_external_phy_interrupt_polarity": {
+              "type": "string",
+              "title": "Ethernet external PHY interrupt polarity",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.ethernet && $get('peripheral.isPhysicallyAvailableInCurrentDevice', 'ETH1')"
+                }
+              ],
+              "oneOf": [
+                {
+                  "title": "Active high",
+                  "const": "HIGH"
+                },
+                {
+                  "title": "Active low",
+                  "const": "LOW"
+                },
+                {
+                  "title": "None",
+                  "const": "NONE"
+                }
+              ],
+              "default": "NONE"
+            },
+            "ethernet_phy_interface": {
+              "type": "string",
+              "title": "Ethernet PHY interface",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.ethernet && $get('peripheral.isPhysicallyAvailableInCurrentDevice', 'ETH1')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', 'ETH1')",
+                  "message": "This option is available only when ETH1 is enabled."
+                }
+              ],
+              "oneOf": [
+                {
+                  "title": "MII",
+                  "const": "MII"
+                },
+                {
+                  "title": "RMII",
+                  "const": "RMII"
+                },
+                {
+                  "title": "GMII",
+                  "const": "GMII"
+                },
+                {
+                  "title": "None",
+                  "const": "NONE"
+                }
+              ],
+              "default": "RMII",
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "media_interface",
+                "component": "HAL-ETH1"
+              }
+            }
+          }
+        },
+        "security_privilege": {
+          "title": "Security and privilege",
+          "description": "Security and privileged access levels attributes management.",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+          "properties": {
+            "security": {
+              "title": "Security",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('swproject.getCurrentEngine').secure === 'Secure-only'",
+                  "message": "In Secure-only engine, all items are Secure."
+                }
+              ],
+              "properties": {
+                "set_all_items_attr": {
+                  "title": "Set all items security attribute",
+                  "type": "boolean",
+                  "default": true
+                },
+                "all_items_attr": {
+                  "title": "All items security attribute",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Secure",
+                      "const": "SEC"
+                    },
+                    {
+                      "title": "Non-secure",
+                      "const": "NSEC"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "!$security_privilege.security.set_all_items_attr",
+                      "message": "When \"Set all items security attribute\" is disabled, the security attribute of each item can be configured independently."
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "default": "(($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')) ? 'SEC' : 'NSEC'"
+                      }
+                    }
+                  ]
+                },
+                "access_levels": {
+                  "title": "Access levels",
+                  "type": "object",
+                  "properties": {
+                    "clock": {
+                      "title": "Clock",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Secure",
+                          "const": "SEC"
+                        },
+                        {
+                          "title": "Non-secure",
+                          "const": "NSEC"
+                        }
+                      ],
+                      "default": "SEC",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.security.set_all_items_attr)",
+                          "computed": {
+                            "const": "$security_privilege.security.all_items_attr"
+                          }
+                        }
+                      ]
+                    },
+                    "classb": {
+                      "title": "Class B",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Secure",
+                          "const": "SEC"
+                        },
+                        {
+                          "title": "Non-secure",
+                          "const": "NSEC"
+                        }
+                      ],
+                      "default": "SEC",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.security.set_all_items_attr)",
+                          "computed": {
+                            "const": "$security_privilege.security.all_items_attr"
+                          }
+                        }
+                      ]
+                    },
+                    "fpu": {
+                      "title": "FPU",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Secure",
+                          "const": "SEC"
+                        },
+                        {
+                          "title": "Non-secure",
+                          "const": "NSEC"
+                        }
+                      ],
+                      "default": "SEC",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.security.set_all_items_attr)",
+                          "computed": {
+                            "const": "$security_privilege.security.all_items_attr"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "privilege": {
+              "title": "Privilege",
+              "type": "object",
+              "properties": {
+                "set_all_items_attr": {
+                  "title": "Set all items privilege attribute",
+                  "type": "boolean",
+                  "default": true
+                },
+                "all_items_attr": {
+                  "title": "All items privilege attribute",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Privileged",
+                      "const": "PRIV"
+                    },
+                    {
+                      "title": "Unprivileged",
+                      "const": "NPRIV"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "!$security_privilege.privilege.set_all_items_attr",
+                      "message": "When \"Set all items privilege attribute\" is disabled, the privilege attribute of each item can be configured independently."
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "default": "(($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')) ? 'PRIV' : 'NPRIV'"
+                      }
+                    }
+                  ]
+                },
+                "access_levels": {
+                  "title": "Access levels",
+                  "type": "object",
+                  "properties": {
+                    "clock": {
+                      "title": "Clock",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Privileged",
+                          "const": "PRIV"
+                        },
+                        {
+                          "title": "Unprivileged",
+                          "const": "NPRIV"
+                        }
+                      ],
+                      "default": "PRIV",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.privilege.set_all_items_attr)",
+                          "computed": {
+                            "const": "$security_privilege.privilege.all_items_attr"
+                          }
+                        }
+                      ]
+                    },
+                    "classb": {
+                      "title": "Class B",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Privileged",
+                          "const": "PRIV"
+                        },
+                        {
+                          "title": "Unprivileged",
+                          "const": "NPRIV"
+                        }
+                      ],
+                      "default": "PRIV",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.privilege.set_all_items_attr)",
+                          "computed": {
+                            "const": "$security_privilege.privilege.all_items_attr"
+                          }
+                        }
+                      ]
+                    },
+                    "pm": {
+                      "title": "Product mode",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Privileged",
+                          "const": "PRIV"
+                        },
+                        {
+                          "title": "Unprivileged",
+                          "const": "NPRIV"
+                        }
+                      ],
+                      "default": "PRIV",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.privilege.set_all_items_attr)",
+                          "computed": {
+                            "const": "$security_privilege.privilege.all_items_attr"
+                          }
+                        }
+                      ]
+                    },
+                    "bridge": {
+                      "title": "Bridge",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Privileged",
+                          "const": "PRIV"
+                        },
+                        {
+                          "title": "Unprivileged",
+                          "const": "NPRIV"
+                        }
+                      ],
+                      "default": "PRIV",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.privilege.set_all_items_attr)",
+                          "computed": {
+                            "const": "$security_privilege.privilege.all_items_attr"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "lock": {
+              "title": "Lock attributes",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                }
+              ],
+              "properties": {
+                "set_all_items_attr": {
+                  "title": "Set all items lock attribute",
+                  "type": "boolean",
+                  "default": true
+                },
+                "all_items_attr": {
+                  "title": "All items lock attribute",
+                  "type": "string",
+                  "default": "UNLOCKED",
+                  "oneOf": [
+                    {
+                      "title": "Locked",
+                      "const": "LOCKED"
+                    },
+                    {
+                      "title": "Unlocked",
+                      "const": "UNLOCKED"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "!$security_privilege.lock.set_all_items_attr",
+                      "message": "When \"Set all items lock attribute\" is disabled, the lock attribute of each item can be configured independently."
+                    }
+                  ]
+                },
+                "lock_items": {
+                  "title": "Items",
+                  "type": "object",
+                  "properties": {
+                    "clock": {
+                      "title": "Clock",
+                      "type": "boolean",
+                      "default": false,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'LOCKED')",
+                          "attributes": {
+                            "const": true
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'UNLOCKED')",
+                          "attributes": {
+                            "const": false
+                          }
+                        }
+                      ]
+                    },
+                    "classb": {
+                      "title": "Class B",
+                      "type": "boolean",
+                      "default": false,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'LOCKED')",
+                          "attributes": {
+                            "const": true
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'UNLOCKED')",
+                          "attributes": {
+                            "const": false
+                          }
+                        }
+                      ]
+                    },
+                    "pm": {
+                      "title": "Product mode",
+                      "type": "boolean",
+                      "default": false,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'LOCKED')",
+                          "attributes": {
+                            "const": true
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'UNLOCKED')",
+                          "attributes": {
+                            "const": false
+                          }
+                        }
+                      ]
+                    },
+                    "bridge": {
+                      "title": "Bridge",
+                      "type": "boolean",
+                      "default": false,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'LOCKED')",
+                          "attributes": {
+                            "const": true
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'UNLOCKED')",
+                          "attributes": {
+                            "const": false
+                          }
+                        }
+                      ]
+                    },
+                    "fpu": {
+                      "title": "FPU",
+                      "type": "boolean",
+                      "default": false,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'LOCKED')",
+                          "attributes": {
+                            "const": true
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "($security_privilege.lock.set_all_items_attr) && ($security_privilege.lock.all_items_attr === 'UNLOCKED')",
+                          "attributes": {
+                            "const": false
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "illegal_access": {
+              "title": "Illegal access interrupt",
+              "type": "boolean",
+              "default": false,
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-iac-peripheral",
+                "custom": "$resource.id"
+              },
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('swproject.getCurrentEngine').secure === 'Secure-only'",
+                  "message": "In Secure-only engine, all items are Secure."
+                }
+              ]
+            },
+            "clock": {
+              "type": "boolean",
+              "default": false,
+              "title": "Clock management in the generated code",
+              "oneOf": [
+                {
+                  "title": "Keep active after initialization",
+                  "const": false
+                },
+                {
+                  "title": "Deactivated at the end of sequence",
+                  "const": true
+                }
+              ]
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "actions": [
+            {
+              "type": "include",
+              "condition": "$resource.features.bridge_error"
+            }
+          ],
+          "properties": {
+            "nvic": {
+              "type": "object",
+              "title": "NVIC",
+              "properties": {
+                "bridge_error_interruption": {
+                  "type": "boolean",
+                  "title": "Bridge error interrupt",
+                  "default": false
+                },
+                "irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "IRQ handler generation",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.bridge_error_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "irq_line_priority": {
+                  "title": "IRQ line priority",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.bridge_error_interruption"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "SBS_SEC"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

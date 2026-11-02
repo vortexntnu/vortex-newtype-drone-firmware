@@ -1,0 +1,284 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_system_template.c.hbs
+  * @brief          : STM32 system program body
+  *                   Applicative target system level initialization
+  *                   (system clock, cache, TZ...) and system level peripherals
+  *                   initialization. mx_system_init() service is called by the main
+  *                   before jumping the example entry point.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+~--}}
+{{#helper_common_beautifier}}
+{{assign 'only_ll' (helper_common_check_if_only_ll @root.EnvVarAPI)~}}
+/**
+  ******************************************************************************
+  * @file           : mx_system.c
+  * @brief          : STM32 system program body
+  *                   Applicative target system level initialization
+  *                   (system clock, cache, TZ...) and system level peripherals
+  *                   initialization. mx_system_init() service is called by the main
+  *                   before jumping the example entry point.
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_system.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+{{assign 'object_cxt' (helper_common_get_sw_config_ctxt @root.SWProjectAPI @root.DmaAPI @root.SWConfigurationAPI @root.pinoutAPI @root.ExtiAPI @root.peripheralsResourceManagerAPI)~}}
+/* Exported functions --------------------------------------------------------*/
+
+{{!log "SYSTEM template object_cxt:" (toJSON @root.object_cxt)~}}
+{{!log "SYSTEM template rcc_cxt:" (toJSON @root.object_cxt.rcc_cxt)~}}
+{{!log "SYSTEM template system_cxt:" (toJSON @root.object_cxt.system_cxt)~}}
+{{log "SYSTEM template pwr_cxt:" (toJSON @root.object_cxt.pwr_cxt)~}}
+system_status_t mx_system_init(void)
+{
+  if (pre_system_init_hook() != SYSTEM_OK)
+  {
+    return SYSTEM_PRESYSTEM_ERROR;
+  }
+
+{{#if @root.object_cxt.mpu_cxt}}
+  {{#with @root.object_cxt.mpu_cxt}}
+    {{#if (eq info.init_type 'called')}}
+  /*
+    CORTEX MPU initialization in case of isolation is not activated
+  */
+  if (mx_cortex_mpu_init() != SYSTEM_OK)
+  {
+    return SYSTEM_RESOURCES_ISOLATION_ERROR;
+  }
+
+    {{/if}}
+  {{/with}}
+{{/if}}
+{{#unless @root.only_ll}}
+  /*
+    startup system section
+  */
+  if (HAL_Init() != HAL_OK)
+  {
+    return SYSTEM_STARTUP_ERROR;
+  }
+
+{{/unless}}
+{{#if @root.object_cxt.nvic_cxt}}
+  {{#with @root.object_cxt.nvic_cxt}}
+    {{#if (eq info.init_type 'called')}}
+  /*
+    Interruptions section
+  */
+  if (mx_cortex_nvic_init() != SYSTEM_OK)
+  {
+    return SYSTEM_INTERRUPTS_ERROR;
+  }
+
+    {{/if}}
+  {{/with}}
+{{/if}}
+{{#if @root.object_cxt.icache_cxt}}
+  {{#with @root.object_cxt.icache_cxt}}
+    {{#if (eq info.init_type 'called')}}
+{{> ICACHE fct='start'}}
+
+    {{/if}}
+  {{/with}}
+{{/if}}
+{{#if @root.object_cxt.rcc_cxt}}
+  {{#with @root.object_cxt.rcc_cxt}}
+    {{#if (eq info.init_type 'called')}}
+  /*
+    Clock system section
+  */
+  {{#if @root.object_cxt.system_cxt.system_configuration.rcc_rst}}
+
+  /* Reset of RCC clock configuration to the default reset state */
+  if (mx_rcc_deinit() != SYSTEM_OK)
+  {
+    return SYSTEM_CLOCK_ERROR;
+  }
+  {{/if}}
+
+  /* Initialize RCC peripheral */
+  if (mx_rcc_init() != SYSTEM_OK)
+  {
+    return SYSTEM_CLOCK_ERROR;
+  }
+
+    {{/if}}
+    {{#if (helper_rcc_is_central this)}}
+  /* peripherals clock configuration and activation
+    is centralized: no clock activation/deactivation in pppi_init */
+
+  if (mx_rcc_peripherals_clock_config() != SYSTEM_OK)
+  {
+    return SYSTEM_CLOCK_ERROR;
+  }
+    {{else if (helper_rcc_is_controlled_by_user this)}}
+  /* peripherals clock configuration functions generated
+    but not called: up to user to compose the peripherals
+    clock configuration with the oscillators, PLL and PLL
+    output generated functions. */
+    {{/if}}
+
+  {{/with}}
+{{/if}}
+{{#if @root.object_cxt.pwr_cxt}}
+  {{#with @root.object_cxt.pwr_cxt}}
+    {{#if (eq info.init_type 'called')}}
+  /*
+    Power section
+  */
+  if (mx_pwr_init() != SYSTEM_OK)
+  {
+    return SYSTEM_POWER_ERROR;
+  }
+
+    {{/if}}
+  {{/with}}
+{{/if}}
+  /*
+    Peripheral init section
+  */
+
+{{#each @root.object_cxt.system_cxt.generated_function_calls}}
+  {{#unless generated}}
+  /** {{_foreignKey}}: {{name}}() has not been generated */
+  {{else}}
+    {{#if callable}}
+  /** {{_foreignKey}} */
+  if ({{name}}(){{{helper_common_get_function_return_type peripheral layer}}})
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+    {{else}}
+      {{~assign 'get_rtc_wakeup_resource' (@root.EnvVarAPI.getVariableValue 'CORE_RTC_WAKEUP_TIMEBASE')}}
+      {{~assign 'get_rtc_alarm_resource' (@root.EnvVarAPI.getVariableValue 'CORE_RTC_ALARM_TIMEBASE')}}
+      {{~assign 'get_tim_resource' (@root.EnvVarAPI.getVariableValue 'CORE_TIM_TIMEBASE')}}
+      {{#if (or (eq @root.get_rtc_alarm_resource _foreignKey) (eq @root.get_rtc_wakeup_resource _foreignKey) (eq @root.get_tim_resource _foreignKey))}}
+        {{~assign 'get_timebase' (@root.EnvVarAPI.getVariableValue 'CORE_PROJECT_TIMEBASE')}}
+  /** {{name}}() has been generated,
+    * but {{_foreignKey}} is used as timebase
+    * then it is initialized in stm32_hal_timebase_{{lowercase @root.get_timebase}}.c.
+    */
+      {{else}}
+  /** {{_foreignKey}}: {{name}}() has been generated,
+    * but it is expected that application will call it when best needed
+    * according to application needs.
+    * See Cube code generator options: Generate and call Initialization function
+    */
+      {{/if}}
+
+    {{/if}}
+  {{/unless}}
+
+{{/each}}
+  if (post_system_init_hook() != SYSTEM_OK)
+  {
+    return SYSTEM_POSTSYSTEM_ERROR;
+  }
+
+  return SYSTEM_OK;
+}
+
+{{assign 'only_ll' (helper_common_check_if_only_ll @root.EnvVarAPI)~}}
+{{#unless @root.only_ll}}
+{{assign 'get_timebase' (@root.EnvVarAPI.getVariableValue 'CORE_PROJECT_TIMEBASE')~}}
+{{#if (or (eq @root.get_timebase undefined) (eq @root.get_timebase 'SYSTICK'))}}
+/******************************************************************************/
+/*                            Systick Handler                                 */
+/******************************************************************************/
+/**
+  * @brief   This function handles SysTick Handler
+  * @warning Systick_Handler is generated as NVIC peripheral has not been activated
+  *          By default it is generated in HAL.
+  *          It must be located into mx_cortex_nvic.c file
+  */
+void SysTick_Handler(void)
+{
+  HAL_IncTick();
+  HAL_CORTEX_SYSTICK_IRQHandler();
+}
+
+{{/if}}
+{{/unless}}
+/**
+  * @brief  User hook function called before the HAL_Init() function
+  * @retval system_status_t System status
+  */
+__WEAK system_status_t pre_system_init_hook(void)
+{
+  /* NOTE : This function must not be modified. When the callback is needed,
+            the pre_system_init_hook can be implemented in the user file
+   */
+  return SYSTEM_OK;
+}
+
+/**
+  * @brief  User hook function called after the HAL_Init() and Peripheral init functions
+  * @retval system_status_t System status
+  */
+__WEAK system_status_t post_system_init_hook(void)
+{
+  /* NOTE : This function must not be modified. When the callback is needed,
+            the post_system_init_hook can be implemented in the user file
+   */
+  return SYSTEM_OK;
+}
+{{#if @root.object_cxt.system_cxt.debug.assert_dbg_param_function}}
+
+#if defined(USE_ASSERT_DBG_PARAM)
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the ASSERT_DBG_PARAM error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: ASSERT_DBG_PARAM error line source number
+  * @retval None
+  */
+void assert_dbg_param_failed(uint8_t *file, uint32_t line)
+{
+  /* User can add his own implementation to report the file name and line number,
+    ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* Infinite loop */
+  while (1)
+  {
+  }
+}
+#endif /* USE_ASSERT_DBG_PARAM */
+{{/if}}
+{{#if @root.object_cxt.system_cxt.debug.assert_dbg_state_function}}
+
+#if defined(USE_ASSERT_DBG_STATE)
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the ASSERT_DBG_STATE error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: ASSERT_DBG_STATE error line source number
+  * @retval None
+  */
+void assert_dbg_state_failed(uint8_t *file, uint32_t line)
+{
+  /* User can add his own implementation to report the file name and line number,
+    ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* Infinite loop */
+  while (1)
+  {
+  }
+}
+#endif /* USE_ASSERT_DBG_STATE  */
+{{/if}}
+{{/helper_common_beautifier}}

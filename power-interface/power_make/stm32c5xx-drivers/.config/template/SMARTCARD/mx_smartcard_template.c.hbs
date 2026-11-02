@@ -1,0 +1,128 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_smartcard_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'SMARTCARD' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "SMARTCARD template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{!
+    Generation of handle for each function defined in HAL layer
+    - save a variable to indicate if handle has been already created (only 1 handle by function)
+~}}
+{{~#each instances~}}
+{{assign 'smartcard_cxt' config~}}
+{{log "SMARTCARD template smartcard_cxt:" (toJSON @root.smartcard_cxt)~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.smartcard_cxt.info.layer~}}
+{{log "SMARTCARD template current_resource:" @root.current_resource~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{> SMARTCARD_HAL fct='exported_variables'}}
+{{/if}}
+{{/each}}
+/* Exported function definition ----------------------------------------------*/
+{{assign 'current_index' 0~}}
+{{#each instances}}
+{{assign 'smartcard_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.smartcard_cxt.info.layer~}}
+{{assign 'context' @root.smartcard_cxt~}}
+{{assign 'current_function' 'SMARTCARD'~}}
+{{assign 'lut_table'   (helper_smartcard_get_lut_table 'V3')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+{{assign 'nvic_context' 'undefined'~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_function}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index @root.current_function @root.from_where)~}}
+  {{#with @root.context}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{!
+    Generation of initialization function used in HAL using SMARTCARD component
+~}}
+{{> SMARTCARD_HAL fct='exported_functions_init'}}
+
+{{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+{{assign 'nvic_generate_handler' false~}}
+{{> SMARTCARD_LL fct='exported_functions_init'}}
+{{/if}}
+
+{{#if (eq @root.current_layer 'HAL')}}
+{{!
+    Generation of getHandle functions used in HAL
+    - should be generate only 1 time by function
+}}
+{{> SMARTCARD_HAL fct='exported_functions_gethandle'}}
+{{/if}}
+  {{#with security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Enable clock for RIF/RCC peripherals
+    - Configure the security/privilege items for I2C peripheral
+    - other I2C systems security/privilege configuration if any (DMA/GPIO/EXTI)
+    */
+
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GTZC fct='gtzc_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/GTZC}}
+
+  {{#if (eq @root.current_layer 'HAL')~}}
+{{#> DMA_HAL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_HAL}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+  {{else}}
+{{#> DMA_LL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_LL}}
+{{#> GPIO_LL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_LL}}
+  {{/if}}
+
+  return SYSTEM_OK;
+}
+
+    {{/with}}
+  {{/with}}
+{{/each}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='SMARTCARD'}}
+{{/helper_common_beautifier}}

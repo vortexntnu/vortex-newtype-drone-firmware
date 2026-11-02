@@ -1,0 +1,78 @@
+{{!--
+  ******************************************************************************
+  * @file    stm32_hal_timebase_template.h.hbs
+  * @brief   Include file used for stm32_hal_timebase.c
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+~--}}
+{{#helper_common_beautifier}}
+{{~assign 'get_timebase' (@root.EnvVarAPI.getVariableValue 'CORE_PROJECT_TIMEBASE')~}}
+{{#if (eq @root.get_timebase 'TIM')}}
+  {{~assign 'get_timebase_instance' (@root.EnvVarAPI.getVariableValue 'CORE_TIM_TIMEBASE')~}}
+{{else}}
+  {{~assign 'get_timebase_instance' 'RTC'~}}
+  {{assign "jsonFilter" (JSONparse '{"cgroup": "STM32CubeMX2 Config", "csub": "CORE"}')~}}
+  {{assign 'core_cxt' (@root.SWConfigurationAPI.getSwInstancesConfiguration @root.jsonFilter)~}}
+  {{assign 'core_cxt' @root.core_cxt.[0]~}}
+  {{assign 'instances_rtc' (@root.SWConfigurationAPI.getInstances 'STMicroelectronics::Device:STM32CubeMX2 Config:RTC')~}}
+{{/if}}
+/**
+  ******************************************************************************
+  * @file    stm32_hal_timebase.h
+  * @brief   Include file used for stm32_hal_timebase.c
+{{> LICENSE}}
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef STM32_HAL_TIMEBASE_H
+#define STM32_HAL_TIMEBASE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.get_timebase_instance}}.h"
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+/* Exported macros -----------------------------------------------------------*/
+
+/******************************************************************************/
+/*   TIMEBASE ALIASES   (private aliases)                                     */
+/******************************************************************************/
+{{#if (eq @root.get_timebase 'TIM')}}
+#define timebase_gethandle   mx_{{lowercase @root.get_timebase_instance}}_gethandle
+
+#define timebase_init        mx_{{lowercase @root.get_timebase_instance}}_init
+#define timebase_deinit      mx_{{lowercase @root.get_timebase_instance}}_deinit
+
+{{assign 'nvic_context' (@root.NvicAPI.getAllocatedResourceNeedsByHwInstance @root.get_timebase_instance)~}}
+{{log "stm32_hal_timebase template nvic_context:" (toJSON @root.nvic_context)~}}
+{{#each @root.nvic_context}}
+{{assign 'nvic_need' (@root.NvicAPI.getNeedById needId)~}}
+{{log "stm32_hal_timebase template nvic_need:" (toJSON @root.nvic_need)~}}
+#define TIMEBASE_IRQ         {{@root.nvic_need.name}}_IRQn
+{{/each}}
+
+{{else if (eq @root.get_timebase_instance 'RTC')}}
+#define timebase_init mx_{{lowercase @root.get_timebase_instance}}_init
+#define timebase_deinit mx_{{lowercase @root.get_timebase_instance}}_deinit
+#define TIMEBASE_IRQ {{@root.get_timebase_instance}}_IRQn
+{{/if}}
+/* Exported functions ------------------------------------------------------- */
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* STM32_HAL_TIMEBASE_H */
+{{/helper_common_beautifier}}

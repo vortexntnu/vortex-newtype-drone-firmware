@@ -10,15 +10,19 @@
 
 ## Overview
 
-An overview
+Power-interface.
 
-## IDK
+## Details
 
-Your explanation here
+Build with make.
+Run with make flash.
 
 ## Libraries/Dependencies
 
-List them
+make
+arm-none-eabi-gcc
+arm-none-eabi-objcopy
+st-flash
 
 ## License
 

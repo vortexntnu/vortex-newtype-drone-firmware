@@ -1,0 +1,357 @@
+{{!
+ * @file Partial used to generate code for UART:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!
+  Partial used for HAL UART:
+  how to use
+  > UART_HAL fct='xxxx' with xxxx:
+    * exported_variables
+    * exported_functions_init
+    * exported_functions_gethandle
+    * exported_functions_gethandle_prototype
+~}}
+
+{{!
+############################
+##  exported_variables
+############################
+~}}
+{{#if (eq fct 'exported_variables')}}
+/* Handle for UART */
+static hal_uart_handle_t h{{@root.current_resource}};
+
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.current_resource}}
+
+{{!
+############################
+##  exported_functions_init
+############################
+~}}
+{{else if (eq fct 'exported_functions_init')}}
+hal_uart_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_uart_config_t uart_config;
+
+  /* Basic configuration */
+  if (HAL_UART_Init(&h{{@root.current_resource}}, HAL_{{replace (uppercase @root.current_resource) "USART" "UART"}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='UART'}}
+
+  uart_config.baud_rate = {{basic.baud_rate}};
+  uart_config.clock_prescaler = HAL_UART_PRESCALER_DIV{{additional.clock_prescaler}};
+  uart_config.word_length = HAL_UART_WORD_LENGTH_{{basic.word_length}}_BIT;
+  uart_config.stop_bits = HAL_UART_STOP_BIT_{{basic.stop_bit}};
+  uart_config.parity = HAL_UART_PARITY_{{basic.parity}};
+  uart_config.direction = HAL_UART_DIRECTION_{{basic.direction}};
+  uart_config.hw_flow_ctl = HAL_UART_HW_CONTROL_{{basic.hw_flow_ctl}};
+  uart_config.oversampling = HAL_UART_OVERSAMPLING_{{additional.over_sampling}};
+{{#if additional.one_bit_sampling}}
+  uart_config.one_bit_sampling = HAL_UART_ONE_BIT_SAMPLE_ENABLE;
+{{else}}
+  uart_config.one_bit_sampling = HAL_UART_ONE_BIT_SAMPLE_DISABLE;
+{{/if}}
+
+  if (HAL_UART_SetConfig(&h{{@root.current_resource}}, &uart_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if (eq basic.mode "half_duplex_single_wire_mode")}}
+  /* Half duplex configuration */
+  if (HAL_UART_EnableHalfDuplexMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{else if (eq basic.mode "multiprocessor_communication")}}
+  /* Multiprocessor configuration */
+{{#if (eq additional.wakeup_method "ADDRESS_MARK")}}
+  hal_uart_multi_processor_mode_wakeup_config_t uart_multi_processor_mode_wakeup_config;
+  uart_multi_processor_mode_wakeup_config.wakeup_method = HAL_UART_WAKEUP_METHOD_{{additional.wakeup_method}};
+  uart_multi_processor_mode_wakeup_config.address_length = HAL_UART_ADDRESS_DETECT_{{additional.address_length}}_BIT;
+  uart_multi_processor_mode_wakeup_config.address = {{additional.address}};
+  if (HAL_UART_SetConfigMultiProcessorMode(&h{{@root.current_resource}}, &uart_multi_processor_mode_wakeup_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+  if (HAL_UART_EnableMultiProcessorMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{else if (eq basic.mode "lin")}}
+  /* LIN configuration */
+  if (HAL_UART_SetLINModeBreakDetectLength(&h{{@root.current_resource}}, HAL_UART_LIN_BREAK_DETECT_{{additional.set_lin_mode_break_detect_length}}_BIT) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  if (HAL_UART_EnableLINMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#with additional}}
+{{#if enable_rs485_mode}}
+  /* RS485 driver enable configuration */
+  hal_uart_rs485_config_t uart_rs485_config;
+  uart_rs485_config.assertion_time_samples = {{assertion_time_samples}};
+  uart_rs485_config.deassertion_time_samples = {{deassertion_time_samples}};
+  uart_rs485_config.polarity = HAL_UART_DE_POLARITY_{{polarity}};
+
+  if (HAL_UART_SetConfigRS485Mode(&h{{@root.current_resource}}, &uart_rs485_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  if (HAL_UART_EnableRS485Mode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_fifo_mode}}
+  /* Fifo configuration */
+  if (HAL_UART_SetTxFifoThreshold(&h{{@root.current_resource}}, HAL_UART_FIFO_THRESHOLD_{{set_tx_fifo_threshold}}) != HAL_OK)
+  {
+    return NULL;
+  }
+  if (HAL_UART_SetRxFifoThreshold(&h{{@root.current_resource}}, HAL_UART_FIFO_THRESHOLD_{{set_rx_fifo_threshold}}) != HAL_OK)
+  {
+    return NULL;
+  }
+  if (HAL_UART_EnableFifoMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_receiver_timeout}}
+  if (HAL_UART_EnableReceiverTimeout(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if (not (eq set_receiver_timeout 0))}}
+  if (HAL_UART_SetConfigReceiverTimeout(&h{{@root.current_resource}}, {{set_receiver_timeout}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if~}}
+{{/if~}}
+{{#if am_enable_packet_trigger}}
+{{#startsWith 'UART' @root.current_resource}}
+{{assign 'trig_prefix' 'UART'~}}
+{{/startsWith}}
+{{#startsWith 'USART' @root.current_resource}}
+{{assign 'trig_prefix' 'UART'~}}
+{{/startsWith}}
+{{#startsWith 'LPUART' @root.current_resource}}
+{{assign 'trig_prefix' 'LPUART'~}}
+{{/startsWith}}
+  /* Autonomous mode configuration */
+  hal_uart_am_trig_config_t uart_am_trig_config;
+
+  uart_am_trig_config.source = HAL_{{@root.trig_prefix}}_AM_TRIG_{{source.source}};
+  uart_am_trig_config.trigger_polarity = HAL_UART_AM_TRIG_{{trigger_polarity}};
+  uart_am_trig_config.packet_size_byte = {{packet_size_byte}};
+
+  if (HAL_UART_AM_SetConfigPacketTrigger(&h{{@root.current_resource}}, &uart_am_trig_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{#if am_enable_idle}}
+  if (HAL_UART_AM_EnableIdle(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+  if (HAL_UART_AM_EnablePacketTrigger(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if set_config_auto_baud_rate}}
+{{#if (not (eq set_config_auto_baud_rate "DISABLE"))}}
+  /* Auto baud rate mode configuration */
+  if (HAL_UART_SetConfigAutoBaudRateMode(&h{{@root.current_resource}}, HAL_UART_AUTO_BAUD_DET_ON_{{set_config_auto_baud_rate}}) != HAL_OK)
+  {
+    return NULL;
+  }
+  HAL_UART_EnableAutoBaudRate(&h{{@root.current_resource}});
+
+{{/if~}}
+{{/if~}}
+{{#if enable_tx_pin_level_invert}}
+  /* Tx pin level inversion configuration */
+  if (HAL_UART_EnableTxPinLevelInvert(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_rx_pin_level_invert}}
+  /* Rx pin level inversion configuration */
+  if (HAL_UART_EnableRxPinLevelInvert(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_data_invert}}
+  /* Data inversion configuration */
+  if (HAL_UART_EnableDataInvert(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_tx_rx_swap}}
+  /* Tx and Rx pins swapping configuration */
+  if (HAL_UART_EnableTxRxSwap(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if (not rx_over_run_detection)}}
+  /* Overrun configuration */
+  if (HAL_UART_DisableRxOverRunDetection(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_dma_stop_on_rx_error}}
+  /* DMA stop on Rx error configuration */
+  if (HAL_UART_EnableDMAStopOnRxError(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_msb_first}}
+  /* MSB first configuration */
+  if (HAL_UART_EnableMSBFirst(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_stop_mode}}
+  /* Wake up from low power mode configuration */
+  if (HAL_UART_EnableStopMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{/with}}
+
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'~}}
+
+{{#with system}}
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Enable interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config.needs @root.current_resource irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config.needs}}
+{{/if~}}
+{{/with}} {{!nvic}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+  /* Configure the DMA TX */
+{{> DMA_HAL fct='init' layer=@root.current_layer needs=dma_config_tx.needs arg3=@root.system_cxt.Clock_activation.dma_clk_enable_model}}
+  /* Link the Transmit DMA handle to the UART handle */
+  if (HAL_UART_SetTxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{#if enable_dma_rx}}
+  /* Configure the DMA RX */
+{{> DMA_HAL fct='init' layer=@root.current_layer needs=dma_config_rx.needs arg3=@root.system_cxt.Clock_activation.dma_clk_enable_model}}
+  /* Link the Receive DMA handle to the UART handle */
+  if (HAL_UART_SetRxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}
+{{/with}}
+{{/with}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_interruption}}
+  /* Disable interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/if~}}
+  (void)HAL_UART_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+
+{{#with system}}
+{{#if dma.enable_dma_tx}}
+{{> DMA_HAL fct='deinit' needs=dma.dma_config_tx.needs~}}
+{{/if~}}
+{{#if dma.enable_dma_rx}}
+{{> DMA_HAL fct='deinit' needs=dma.dma_config_rx.needs~}}
+{{/if~}}
+{{/with}}
+}
+{{!
+################################
+##  exported_functions_gethandle
+################################
+~}}
+{{else if (eq fct 'exported_functions_gethandle')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined @root.current_function)~}}
+hal_uart_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+{{!
+################################
+##  exported_functions_gethandle_prototype
+################################
+~}}
+{{else if (eq fct 'exported_functions_gethandle_prototype')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined @root.current_function)~}}
+/**
+  * @brief  Get the {{@root.fct_name}} object.
+  * @retval Pointer on the {{@root.fct_name}}Handle
+  */
+hal_uart_handle_t *{{@root.fct_name}}_gethandle(void);
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='prototype'}}
+{{else}}
+#warning "step {{fct}} in partial UART_HAL not managed"
+{{/if~}}

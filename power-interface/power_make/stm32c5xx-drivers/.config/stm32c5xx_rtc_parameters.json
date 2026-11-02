@@ -1,0 +1,3504 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:RTC",
+  "grammarVersion": "3.1",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/rtc_helpers.js",
+      "accessor": "common"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "title": "General information",
+          "type": "object",
+          "properties": {
+            "labels": {
+              "title": "Add a label",
+              "type": "array",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 32,
+                "unique": "project",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ],
+                "default": ""
+              },
+              "actions": [
+                {
+                  "type": "exclude",
+                  "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id"
+                }
+              ]
+            },
+            "layer": {
+              "title": "Software layer",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "LL",
+                  "const": "LL"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_RTC_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id",
+                  "attributes": {
+                    "const": "HAL",
+                    "description": "HAL layer only for RTC timebase."
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id"
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id",
+                  "attributes": {
+                    "const": "enabled",
+                    "description": "Initialization is done through RTC timebase template."
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id"
+                }
+              ],
+              "default": "enabled"
+            },
+            "timebase_info": {
+              "type": "string",
+              "readOnly": true,
+              "title": "HAL RTC timebase information",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id"
+                },
+                {
+                  "type": "set",
+                  "condition": "true",
+                  "attributes": {
+                    "default": "HAL RTC timebase template will control the RTC."
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "basic": {
+          "title": "Main features",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id"
+            }
+          ],
+          "properties": {
+            "mode": {
+              "title": "Mode",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "Free running BCD calendar",
+                  "const": "BCD"
+                },
+                {
+                  "title": "Free running binary",
+                  "const": "BINARY",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.features.binary"
+                    }
+                  ]
+                },
+                {
+                  "title": "Free running BCD calendar and binary",
+                  "const": "MIX",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.features.binary"
+                    }
+                  ]
+                }
+              ],
+              "default": "BCD"
+            },
+            "clock_source": {
+              "title": "Clock source",
+              "description": "Clock source can be modified in the clock tree.",
+              "type": "string",
+              "readOnly": true,
+              "actions": [
+                {
+                  "type": "warning",
+                  "condition": "($get('clock.input','RTC') === 'LSE') && ($get('envVar.value', 'RCC_PROJECT_LSE') !== true)",
+                  "message": "Make sure that LSE is enabled into RCC panel"
+                },
+                {
+                  "type": "set",
+                  "condition": "true",
+                  "computed": {
+                    "const": "$get('clock.input', $resource.id)"
+                  }
+                }
+              ],
+              "default": ""
+            },
+            "clock_frequency": {
+              "title": "Clock frequency",
+              "description": "Clock frequency can be modified in the clock tree.",
+              "type": "integer",
+              "readOnly": true,
+              "default": 0,
+              "unit": "Hz",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "true",
+                  "computed": {
+                    "const": "$get('clock.frequency', $resource.id)"
+                  }
+                }
+              ]
+            },
+            "asynchronous_predivider_value": {
+              "title": "Asynchronous prescaler factor",
+              "description": "Asynchronous prescaler factor value must be between 1 and 128.",
+              "type": "integer",
+              "default": 128,
+              "minimum": 1,
+              "maximum": 128,
+              "display_format": [
+                "dec",
+                "hex"
+              ]
+            },
+            "subsecond_register_update_frequency": {
+              "title": "Subsecond register update frequency",
+              "description": "Subsecond register update frequency is indicative. You can modify the asynchronous prescaler factor to change it.",
+              "type": "string",
+              "readOnly": true,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode === 'BINARY' || $basic.mode === 'MIX'"
+                },
+                {
+                  "type": "set",
+                  "condition": "$basic.mode === 'BINARY' || $basic.mode === 'MIX'",
+                  "computed": {
+                    "const": "($basic.clock_frequency / $basic.asynchronous_predivider_value).toFixed(3) + ' Hz'"
+                  }
+                }
+              ]
+            },
+            "synchronous_predivider_value": {
+              "title": "Synchronous prescaler factor",
+              "description": "Synchronous prescaler factor value must be between 1 and 32768.",
+              "type": "integer",
+              "default": 256,
+              "minimum": 1,
+              "maximum": 32768,
+              "display_format": [
+                "dec",
+                "hex"
+              ],
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode === 'BCD'"
+                }
+              ]
+            },
+            "bcd_seconds_increment": {
+              "title": "BCD update",
+              "type": "integer",
+              "description": "Selects the condition to increment the calendar second in BCD and MIX modes, or the wakeup timer in MIX and BINARY modes.",
+              "oneOf": [
+                {
+                  "title": "Incremented when SSR[7:0] = 0",
+                  "const": 8
+                },
+                {
+                  "title": "Incremented when SSR[8:0] = 0",
+                  "const": 9
+                },
+                {
+                  "title": "Incremented when SSR[9:0] = 0",
+                  "const": 10
+                },
+                {
+                  "title": "Incremented when SSR[10:0] = 0",
+                  "const": 11
+                },
+                {
+                  "title": "Incremented when SSR[11:0] = 0",
+                  "const": 12
+                },
+                {
+                  "title": "Incremented when SSR[12:0] = 0",
+                  "const": 13
+                },
+                {
+                  "title": "Incremented when SSR[13:0] = 0",
+                  "const": 14
+                },
+                {
+                  "title": "Incremented when SSR[14:0] = 0",
+                  "const": 15
+                }
+              ],
+              "default": 8,
+              "actions": [
+                {
+                  "type": "exclude",
+                  "condition": "$basic.mode === 'BCD'"
+                },
+                {
+                  "type": "set",
+                  "condition": "$basic.mode === 'MIX'",
+                  "attributes": {
+                    "description": "The calendar second is incremented based on the subsecond register value SSR[]. The wakeup timer can also be incremented the same way when its input is configured accordingly."
+                  }
+                },
+                {
+                  "type": "set",
+                  "condition": "$basic.mode === 'BINARY'",
+                  "attributes": {
+                    "description": "The wakeup timer can be incremented based on the subsecond register value SSR[] when its input is configured accordingly."
+                  }
+                }
+              ]
+            },
+            "bcd_update_frequency": {
+              "title": "BCD update frequency",
+              "type": "string",
+              "readOnly": true,
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$basic.mode === 'BCD'",
+                  "computed": {
+                    "const": "($basic.clock_frequency / ($basic.asynchronous_predivider_value * $basic.synchronous_predivider_value)).toFixed(3) + ' Hz'"
+                  },
+                  "attributes": {
+                    "description": "BCD update frequency is indicative. You can modify both the synchronous and asynchronous prescaler factors to change it. To use the calendar, this value must be 1 Hz."
+                  }
+                },
+                {
+                  "type": "set",
+                  "condition": "$basic.mode === 'BINARY'",
+                  "computed": {
+                    "const": "($basic.clock_frequency / ($basic.asynchronous_predivider_value * (Math.pow(2, $basic.bcd_seconds_increment)))).toFixed(3) + ' Hz'"
+                  },
+                  "attributes": {
+                    "description": "In binary mode, the BCD update frequency is the increment frequency of the wake-up timer when it is clocked by the SSR[]."
+                  }
+                },
+                {
+                  "type": "set",
+                  "condition": "$basic.mode === 'MIX'",
+                  "computed": {
+                    "const": "($basic.clock_frequency / ($basic.asynchronous_predivider_value * (Math.pow(2, $basic.bcd_seconds_increment)))).toFixed(3) + ' Hz'"
+                  },
+                  "attributes": {
+                    "description": "BCD update frequency is indicative. You can modify both the asynchronous prescaler factor and bcd update to change it."
+                  }
+                }
+              ]
+            },
+            "low_power": {
+              "title": "Low power",
+              "description": "Reduce the RTC power consumption.",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "additional": {
+          "title": "Advanced features",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id"
+            }
+          ],
+          "properties": {
+            "calendar": {
+              "title": "Calendar",
+              "description": "Calendar is not functional in binary mode.",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "exclude",
+                  "condition": "$basic.mode === 'BINARY'"
+                }
+              ],
+              "properties": {
+                "enable_calendar": {
+                  "title": "Calendar",
+                  "type": "boolean",
+                  "default": false
+                },
+                "hour_format": {
+                  "title": "Hour format",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "24-hour",
+                      "const": "24"
+                    },
+                    {
+                      "title": "12-hour",
+                      "const": "AMPM"
+                    }
+                  ],
+                  "default": "24",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.calendar.enable_calendar"
+                    }
+                  ]
+                },
+                "shadow_register": {
+                  "title": "Shadow register",
+                  "description": "Values can be taken from the shadow register, which are update once every two RTCCLK cycles.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Keep",
+                      "const": "KEEP"
+                    },
+                    {
+                      "title": "Bypass",
+                      "const": "BYPASS"
+                    }
+                  ],
+                  "default": "KEEP",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.calendar.enable_calendar"
+                    }
+                  ]
+                },
+                "reference_clock_detection": {
+                  "title": "Reference clock detection",
+                  "description": "Only works when RTC is set to BCD mode only.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BCD'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode === 'BCD' && $additional.calendar.enable_calendar && $get('pinout.peripheralCanBeMapped', $resource.id, 'REFIN')"
+                    }
+                  ]
+                },
+                "calendar_time": {
+                  "title": "Time",
+                  "type": "object",
+                  "properties": {
+                    "am_pm": {
+                      "title": "AM/PM",
+                      "description": "Used only for 12-hour format.",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "AM",
+                          "const": "AM_24H"
+                        },
+                        {
+                          "title": "PM",
+                          "const": "PM"
+                        }
+                      ],
+                      "default": "AM_24H",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.calendar.hour_format === 'AMPM'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.calendar.hour_format === '24'",
+                          "attributes": {
+                            "const": "AM_24H"
+                          }
+                        }
+                      ]
+                    },
+                    "hours": {
+                      "title": "Hours",
+                      "type": "integer",
+                      "default": 0,
+                      "description": "Hours must be between 0 and 23.",
+                      "minimum": 0,
+                      "maximum": 23,
+                      "display_format": [
+                        "dec"
+                      ],
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.calendar.hour_format === '24'"
+                        }
+                      ]
+                    },
+                    "hours_ampm": {
+                      "title": "Hours (AM/PM)",
+                      "type": "integer",
+                      "default": 12,
+                      "description": "Hours must be between 1 and 12.",
+                      "minimum": 1,
+                      "maximum": 12,
+                      "display_format": [
+                        "dec"
+                      ],
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$additional.calendar.hour_format === 'AMPM'"
+                        }
+                      ]
+                    },
+                    "minutes": {
+                      "title": "Minutes",
+                      "description": "Minutes must be between 0 and 59.",
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0,
+                      "maximum": 59,
+                      "display_format": [
+                        "dec"
+                      ]
+                    },
+                    "seconds": {
+                      "title": "Seconds",
+                      "description": "Seconds must be between 0 and 59.",
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0,
+                      "maximum": 59,
+                      "display_format": [
+                        "dec"
+                      ]
+                    }
+                  },
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.calendar.enable_calendar"
+                    }
+                  ]
+                },
+                "calendar_date": {
+                  "title": "Date",
+                  "type": "object",
+                  "properties": {
+                    "week_day": {
+                      "title": "Week day",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Monday",
+                          "const": "MONDAY"
+                        },
+                        {
+                          "title": "Tuesday",
+                          "const": "TUESDAY"
+                        },
+                        {
+                          "title": "Wednesday",
+                          "const": "WEDNESDAY"
+                        },
+                        {
+                          "title": "Thursday",
+                          "const": "THURSDAY"
+                        },
+                        {
+                          "title": "Friday",
+                          "const": "FRIDAY"
+                        },
+                        {
+                          "title": "Saturday",
+                          "const": "SATURDAY"
+                        },
+                        {
+                          "title": "Sunday",
+                          "const": "SUNDAY"
+                        }
+                      ],
+                      "default": "MONDAY"
+                    },
+                    "month": {
+                      "title": "Month",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "January",
+                          "const": "JANUARY"
+                        },
+                        {
+                          "title": "February",
+                          "const": "FEBRUARY"
+                        },
+                        {
+                          "title": "March",
+                          "const": "MARCH"
+                        },
+                        {
+                          "title": "April",
+                          "const": "APRIL"
+                        },
+                        {
+                          "title": "May",
+                          "const": "MAY"
+                        },
+                        {
+                          "title": "June",
+                          "const": "JUNE"
+                        },
+                        {
+                          "title": "July",
+                          "const": "JULY"
+                        },
+                        {
+                          "title": "August",
+                          "const": "AUGUST"
+                        },
+                        {
+                          "title": "September",
+                          "const": "SEPTEMBER"
+                        },
+                        {
+                          "title": "October",
+                          "const": "OCTOBER"
+                        },
+                        {
+                          "title": "November",
+                          "const": "NOVEMBER"
+                        },
+                        {
+                          "title": "December",
+                          "const": "DECEMBER"
+                        }
+                      ],
+                      "default": "JANUARY"
+                    },
+                    "year": {
+                      "title": "Year",
+                      "description": "Year must be between 0 and 99.",
+                      "type": "integer",
+                      "default": 0,
+                      "minimum": 0,
+                      "maximum": 99,
+                      "display_format": [
+                        "dec"
+                      ]
+                    },
+                    "date": {
+                      "title": "Date",
+                      "type": "integer",
+                      "default": 1,
+                      "display_format": [
+                        "dec"
+                      ],
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "['JANUARY', 'MARCH', 'MAY', 'JULY', 'AUGUST', 'OCTOBER', 'DECEMBER'].includes($additional.calendar.calendar_date.month)",
+                          "attributes": {
+                            "description": "Date must be between 1 and 31.",
+                            "minimum": 1,
+                            "maximum": 31
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "['APRIL', 'JUNE', 'SEPTEMBER', 'NOVEMBER'].includes($additional.calendar.calendar_date.month)",
+                          "attributes": {
+                            "description": "Date must be between 1 and 30.",
+                            "minimum": 1,
+                            "maximum": 30
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.calendar.calendar_date.month === 'FEBRUARY' && $additional.calendar.calendar_date.year % 4 !== 0",
+                          "attributes": {
+                            "description": "Date must be between 1 ans 28.",
+                            "minimum": 1,
+                            "maximum": 28
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.calendar.calendar_date.month === 'FEBRUARY' && $additional.calendar.calendar_date.year % 4 === 0",
+                          "attributes": {
+                            "minimum": 1,
+                            "maximum": 29,
+                            "description": "Date must be between 1 and 29."
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.calendar.enable_calendar"
+                    }
+                  ]
+                }
+              }
+            },
+            "alarm_a": {
+              "title": "Alarm A",
+              "type": "object",
+              "properties": {
+                "enable_alarm_a": {
+                  "title": "Alarm A",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "error",
+                      "condition": "!($additional.calendar.enable_calendar) && ($additional.alarm_a.enable_alarm_a) && ($basic.mode !== 'BINARY')",
+                      "message": "You cannot enable alarm A when the calendar is disabled."
+                    }
+                  ]
+                },
+                "mode": {
+                  "title": "Mode",
+                  "description": "Choose output in 'Outputs' section.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Internal",
+                      "const": "INTERNAL"
+                    },
+                    {
+                      "title": "Routed to output",
+                      "const": "OUTPUT"
+                    }
+                  ],
+                  "default": "INTERNAL",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "alarm_date_week_day_sel": {
+                  "title": "Alarm date / week day sel",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Date",
+                      "const": "MONTHDAY"
+                    },
+                    {
+                      "title": "Weekday",
+                      "const": "WEEKDAY"
+                    }
+                  ],
+                  "default": "MONTHDAY",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "alarm_date": {
+                  "title": "Alarm date",
+                  "description": "Alarm date must be between 1 and 31.",
+                  "type": "integer",
+                  "default": 1,
+                  "minimum": 1,
+                  "maximum": 31,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a && $additional.alarm_a.alarm_date_week_day_sel === 'MONTHDAY'"
+                    }
+                  ]
+                },
+                "alarm_week_day": {
+                  "title": "Alarm week day",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Monday",
+                      "const": "MONDAY"
+                    },
+                    {
+                      "title": "Tuesday",
+                      "const": "TUESDAY"
+                    },
+                    {
+                      "title": "Wednesday",
+                      "const": "WEDNESDAY"
+                    },
+                    {
+                      "title": "Thursday",
+                      "const": "THURSDAY"
+                    },
+                    {
+                      "title": "Friday",
+                      "const": "FRIDAY"
+                    },
+                    {
+                      "title": "Saturday",
+                      "const": "SATURDAY"
+                    },
+                    {
+                      "title": "Sunday",
+                      "const": "SUNDAY"
+                    }
+                  ],
+                  "default": "MONDAY",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a && $additional.alarm_a.alarm_date_week_day_sel === 'WEEKDAY'"
+                    }
+                  ]
+                },
+                "am_pm": {
+                  "title": "AM/PM",
+                  "description": "Used only for 12-hour format.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "AM",
+                      "const": "AM_24H"
+                    },
+                    {
+                      "title": "PM",
+                      "const": "PM"
+                    }
+                  ],
+                  "default": "AM_24H",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.calendar.hour_format === 'AMPM'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a && $additional.calendar.hour_format === 'AMPM'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.calendar.hour_format === '24'",
+                      "attributes": {
+                        "const": "AM_24H"
+                      }
+                    }
+                  ]
+                },
+                "hours": {
+                  "title": "Hours",
+                  "type": "integer",
+                  "default": 0,
+                  "description": "Hours must be between 0 and 23.",
+                  "minimum": 0,
+                  "maximum": 23,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.calendar.hour_format === '24'"
+                    },
+                    {
+                        "type": "enable",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a && $additional.calendar.hour_format === '24'"
+                    }
+                  ]
+                },
+                "hours_ampm": {
+                  "title": "Hours (AM/PM)",
+                  "type": "integer",
+                  "default": 12,
+                  "description": "Hours must be between 1 and 12.",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.calendar.hour_format === 'AMPM'"
+                    },
+                    {
+                        "type": "enable",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a && $additional.calendar.hour_format === 'AMPM'"
+                    }
+                  ]
+                },
+                "minutes": {
+                  "title": "Minutes",
+                  "description": "Minutes must be between 0 and 59.",
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0,
+                  "maximum": 59,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "seconds": {
+                  "title": "Seconds",
+                  "description": "Seconds must be between 0 and 59.",
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0,
+                  "maximum": 59,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "sub_seconds": {
+                  "title": "Sub seconds",
+                  "description": "Sub seconds is compared with the contents of the synchronous prescaler factor. You must adjust the mask sub seconds parameter to select the number of least-significant bits used in the comparison. Sub seconds value must be between 0 and synchronous prescaler factor - 1.",
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BCD'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode === 'BCD' && $additional.alarm_a.enable_alarm_a"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "maximum": "$basic.synchronous_predivider_value - 1"
+                      }
+                    }
+                  ]
+                },
+                "sub_seconds_time_value": {
+                  "title": "Sub seconds time value",
+                  "type": "string",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.mode === 'BCD'",
+                      "computed": {
+                        "const": "(((($basic.synchronous_predivider_value - $additional.alarm_a.sub_seconds) / $basic.synchronous_predivider_value) % 1) === 0) ? '0' : (((($basic.synchronous_predivider_value - $additional.alarm_a.sub_seconds) / $basic.synchronous_predivider_value) % 1) >= 0.001 ? (((((($basic.synchronous_predivider_value - $additional.alarm_a.sub_seconds) / $basic.synchronous_predivider_value) % 1) * 1000).toPrecision(4)) + ' ms') : (((((($basic.synchronous_predivider_value - $additional.alarm_a.sub_seconds) / $basic.synchronous_predivider_value) % 1) * 1000000).toPrecision(4)) + ' us'))"
+                      }
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BCD'"
+                    }
+                  ]
+                },
+                "flag_auto_clear": {
+                  "title": "Flag auto clear",
+                  "description": "Alarm A flag is automatically cleared by hardware or must be cleared by software to allow next alarm event.",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "mask_date_week_day": {
+                  "title": "Mask date week day",
+                  "description": "Date/day don't care in alarm A comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "mask_hours": {
+                  "title": "Mask hours",
+                  "description": "Hours don't care in alarm A comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "mask_minutes": {
+                  "title": "Mask minutes",
+                  "description": "Minutes don't care in alarm A comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "mask_seconds": {
+                  "title": "Mask seconds",
+                  "description": "Seconds don't care in alarm A comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    }
+                  ]
+                },
+                "mask_sub_seconds": {
+                  "title": "Mask sub seconds",
+                  "description": "Values between 0 and 15 specify how many least-significant subsecond bits are compared for alarm A.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 15,
+                  "default": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode === 'BCD' && $additional.alarm_a.enable_alarm_a"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BCD'"
+                    }
+                  ]
+                },
+                "free_running_32_bits_value": {
+                  "title": "Free running 32 bits value",
+                  "description": "Value must be between 0 and 0xFFFF FFFF. You must adjust the free running 32 bits mask parameter to select the number of least-significant bits used in the comparison.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295,
+                  "default": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BCD' && $additional.alarm_a.enable_alarm_a"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BCD'"
+                    }
+                  ]
+                },
+                "free_running_time_value": {
+                  "title": "Free running time value",
+                  "type": "string",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.mode !== 'BCD'",
+                      "computed": {
+                        "const": "($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 3600 ? Math.floor(($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) / 3600) + ' h ' + Math.floor((($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) % 3600) / 60) + ' min ' + (($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) % 60).toFixed(3) + ' s' : ($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 60 ? Math.floor(($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) / 60) + ' min ' + (($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) % 60).toFixed(3) + ' s' : ($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 1 ? ($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)).toFixed(3) + ' s' : ($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 0.001 ? (($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) * 1000).toFixed(3) + ' ms' : (($additional.alarm_a.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) * 1000000).toFixed(3) + ' us'"
+                      }
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BCD'"
+                    }
+                  ]
+                },
+                "free_running_32_bits_mask": {
+                  "title": "Free running 32 bits mask",
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BCD' && $additional.alarm_a.enable_alarm_a"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BCD'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "attributes": {
+                        "description": "Values between 0 and 31 specify how many least-significant subsecond bits are compared for alarm A. Values between 32 and 63 compare all 32 bits.",
+                        "maximum": 63
+                      }
+                    }
+                  ]
+                },
+                "binary_auto_reload": {
+                  "title": "Binary auto reload",
+                  "description": "Clear synchronous counter on alarm.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode === 'BINARY' && $additional.alarm_a.enable_alarm_a"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BINARY'"
+                    }
+                  ]
+                }
+              }
+            },
+            "alarm_b": {
+              "title": "Alarm B",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.parentDescription.features.alarmb"
+                }
+              ],
+              "properties": {
+                "enable_alarm_b": {
+                  "title": "Alarm B",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "error",
+                      "condition": "!($additional.calendar.enable_calendar) && ($additional.alarm_b.enable_alarm_b) && ($basic.mode !== 'BINARY')",
+                      "message": "You cannot enable alarm B when the calendar is disabled."
+                    }
+                  ]
+                },
+                "mode": {
+                  "title": "Mode",
+                  "description": "Choose output in 'Outputs' section.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Internal",
+                      "const": "INTERNAL"
+                    },
+                    {
+                      "title": "Routed to output",
+                      "const": "OUTPUT"
+                    }
+                  ],
+                  "default": "INTERNAL",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "alarm_date_week_day_sel": {
+                  "title": "Alarm date / week day sel",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Date",
+                      "const": "MONTHDAY"
+                    },
+                    {
+                      "title": "Weekday",
+                      "const": "WEEKDAY"
+                    }
+                  ],
+                  "default": "MONTHDAY",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "alarm_date": {
+                  "title": "Alarm date",
+                  "description": "Alarm date must be between 1 and 31.",
+                  "type": "integer",
+                  "default": 1,
+                  "minimum": 1,
+                  "maximum": 31,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b && $additional.alarm_b.alarm_date_week_day_sel === 'MONTHDAY'"
+                    }
+                  ]
+                },
+                "alarm_week_day": {
+                  "title": "Alarm week day",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Monday",
+                      "const": "MONDAY"
+                    },
+                    {
+                      "title": "Tuesday",
+                      "const": "TUESDAY"
+                    },
+                    {
+                      "title": "Wednesday",
+                      "const": "WEDNESDAY"
+                    },
+                    {
+                      "title": "Thursday",
+                      "const": "THURSDAY"
+                    },
+                    {
+                      "title": "Friday",
+                      "const": "FRIDAY"
+                    },
+                    {
+                      "title": "Saturday",
+                      "const": "SATURDAY"
+                    },
+                    {
+                      "title": "Sunday",
+                      "const": "SUNDAY"
+                    }
+                  ],
+                  "default": "MONDAY",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b && $additional.alarm_b.alarm_date_week_day_sel === 'WEEKDAY'"
+                    }
+                  ]
+                },
+                "am_pm": {
+                  "title": "AM/PM",
+                  "description": "Used only for 12-hour format.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "AM",
+                      "const": "AM_24H"
+                    },
+                    {
+                      "title": "PM",
+                      "const": "PM"
+                    }
+                  ],
+                  "default": "AM_24H",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.calendar.hour_format === 'AMPM'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b && $additional.calendar.hour_format === 'AMPM'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.calendar.hour_format === '24'",
+                      "attributes": {
+                        "const": "AM_24H"
+                      }
+                    }
+                  ]
+                },
+                "hours": {
+                  "title": "Hours",
+                  "type": "integer",
+                  "default": 0,
+                  "description": "Hours must be between 0 and 23.",
+                  "minimum": 0,
+                  "maximum": 23,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.calendar.hour_format === '24'"
+                    },
+                    {
+                        "type": "enable",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b && $additional.calendar.hour_format === '24'"
+                    }
+                  ]
+                },
+                "hours_ampm": {
+                  "title": "Hours (AM/PM)",
+                  "type": "integer",
+                  "default": 12,
+                  "description": "Hours must be between 1 and 12.",
+                  "minimum": 1,
+                  "maximum": 12,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.calendar.hour_format === 'AMPM'"
+                    },
+                    {
+                        "type": "enable",
+                        "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b && $additional.calendar.hour_format === 'AMPM'"
+                    }
+                  ]
+                },
+                "minutes": {
+                  "title": "Minutes",
+                  "description": "Minutes must be between 0 and 59.",
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0,
+                  "maximum": 59,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "seconds": {
+                  "title": "Seconds",
+                  "description": "Seconds must be between 0 and 59.",
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0,
+                  "maximum": 59,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "sub_seconds": {
+                  "title": "Sub seconds",
+                  "description": "Sub seconds is compared with the contents of the synchronous prescaler factor. You must adjust the mask sub seconds parameter to select the number of least-significant bits used in the comparison. Sub seconds value must be between 0 and synchronous prescaler factor - 1.",
+                  "type": "integer",
+                  "default": 0,
+                  "minimum": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BCD'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode === 'BCD' && $additional.alarm_b.enable_alarm_b"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "maximum": "$basic.synchronous_predivider_value - 1"
+                      }
+                    }
+                  ]
+                },
+                "sub_seconds_time_value": {
+                  "title": "Sub seconds time value",
+                  "type": "string",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.mode === 'BCD'",
+                      "computed": {
+                        "const": "(((($basic.synchronous_predivider_value - $additional.alarm_b.sub_seconds) / $basic.synchronous_predivider_value) % 1) === 0) ? '0' : (((($basic.synchronous_predivider_value - $additional.alarm_b.sub_seconds) / $basic.synchronous_predivider_value) % 1) >= 0.001 ? (((((($basic.synchronous_predivider_value - $additional.alarm_b.sub_seconds) / $basic.synchronous_predivider_value) % 1) * 1000).toPrecision(4)) + ' ms') : (((((($basic.synchronous_predivider_value - $additional.alarm_b.sub_seconds) / $basic.synchronous_predivider_value) % 1) * 1000000).toPrecision(4)) + ' us'))"
+                      }
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BCD'"
+                    }
+                  ]
+                },
+                "flag_auto_clear": {
+                  "title": "Flag auto clear",
+                  "description": "Alarm B flag is automatically cleared by hardware or must be cleared by software to allow next alarm event.",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "mask_date_week_day": {
+                  "title": "Mask date week day",
+                  "description": "Date/day don't care in alarm B comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "mask_hours": {
+                  "title": "Mask hours",
+                  "description": "Hours don't care in alarm B comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "mask_minutes": {
+                  "title": "Mask minutes",
+                  "description": "Minutes don't care in alarm B comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "mask_seconds": {
+                  "title": "Mask seconds",
+                  "description": "Seconds don't care in alarm B comparison.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BINARY'"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    }
+                  ]
+                },
+                "mask_sub_seconds": {
+                  "title": "Mask sub seconds",
+                  "description": "Values between 0 and 15 specify how many least-significant subsecond bits are compared for alarm B.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 15,
+                  "default": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode === 'BCD' && $additional.alarm_b.enable_alarm_b"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BCD'"
+                    }
+                  ]
+                },
+                "free_running_32_bits_value": {
+                  "title": "Free running 32 bits value",
+                  "description": "Value must be between 0 and 0xFFFF FFFF. You must adjust the free running 32 bits mask parameter to select the number of least-significant bits used in the comparison.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295,
+                  "default": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BCD' && $additional.alarm_b.enable_alarm_b"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BCD'"
+                    }
+                  ]
+                },
+                "free_running_time_value": {
+                  "title": "Free running time value",
+                  "type": "string",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.mode !== 'BCD'",
+                      "computed": {
+                        "const": "($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 3600 ? Math.floor(($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) / 3600) + ' h ' + Math.floor((($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) % 3600) / 60) + ' min ' + (($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) % 60).toFixed(3) + ' s' : ($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 60 ? Math.floor(($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) / 60) + ' min ' + (($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) % 60).toFixed(3) + ' s' : ($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 1 ? ($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)).toFixed(3) + ' s' : ($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) >= 0.001 ? (($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) * 1000).toFixed(3) + ' ms' : (($additional.alarm_b.free_running_32_bits_value / ($basic.clock_frequency / $basic.asynchronous_predivider_value)) * 1000000).toFixed(3) + ' us'"
+                      }
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BCD'"
+                    }
+                  ]
+                },
+                "free_running_32_bits_mask": {
+                  "title": "Free running 32 bits mask",
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode !== 'BCD' && $additional.alarm_b.enable_alarm_b"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode !== 'BCD'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "attributes": {
+                        "description": "Values between 0 and 31 specify how many least-significant subsecond bits are compared for alarm B. Values between 32 and 63 compare all 32 bits.",
+                        "maximum": 63
+                      }
+                    }
+                  ]
+                },
+                "binary_auto_reload": {
+                  "title": "Binary auto reload",
+                  "description": "Clear synchronous counter on alarm.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$basic.mode === 'BINARY' && $additional.alarm_b.enable_alarm_b"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode === 'BINARY'"
+                    }
+                  ]
+                }
+              }
+            },
+            "wake_up": {
+              "title": "Wake up",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.parentDescription.features.wakeup"
+                }
+              ],
+              "properties": {
+                "enable_wake_up": {
+                  "title": "Wake up",
+                  "type": "boolean",
+                  "default": false
+                },
+                "mode": {
+                  "title": "Mode",
+                  "description": "Choose output in 'Outputs' section.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Internal",
+                      "const": "INTERNAL"
+                    },
+                    {
+                      "title": "Routed to output",
+                      "const": "OUTPUT"
+                    }
+                  ],
+                  "default": "INTERNAL",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.wake_up.enable_wake_up"
+                    }
+                  ]
+                },
+                "wake_up_divider": {
+                  "title": "Wake up divider",
+                  "description": "RTCCLK is divided by (PREDIV_A+1)*(PREDIV_S+1). To have 1 Hz period, with the LSE clock (RTCCLK = 32768 Hz), PREDIV_A can be equal to 127 and PREDIV_S can be equal to 255.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Divider 16",
+                      "const": "RTCCLK_DIV16"
+                    },
+                    {
+                      "title": "Divider 8",
+                      "const": "RTCCLK_DIV8"
+                    },
+                    {
+                      "title": "Divider 4",
+                      "const": "RTCCLK_DIV4"
+                    },
+                    {
+                      "title": "Divider 2",
+                      "const": "RTCCLK_DIV2"
+                    },
+                    {
+                      "title": "BCD update",
+                      "const": "BCD_UPDATE"
+                    },
+                    {
+                      "title": "BCD update 17 bits",
+                      "const": "BCD_UPDATE_ADD_1BIT"
+                    }
+                  ],
+                  "default": "RTCCLK_DIV16",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.wake_up.enable_wake_up"
+                    }
+                  ]
+                },
+                "wake_up_minimum_period": {
+                  "title": "Wake up minimum period",
+                  "type": "number",
+                  "readOnly": true,
+                  "default": 0,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'RTCCLK_DIV2' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV4' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV8' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV16'",
+                      "attributes": {
+                        "description": "Period is in microseconds (us).",
+                        "unit": "us"
+                      },
+                      "computed": {
+                        "const": "$common.helper_rtc_compute_wakeup_minimum_period($basic.mode, $get('clock.frequency', $resource.id), $additional.wake_up.wake_up_divider, $basic.asynchronous_predivider_value, $basic.synchronous_predivider_value, $basic.bcd_seconds_increment)"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'BCD_UPDATE' || $additional.wake_up.wake_up_divider === 'BCD_UPDATE_ADD_1BIT'",
+                      "attributes": {
+                        "description": "Period is in seconds (s).",
+                        "unit": "s"
+                      },
+                      "computed": {
+                        "const": "$common.helper_rtc_compute_wakeup_minimum_period($basic.mode, $get('clock.frequency', $resource.id), $additional.wake_up.wake_up_divider, $basic.asynchronous_predivider_value, $basic.synchronous_predivider_value, $basic.bcd_seconds_increment)"
+                      }
+                    }
+                  ]
+                },
+                "wake_up_counter": {
+                  "title": "Wake up counter",
+                  "type": "integer",
+                  "default": 0,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.wake_up.enable_wake_up"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'RTCCLK_DIV2'",
+                      "attributes": {
+                        "description": "Number of periods before wake up. Value must be between 1 and 65535. With a divider 2, wake up counter cannot be equal to 0. The minimum wake up time is 122us.",
+                        "minimum": 1,
+                        "maximum": 65535
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'RTCCLK_DIV4' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV8' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV16' || $additional.wake_up.wake_up_divider === 'BCD_UPDATE'",
+                      "attributes": {
+                        "description": "Number of periods before wake up. Value must be between 0 and 65535.",
+                        "minimum": 0,
+                        "maximum": 65535
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'BCD_UPDATE_ADD_1BIT'",
+                      "attributes": {
+                        "description": "Number of periods before wake up. Value must be between 65536 and 131071.",
+                        "minimum": 65536,
+                        "maximum": 131071
+                      }
+                    }
+                  ]
+                },
+                "wake_up_time": {
+                  "title": "Wake up time",
+                  "description": "Delay before wake up.",
+                  "type": "string",
+                  "readOnly": true,
+                  "default": "0",
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'RTCCLK_DIV2' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV4' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV8' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV16'",
+                      "computed": {
+                        "const": "($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) >= 1000000 ? (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) / 1000000).toFixed(3) + ' s' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) >= 1000 ? (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) / 1000).toFixed(3) + ' ms' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)).toFixed(3) + ' us'"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'BCD_UPDATE' || $additional.wake_up.wake_up_divider === 'BCD_UPDATE_ADD_1BIT'",
+                      "computed": {
+                        "const": "($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) >= 3600 ? Math.floor(($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) / 3600) + ' h ' + Math.floor((($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) % 3600) / 60) + ' min ' + (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) % 60).toFixed(3) + ' s' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) >= 60 ? Math.floor(($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) / 60) + ' min ' + (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)) % 60).toFixed(3) + ' s' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter + 1)).toFixed(3) + ' s'"
+                      }
+                    }
+                  ]
+                },
+                "auto_clear": {
+                  "title": "Wake-up flag auto clear",
+                  "description": "If auto-clear is disable, flag must be cleared by the software. Otherwise, WUTF will be automatically cleared by the hardware at clear flag time after wake up time.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.wake_up.enable_wake_up"
+                    },
+                    {
+                      "type": "error",
+                      "condition": "($additional.wake_up.wake_up_counter == 0) && ($additional.wake_up.auto_clear) && ($additional.wake_up.wake_up_divider === 'RTCCLK_DIV4' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV8' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV16' || $additional.wake_up.wake_up_divider === 'BCD_UPDATE')",
+                      "message": "When wake-up counter is equal to 0, wake-up flag must be cleared by software. Disable this parameter or modify wake-up counter value."
+                    },
+                    {
+                      "type": "error",
+                      "condition": "($additional.wake_up.wake_up_counter == 65536) && ($additional.wake_up.auto_clear) && ($additional.wake_up.wake_up_divider === 'BCD_UPDATE_ADD_1BIT')",
+                      "message": "When wake-up counter is equal to 65536 in BCD update 17 bits, wake-up flag must be cleared by software. Disable this parameter or modify wake-up counter value."
+                    }
+                  ]
+                },
+                "clear_flag_counter": {
+                  "title": "Clear flag counter",
+                  "type": "integer",
+                  "default": 1,
+                  "display_format": [
+                    "dec",
+                    "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.wake_up.enable_wake_up"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$additional.wake_up.auto_clear"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'RTCCLK_DIV2' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV4' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV8' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV16' || $additional.wake_up.wake_up_divider === 'BCD_UPDATE'",
+                      "attributes": {
+                        "description": "WUTF will be automatically cleared by the hardware at clear flag time after wake up time. Value must be between 1 and wake up counter.",
+                        "minimum": 1
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'BCD_UPDATE_ADD_1BIT'",
+                      "attributes": {
+                        "description": "WUTF will be automatically cleared by the hardware at clear flag time after wake up time. Value must be between 65537 and wake up counter.",
+                        "minimum": 65537
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "maximum": "$additional.wake_up.wake_up_counter"
+                      }
+                    },
+                    {
+                      "type": "error",
+                      "condition": "(($additional.wake_up.clear_flag_counter < 1) || ($additional.wake_up.clear_flag_counter > $additional.wake_up.wake_up_counter)) && ($additional.wake_up.wake_up_divider === 'RTCCLK_DIV2' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV4' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV8' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV16' || $additional.wake_up.wake_up_divider === 'BCD_UPDATE')",
+                      "message": "Clear flag counter must be between 1 and wake up counter."
+                    },
+                    {
+                      "type": "error",
+                      "condition": "(($additional.wake_up.clear_flag_counter < 65537) || ($additional.wake_up.clear_flag_counter > $additional.wake_up.wake_up_counter)) && ($additional.wake_up.wake_up_divider === 'BCD_UPDATE_ADD_1BIT')",
+                      "message": "Clear flag counter must be between 65537 and wake up counter."
+                    }
+                  ]
+                },
+                "clear_flag_time": {
+                  "title": "Clear flag time",
+                  "description": "Delay before clear wake up timer flag.",
+                  "type": "string",
+                  "readOnly": true,
+                  "default": "0",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.wake_up.auto_clear"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'RTCCLK_DIV2' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV4' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV8' || $additional.wake_up.wake_up_divider === 'RTCCLK_DIV16'",
+                      "computed": {
+                        "const": "($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) >= 1000000 ? (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) / 1000000).toFixed(3) + ' s' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) >= 1000 ? (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) / 1000).toFixed(3) + ' ms' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)).toFixed(3) + ' us'"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.wake_up.wake_up_divider === 'BCD_UPDATE' || $additional.wake_up.wake_up_divider === 'BCD_UPDATE_ADD_1BIT'",
+                      "computed": {
+                        "const": "($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) >= 3600 ? Math.floor(($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) / 3600) + ' h ' + Math.floor((($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) % 3600) / 60) + ' min ' + (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) % 60).toFixed(3) + ' s' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) >= 60 ? Math.floor(($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) / 60) + ' min ' + (($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)) % 60).toFixed(3) + ' s' : ($additional.wake_up.wake_up_minimum_period * ($additional.wake_up.wake_up_counter - $additional.wake_up.clear_flag_counter + 1)).toFixed(3) + ' s'"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "timestamp": {
+              "title": "Timestamp",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.parentDescription.features.timestamp"
+                }
+              ],
+              "properties": {
+                "enable_timestamp": {
+                  "title": "Timestamp",
+                  "type": "boolean",
+                  "default": false
+                },
+                "timestamp_pin_edge": {
+                  "title": "Timestamp pin edge",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Rising edge",
+                      "const": "RISING"
+                    },
+                    {
+                      "title": "Falling edge",
+                      "const": "FALLING"
+                    }
+                  ],
+                  "default": "RISING",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.timestamp.enable_timestamp"
+                    }
+                  ]
+                },
+                "pin_source": {
+                  "title": "Pin source",
+                  "description": "Enable timestamp.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.timestamp.enable_timestamp && $get('pinout.peripheralCanBeMapped', $resource.id, 'TS')"
+                    },
+                    {
+                      "type": "error",
+                      "condition": "($additional.timestamp.pin_source) && ($additional.outputs.output1.signal !== 'NONE')",
+                      "message": "You cannot have an output signal and the input timestamp signal on PC13."
+                    }
+                  ]
+                },
+                "tamper_source_void": {
+                  "title": "Tamper source",
+                  "description": "Enable timestamp on tamper event.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.timestamp.enable_timestamp"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.peripheralVersionNum <= 3.5"
+                    }
+                  ]
+                },
+                "tamper_source": {
+                  "title": "Tamper source",
+                  "description": "Enable timestamp on tamper event.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Disable",
+                      "const": "DISABLE"
+                    },
+                    {
+                      "title": "Tamper 1",
+                      "const": "TAMP1",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 0"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Tamper 2",
+                      "const": "TAMP2",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 1"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Tamper 3",
+                      "const": "TAMP3",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 2"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Tamper 4",
+                      "const": "TAMP4",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 3"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Tamper 5",
+                      "const": "TAMP5",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 4"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Tamper 6",
+                      "const": "TAMP6",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 5"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Tamper 7",
+                      "const": "TAMP7",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 6"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "Tamper 8",
+                      "const": "TAMP8",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.tamper > 7"
+                        }
+                      ]
+                    }
+                  ],
+                  "default": "DISABLE",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.timestamp.enable_timestamp"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.peripheralVersionNum > 3.5"
+                    }
+                  ]
+                },
+                "internal_tamper_source": {
+                  "title": "Internal tamper source",
+                  "description": "Enable timestamp on internal tamper event.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.timestamp.enable_timestamp"
+                    },
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.peripheralVersionNum > 3.5"
+                    }
+                  ]
+                },
+                "internal_timestamp": {
+                  "title": "Internal timestamp",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.timestamp.enable_timestamp"
+                    },
+                    {
+                      "type": "exclude",
+                      "condition": "true"
+                    }
+                  ]
+                }
+              }
+            },
+            "calibration": {
+              "title": "Calibration",
+              "type": "object",
+              "properties": {
+                "enable_calibration": {
+                  "title": "Calibration",
+                  "type": "boolean",
+                  "default": false
+                },
+                "pulse": {
+                  "title": "Pulse",
+                  "description": "One RTCCLK pulse is inserted every 211 pulses (frequency increased by 488.5ppm).",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.calibration.enable_calibration"
+                    }
+                  ]
+                },
+                "calibration_period": {
+                  "title": "Period",
+                  "description": "Choose calibration cycle period.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "32 seconds",
+                      "const": "32SEC"
+                    },
+                    {
+                      "title": "16 seconds",
+                      "const": "16SEC"
+                    },
+                    {
+                      "title": "8 seconds",
+                      "const": "8SEC"
+                    }
+                  ],
+                  "default": "32SEC",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.calibration.enable_calibration"
+                    }
+                  ]
+                },
+                "minus_value": {
+                  "title": "Minus",
+                  "description": "Allow the clock frequency to be reduced by masking a certain number of RTCCLK pulses. The frequency is reduced with a resolution of 0.9537 ppm. To increase the frequency, this field must be used with the pulse parameter.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 511,
+                  "default": 0,
+                  "display_format": [
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.calibration.enable_calibration"
+                    },
+                    {
+                      "type": "error",
+                      "condition": "($additional.calibration.calibration_period === '8SEC') && ($additional.calibration.minus_value % 4 !== 0)",
+                      "message": "Must be a multiple of 4 because 8-seconds calibration cycle period is activated."
+                    },
+                    {
+                      "type": "error",
+                      "condition": "($additional.calibration.calibration_period === '16SEC') && ($additional.calibration.minus_value % 2 !== 0)",
+                      "message": "Must be a multiple of 2 because 16-seconds calibration cycle period is activated."
+                    }
+                  ]
+                }
+              }
+            },
+            "outputs": {
+              "title": "Outputs",
+              "type": "object",
+              "properties": {
+                "calibration_frequency": {
+                  "title": "Calibration output frequency",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "Disable",
+                      "const": "DISABLE"
+                    },
+                    {
+                      "title": "1 Hz",
+                      "const": "SYNCHRONOUS"
+                    },
+                    {
+                      "title": "512 Hz",
+                      "const": "ASYNCHRONOUS_DIV64"
+                    }
+                  ],
+                  "default": "DISABLE",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'OUT1') || $get('pinout.peripheralCanBeMapped', $resource.id, 'OUT2')"
+                    }
+                  ]
+                },
+                "output1": {
+                  "title": "Output 1",
+                  "type": "object",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'OUT1')"
+                    }
+                  ],
+                  "properties": {
+                    "signal": {
+                      "title": "Signal",
+                      "description": "You can have CALIB on OUT1 only / ALARM or WAKEUP or TAMP on OUT1 only / ALARM or WAKEUP or TAMP on OUT1 and CALIB on OUT2.",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "None",
+                          "const": "NONE"
+                        },
+                        {
+                          "title": "Alarm A",
+                          "const": "OUT1_ALARMA",
+                          "actions": [
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_a.mode === 'OUTPUT'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Alarm B",
+                          "const": "OUT1_ALARMB",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.alarmb"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_b.mode === 'OUTPUT'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Wake up",
+                          "const": "OUT1_WAKEUP",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.wakeup"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.wake_up.mode === 'OUTPUT'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Calibration",
+                          "const": "OUT1_CALIB",
+                          "actions": [
+                            {
+                              "type": "enable",
+                              "condition": "$additional.outputs.calibration_frequency !== 'DISABLE'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Tamper event",
+                          "const": "OUT1_TAMP"
+                        },
+                        {
+                          "title": "Alarm A ored tamper event",
+                          "const": "OUT1_ALARMA_TAMP",
+                          "actions": [
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_a.mode === 'OUTPUT'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Alarm B ored tamper event",
+                          "const": "OUT1_ALARMB_TAMP",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.alarmb"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_b.mode === 'OUTPUT'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Wake up ored tamper event",
+                          "const": "OUT1_WAKEUP_TAMP",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.wakeup"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.wake_up.mode === 'OUTPUT'"
+                            }
+                          ]
+                        }
+                      ],
+                      "default": "NONE"
+                    },
+                    "polarity": {
+                      "title": "Polarity",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "High",
+                          "const": "HIGH"
+                        },
+                        {
+                          "title": "Low",
+                          "const": "LOW"
+                        }
+                      ],
+                      "default": "HIGH",
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$additional.outputs.output1.signal !== 'NONE' && $additional.outputs.output1.signal !== 'OUT1_CALIB'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_ALARMA' || $additional.outputs.output1.signal === 'OUT1_ALARMA_TAMP' || $additional.outputs.output1.signal === 'OUT1_ALARMB' || $additional.outputs.output1.signal === 'OUT1_ALARMB_TAMP'",
+                          "attributes": {
+                            "description": "Alarm output polarity."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_WAKEUP' || $additional.outputs.output1.signal === 'OUT1_WAKEUP_TAMP'",
+                          "attributes": {
+                            "description": "Wake up output polarity."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_TAMP'",
+                          "attributes": {
+                            "description": "Tamper output polarity."
+                          }
+                        }
+                      ]
+                    },
+                    "type": {
+                      "title": "Type",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Push pull",
+                          "const": "PUSHPULL"
+                        },
+                        {
+                          "title": "Open drain",
+                          "const": "OPENDRAIN"
+                        }
+                      ],
+                      "default": "PUSHPULL",
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$additional.outputs.output1.signal !== 'NONE' && $additional.outputs.output1.signal !== 'OUT1_CALIB'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_ALARMA' || $additional.outputs.output1.signal === 'OUT1_ALARMA_TAMP' || $additional.outputs.output1.signal === 'OUT1_ALARMB' || $additional.outputs.output1.signal === 'OUT1_ALARMB_TAMP'",
+                          "attributes": {
+                            "description": "Alarm output type."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_WAKEUP' || $additional.outputs.output1.signal === 'OUT1_WAKEUP_TAMP'",
+                          "attributes": {
+                            "description": "Wake up output type."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_TAMP'",
+                          "attributes": {
+                            "description": "Tamper output type."
+                          }
+                        }
+                      ]
+                    },
+                    "pull_up": {
+                      "title": "Pull up",
+                      "type": "boolean",
+                      "default": false,
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$additional.outputs.output1.signal !== 'NONE' && $additional.outputs.output1.signal !== 'OUT1_CALIB'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_ALARMA' || $additional.outputs.output1.signal === 'OUT1_ALARMA_TAMP' || $additional.outputs.output1.signal === 'OUT1_ALARMB' || $additional.outputs.output1.signal === 'OUT1_ALARMB_TAMP'",
+                          "attributes": {
+                            "description": "Alarm pull-up enable/disable."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_WAKEUP' || $additional.outputs.output1.signal === 'OUT1_WAKEUP_TAMP'",
+                          "attributes": {
+                            "description": "Wake up pull-up enable/disable."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output1.signal === 'OUT1_TAMP'",
+                          "attributes": {
+                            "description": "Tamper pull-up enable/disable."
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "output2": {
+                  "title": "Output 2",
+                  "type": "object",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'OUT2')"
+                    }
+                  ],
+                  "properties": {
+                    "signal": {
+                      "title": "Signal",
+                      "description": "You can have CALIB on OUT2 only / ALARM or WAKEUP or TAMP on OUT2 only / ALARM or WAKEUP or TAMP on OUT1 and CALIB on OUT2.",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "None",
+                          "const": "NONE"
+                        },
+                        {
+                          "title": "Alarm A",
+                          "const": "OUT2_ALARMA",
+                          "actions": [
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_a.mode === 'OUTPUT' && $additional.outputs.output1.signal !== 'OUT1_ALARMA' && $additional.outputs.output1.signal !== 'OUT1_ALARMB' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP' && $additional.outputs.output1.signal !== 'OUT1_CALIB' && $additional.outputs.output1.signal !== 'OUT1_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMA_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMB_TAMP' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP_TAMP'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Alarm B",
+                          "const": "OUT2_ALARMB",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.alarmb"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_b.mode === 'OUTPUT' && $additional.outputs.output1.signal !== 'OUT1_ALARMA' && $additional.outputs.output1.signal !== 'OUT1_ALARMB' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP' && $additional.outputs.output1.signal !== 'OUT1_CALIB' && $additional.outputs.output1.signal !== 'OUT1_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMA_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMB_TAMP' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP_TAMP'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Wake up",
+                          "const": "OUT2_WAKEUP",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.wakeup"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.wake_up.mode === 'OUTPUT' && $additional.outputs.output1.signal !== 'OUT1_ALARMA' && $additional.outputs.output1.signal !== 'OUT1_ALARMB' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP' && $additional.outputs.output1.signal !== 'OUT1_CALIB' && $additional.outputs.output1.signal !== 'OUT1_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMA_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMB_TAMP' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP_TAMP'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Calibration",
+                          "const": "OUT2_CALIB",
+                          "actions": [
+                            {
+                              "type": "enable",
+                              "condition": "$additional.outputs.calibration_frequency !== 'DISABLE' && $additional.outputs.output1.signal !== 'OUT1_CALIB' "
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Tamper event",
+                          "const": "OUT2_TAMP",
+                          "actions": [
+                            {
+                              "type": "enable",
+                              "condition": "$additional.outputs.output1.signal !== 'OUT1_ALARMA' && $additional.outputs.output1.signal !== 'OUT1_ALARMB' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP' && $additional.outputs.output1.signal !== 'OUT1_CALIB' && $additional.outputs.output1.signal !== 'OUT1_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMA_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMB_TAMP' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP_TAMP'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Alarm A ored tamper event",
+                          "const": "OUT2_ALARMA_TAMP",
+                          "actions": [
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_a.mode === 'OUTPUT' && $additional.outputs.output1.signal !== 'OUT1_ALARMA' && $additional.outputs.output1.signal !== 'OUT1_ALARMB' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP' && $additional.outputs.output1.signal !== 'OUT1_CALIB' && $additional.outputs.output1.signal !== 'OUT1_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMA_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMB_TAMP' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP_TAMP'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Alarm B ored tamper event",
+                          "const": "OUT2_ALARMB_TAMP",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.alarmb"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.alarm_b.mode === 'OUTPUT' && $additional.outputs.output1.signal !== 'OUT1_ALARMA' && $additional.outputs.output1.signal !== 'OUT1_ALARMB' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP' && $additional.outputs.output1.signal !== 'OUT1_CALIB' && $additional.outputs.output1.signal !== 'OUT1_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMA_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMB_TAMP' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP_TAMP'"
+                            }
+                          ]
+                        },
+                        {
+                          "title": "Wake up ored tamper event",
+                          "const": "OUT2_WAKEUP_TAMP",
+                          "actions": [
+                            {
+                              "type": "include",
+                              "condition": "$resource.parentDescription.features.wakeup"
+                            },
+                            {
+                              "type": "enable",
+                              "condition": "$additional.wake_up.mode === 'OUTPUT' && $additional.outputs.output1.signal !== 'OUT1_ALARMA' && $additional.outputs.output1.signal !== 'OUT1_ALARMB' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP' && $additional.outputs.output1.signal !== 'OUT1_CALIB' && $additional.outputs.output1.signal !== 'OUT1_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMA_TAMP' && $additional.outputs.output1.signal !== 'OUT1_ALARMB_TAMP' && $additional.outputs.output1.signal !== 'OUT1_WAKEUP_TAMP'"
+                            }
+                          ]
+                        }
+                      ],
+                      "default": "NONE",
+                      "actions": [
+                        {
+                          "type": "error",
+                          "condition": "($additional.outputs.output1.signal === 'OUT1_ALARMA' || $additional.outputs.output1.signal === 'OUT1_ALARMB' || $additional.outputs.output1.signal === 'OUT1_WAKEUP' || $additional.outputs.output1.signal === 'OUT1_TAMP' || $additional.outputs.output1.signal === 'OUT1_ALARMA_TAMP' || $additional.outputs.output1.signal === 'OUT1_ALARMB_TAMP' || $additional.outputs.output1.signal === 'OUT1_WAKEUP_TAMP') && ($additional.outputs.output2.signal === 'OUT2_ALARMA' || $additional.outputs.output2.signal === 'OUT2_ALARMB' || $additional.outputs.output2.signal === 'OUT2_WAKEUP' || $additional.outputs.output2.signal === 'OUT2_TAMP' || $additional.outputs.output2.signal === 'OUT2_ALARMA_TAMP' || $additional.outputs.output2.signal === 'OUT2_ALARMB_TAMP' || $additional.outputs.output2.signal === 'OUT2_WAKEUP_TAMP')",
+                          "message": "You cannot have a TAMPALRM signal on output 1 and another on output 2."
+                        },
+                        {
+                          "type": "error",
+                          "condition": "($additional.outputs.output1.signal === 'OUT1_CALIB') && ($additional.outputs.output2.signal === 'OUT2_CALIB')",
+                          "message": "You cannot have a calibration signal on output 1 and an another on output 2."
+                        },
+                        {
+                          "type": "error",
+                          "condition": "($additional.outputs.output1.signal === 'OUT1_CALIB') && ($additional.outputs.output2.signal === 'OUT2_ALARMA' || $additional.outputs.output2.signal === 'OUT2_ALARMB' || $additional.outputs.output2.signal === 'OUT2_WAKEUP' || $additional.outputs.output2.signal === 'OUT2_TAMP' || $additional.outputs.output2.signal === 'OUT2_ALARMA_TAMP' || $additional.outputs.output2.signal === 'OUT2_ALARMB_TAMP' || $additional.outputs.output2.signal === 'OUT2_WAKEUP_TAMP')",
+                          "message": "You cannot have a calibration signal on output 1 and a TAMPALRM signal on output 2. However, you can assign the calibration signal on output 2 and the TAMPALRM signal on output 1."
+                        }
+                      ]
+                    },
+                    "polarity": {
+                      "title": "Polarity",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "High",
+                          "const": "HIGH"
+                        },
+                        {
+                          "title": "Low",
+                          "const": "LOW"
+                        }
+                      ],
+                      "default": "HIGH",
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$additional.outputs.output2.signal !== 'NONE' && $additional.outputs.output2.signal !== 'OUT2_CALIB'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_ALARMA' || $additional.outputs.output2.signal === 'OUT2_ALARMA_TAMP' || $additional.outputs.output2.signal === 'OUT2_ALARMB' || $additional.outputs.output2.signal === 'OUT2_ALARMB_TAMP'",
+                          "attributes": {
+                            "description": "Alarm output polarity."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_WAKEUP' || $additional.outputs.output2.signal === 'OUT2_WAKEUP_TAMP'",
+                          "attributes": {
+                            "description": "Wake up output polarity."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_TAMP'",
+                          "attributes": {
+                            "description": "Tamper output polarity."
+                          }
+                        }
+                      ]
+                    },
+                    "type": {
+                      "title": "Type",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Push pull",
+                          "const": "PUSHPULL"
+                        },
+                        {
+                          "title": "Open drain",
+                          "const": "OPENDRAIN"
+                        }
+                      ],
+                      "default": "PUSHPULL",
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$additional.outputs.output2.signal !== 'NONE' && $additional.outputs.output2.signal !== 'OUT2_CALIB'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_ALARMA' || $additional.outputs.output2.signal === 'OUT2_ALARMA_TAMP' || $additional.outputs.output2.signal === 'OUT2_ALARMB' || $additional.outputs.output2.signal === 'OUT2_ALARMB_TAMP'",
+                          "attributes": {
+                            "description": "Alarm output type."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_WAKEUP' || $additional.outputs.output2.signal === 'OUT2_WAKEUP_TAMP'",
+                          "attributes": {
+                            "description": "Wake up output type."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_TAMP'",
+                          "attributes": {
+                            "description": "Tamper output type."
+                          }
+                        }
+                      ]
+                    },
+                    "pull_up": {
+                      "title": "Pull up",
+                      "type": "boolean",
+                      "default": false,
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$additional.outputs.output2.signal !== 'NONE' && $additional.outputs.output2.signal !== 'OUT2_CALIB'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_ALARMA' || $additional.outputs.output2.signal === 'OUT2_ALARMA_TAMP' || $additional.outputs.output2.signal === 'OUT2_ALARMB' || $additional.outputs.output2.signal === 'OUT2_ALARMB_TAMP'",
+                          "attributes": {
+                            "description": "Alarm pull-up enable/disable."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_WAKEUP' || $additional.outputs.output2.signal === 'OUT2_WAKEUP_TAMP'",
+                          "attributes": {
+                            "description": "Wake up pull-up enable/disable."
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "$additional.outputs.output2.signal === 'OUT2_TAMP'",
+                          "attributes": {
+                            "description": "Tamper pull-up enable/disable."
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security_privilege": {
+         "title": "Security and privilege",
+         "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+         "description": "Security and privileged access levels attributes management.",
+         "properties": {
+		       "security": {
+                "title": "Security",
+                "type": "object",
+                "properties": {
+                  "set_all_items_attr": {
+                    "title": "Set all items security attribute",
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "all_items_attr": {
+                    "title": "All items security attribute",
+                    "type": "string",
+                    "oneOf": [
+                      {
+                        "title": "Secure",
+                        "const": "SEC"
+                      },
+                      {
+                        "title": "Non-secure",
+                        "const": "NSEC"
+                      }
+                    ],
+                    "actions": [
+                      {
+                        "type": "disable",
+                        "condition": "!$security_privilege.security.set_all_items_attr"
+                      },
+                      {
+                        "type": "set",
+                        "computed": {
+                          "default": "(($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')) ? 'SEC' : 'NSEC'"
+                        }
+                      }
+                    ]
+                  },
+                  "access_levels": {
+                    "title": "Access levels",
+                    "type": "object",
+                    "properties": {
+                      "global_protection": {
+                        "title": "Global protection",
+                        "type": "string",
+                        "default": "SEC",
+                        "oneOf": [
+                          {
+                            "title": "Secure",
+                            "const": "SEC"
+                          },
+                          {
+                            "title": "Non-secure",
+                            "const": "NSEC"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.security.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.security.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.security.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items security attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "initialization_protection": {
+                        "title": "Initialization protection",
+                        "type": "string",
+                        "default": "SEC",
+                        "oneOf": [
+                          {
+                            "title": "Secure",
+                            "const": "SEC"
+                          },
+                          {
+                            "title": "Non-secure",
+                            "const": "NSEC"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.security.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.security.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.security.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items security attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "calibration_and_time_adjustment_protection": {
+                        "title": "Calibration and time adjustment protection",
+                        "type": "string",
+                        "default": "SEC",
+                        "oneOf": [
+                          {
+                            "title": "Secure",
+                            "const": "SEC"
+                          },
+                          {
+                            "title": "Non-secure",
+                            "const": "NSEC"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.security.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.security.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.security.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items security attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "timestamp_protection": {
+                        "title": "Timestamp protection",
+                        "type": "string",
+                        "default": "SEC",
+                        "oneOf": [
+                          {
+                            "title": "Secure",
+                            "const": "SEC"
+                          },
+                          {
+                            "title": "Non-secure",
+                            "const": "NSEC"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.security.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.security.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.security.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items security attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "wake_up_timer_protection": {
+                        "title": "Wake-up timer protection",
+                        "type": "string",
+                        "default": "SEC",
+                        "oneOf": [
+                          {
+                            "title": "Secure",
+                            "const": "SEC"
+                          },
+                          {
+                            "title": "Non-secure",
+                            "const": "NSEC"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.security.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.security.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.security.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items security attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "alarm_b_protection": {
+                        "title": "Alarm B protection",
+                        "type": "string",
+                        "default": "SEC",
+                        "oneOf": [
+                          {
+                            "title": "Secure",
+                            "const": "SEC"
+                          },
+                          {
+                            "title": "Non-secure",
+                            "const": "NSEC"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.security.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.security.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.security.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items security attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "alarm_a_protection": {
+                        "title": "Alarm A protection",
+                        "type": "string",
+                        "default": "SEC",
+                        "oneOf": [
+                          {
+                            "title": "Secure",
+                            "const": "SEC"
+                          },
+                          {
+                            "title": "Non-secure",
+                            "const": "NSEC"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.security.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.security.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.security.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items security attribute\" is enabled."
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('swproject.getCurrentEngine').secure === 'Secure-only'",
+                  "message": "In Secure-only engine, all items are Secure."
+                }
+              ]
+              },
+              "privilege": {
+                "title": "Privilege",
+                "type": "object",
+                "properties": {
+                  "set_all_items_attr": {
+                    "title": "Set all items privilege attribute",
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "all_items_attr": {
+                    "title": "All items privilege attribute",
+                    "type": "string",
+                    "oneOf": [
+                      {
+                        "title": "Privileged",
+                        "const": "PRIV"
+                      },
+                      {
+                        "title": "Unprivileged",
+                        "const": "NPRIV"
+                      }
+                    ],
+                    "actions": [
+                      {
+                        "type": "disable",
+                        "condition": "!$security_privilege.privilege.set_all_items_attr"
+                      },
+                      {
+                        "type": "set",
+                        "computed": {
+                          "default": "(($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')) ? 'PRIV' : 'NPRIV'"
+                        }
+                      }
+                    ]
+                  },
+                  "access_levels": {
+                    "title": "Access levels",
+                    "type": "object",
+                    "properties": {
+                      "global_protection": {
+                        "title": "Global protection",
+                        "type": "string",
+                        "default": "PRIV",
+                        "oneOf": [
+                          {
+                            "title": "Privileged",
+                            "const": "PRIV"
+                          },
+                          {
+                            "title": "Unprivileged",
+                            "const": "NPRIV"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.privilege.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.privilege.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.privilege.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items privilege attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "initialization_protection": {
+                        "title": "Initialization protection",
+                        "type": "string",
+                        "default": "PRIV",
+                        "oneOf": [
+                          {
+                            "title": "Privileged",
+                            "const": "PRIV"
+                          },
+                          {
+                            "title": "Unprivileged",
+                            "const": "NPRIV"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.privilege.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.privilege.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.privilege.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items privilege attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "calibration_and_time_adjustment_protection": {
+                        "title": "Calibration and time adjustment protection",
+                        "type": "string",
+                        "default": "PRIV",
+                        "oneOf": [
+                          {
+                            "title": "Privileged",
+                            "const": "PRIV"
+                          },
+                          {
+                            "title": "Unprivileged",
+                            "const": "NPRIV"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.privilege.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.privilege.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.privilege.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items privilege attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "timestamp_protection": {
+                        "title": "Timestamp protection",
+                        "type": "string",
+                        "default": "PRIV",
+                        "oneOf": [
+                          {
+                            "title": "Privileged",
+                            "const": "PRIV"
+                          },
+                          {
+                            "title": "Unprivileged",
+                            "const": "NPRIV"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.privilege.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.privilege.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.privilege.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items privilege attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "wake_up_timer_protection": {
+                        "title": "Wake-up timer protection",
+                        "type": "string",
+                        "default": "PRIV",
+                        "oneOf": [
+                          {
+                            "title": "Privileged",
+                            "const": "PRIV"
+                          },
+                          {
+                            "title": "Unprivileged",
+                            "const": "NPRIV"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.privilege.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.privilege.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.privilege.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items privilege attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "alarm_b_protection": {
+                        "title": "Alarm B protection",
+                        "type": "string",
+                        "default": "PRIV",
+                        "oneOf": [
+                          {
+                            "title": "Privileged",
+                            "const": "PRIV"
+                          },
+                          {
+                            "title": "Unprivileged",
+                            "const": "NPRIV"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.privilege.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.privilege.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.privilege.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items privilege attribute\" is enabled."
+                          }
+                        ]
+                      },
+                      "alarm_a_protection": {
+                        "title": "Alarm A protection",
+                        "type": "string",
+                        "default": "PRIV",
+                        "oneOf": [
+                          {
+                            "title": "Privileged",
+                            "const": "PRIV"
+                          },
+                          {
+                            "title": "Unprivileged",
+                            "const": "NPRIV"
+                          }
+                        ],
+                        "actions": [
+                          {
+                            "type": "set",
+                            "condition": "($security_privilege.privilege.set_all_items_attr)",
+                            "computed": {
+                              "const": "$security_privilege.privilege.all_items_attr"
+                            }
+                          },
+                          {
+                            "type": "info",
+                            "condition": "$security_privilege.privilege.set_all_items_attr",
+                            "message": "This value cannot be changed while \"Set all items privilege attribute\" is enabled."
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+              "illegal_access": {
+                "title": "Illegal access interrupt",
+                "type": "boolean",
+                "default": false,
+                "synchronize": true,
+                "synchronizeOn": {
+                  "component": "ST-HAL",
+                  "path": "rif-iac-peripheral",
+                  "custom": "$resource.id"
+                },
+                "actions": [
+                  {
+                    "type": "include",
+                    "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                  },
+                  {
+                    "type": "disable",
+                    "condition": "($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                  }
+                ]
+              }
+            }
+          },
+        "system": {
+          "title": "System",
+          "type": "object",
+          "properties": {
+            "gpio": {
+              "title": "GPIO",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "exclude",
+                  "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id"
+                }
+              ],
+              "properties": {
+                "rtc_out1": {
+                  "title": "RTC_OUT1",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "OUT1"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.outputs.output1.signal !== 'NONE' && $get('pinout.peripheralCanBeMapped', $resource.id, 'OUT1')"
+                    }
+                  ]
+                },
+                "rtc_out2": {
+                  "title": "RTC_OUT2",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "OUT2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.outputs.output2.signal !== 'NONE' && $get('pinout.peripheralCanBeMapped', $resource.id, 'OUT2')"
+                    }
+                  ]
+                },
+                "rtc_ref_in": {
+                  "title": "RTC_REFIN",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "REFIN",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.calendar.reference_clock_detection && $get('pinout.peripheralCanBeMapped', $resource.id, 'REFIN')"
+                    }
+                  ]
+                },
+                "rtc_ts": {
+                  "title": "RTC_TS",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "TS",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.timestamp.enable_timestamp && $additional.timestamp.pin_source && $get('pinout.peripheralCanBeMapped', $resource.id, 'TS')"
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "title": "NVIC",
+              "type": "object",
+              "properties": {
+                "enable_interruption": {
+                    "title": "Interrupt",
+                  "type": "boolean",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id",
+                      "message": "Disabled because this is mandatory for HAL RTC timebase."
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id",
+                      "attributes": {
+                        "const": true
+                      }
+                    }
+                  ],
+                  "default": false
+                },
+                "irq_handler_generation": {
+                  "title": "IRQ handler generation",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption && $info.layer === 'HAL'"
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id",
+                      "message": "Disabled because this is mandatory for HAL RTC timebase."
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id",
+                      "attributes": {
+                        "const": true
+                      }
+                    }
+                  ]
+                },
+                "irq_line_priority": {
+                  "title": "IRQ line priority",
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_ALARM_TIMEBASE') === $resource.id || $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') !== undefined && $get('envVar.value', 'CORE_RTC_WAKEUP_TIMEBASE') === $resource.id",
+                      "attributes": {
+                        "description": "NVIC priority and subpriority have to be at 0 for HAL RTC timebase."
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,472 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_eth_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'ETH' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "ETH template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{helper_common_initialize_index~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+{{#each @root.instances~}}
+    {{~assign 'current_layer' config.info.layer~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+static hal_eth_handle_t h{{@root.current_resource}};
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+  {{/if}}
+{{/each}}
+
+{{~assign 'eth_exti_needs' 'undefined'}}
+{{~assign 'found_exti' false}}
+{{#each @root.instances}}
+{{#with config.system.exti}}
+  {{#if wakeup_exti_config}}
+    {{~assign 'eth_exti_needs' (helper_common_concatenate_needs wakeup_exti_config.needs @root.eth_exti_needs)~}}
+  {{/if}}
+{{/with}}{{! system.exti ~}}
+{{/each}}
+{{#if (not (eq @root.eth_exti_needs 'undefined'))}}
+{{#> EXTI fct='exti_get_variables' layer=@root.current_layer needs=@root.eth_exti_needs~}}{{/EXTI}}
+{{/if}}
+
+/* Private functions prototype------------------------------------------------*/
+static void {{lowercase @root.current_resource}}_set_mac_address(uint8_t *pMacAddress);
+
+/* Private functions ---------------------------------------------------------*/
+{{assign 'hal_handle_exist' false~}}
+{{assign 'nvic_needs' 'undefined'~}}
+{{assign 'nvic_generate_handler' true~}}
+{{#each @root.instances}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' config.info.layer~}}
+  {{~assign 'eth_cxt' config~}}
+static void {{lowercase @root.current_resource}}_set_mac_address(uint8_t *pMacAddress)
+{
+{{#with @root.eth_cxt.basic}}
+  if (pMacAddress != NULL)
+  {
+{{#if mac_addr_auto_generation}}
+    uint32_t uid[3];
+    uint32_t sum1 = 0;
+    uint32_t sum2 = 0;
+    int32_t index;
+    uint32_t fletcher;
+    const uint16_t *data = (const uint16_t *)uid;
+
+    uid[0] = LL_GetUID_Word0();
+    uid[1] = LL_GetUID_Word1();
+    uid[2] = LL_GetUID_Word2();
+
+    /* Fletcher16 computation */
+    for (index = 0; index < (sizeof(uint32_t[3]) / sizeof(uint16_t)); ++index)
+    {
+      sum1 = (sum1 + data[index]) % 0xffff;
+      sum2 = (sum2 + sum1) % 0xffff;
+    }
+    fletcher = ((sum2 << 16) | sum1);
+
+    pMacAddress[0] = 0x02; /* Locally administered / Unicast (individual) */
+    pMacAddress[1] = 0x00; /* Not used, but could be used to add entropy*/
+    pMacAddress[2] = ((fletcher      ) & 0xFF);
+    pMacAddress[3] = ((fletcher >>  8) & 0xFF);
+    pMacAddress[4] = ((fletcher >> 16) & 0xFF);
+    pMacAddress[5] = ((fletcher >> 24) & 0xFF);
+{{else}}
+    {{assign 'mac_addr_array' (helper_eth_get_mac_address_from_string mac_addr)~}}
+    pMacAddress[0] = 0x{{uppercase @root.mac_addr_array.[0]}};
+    pMacAddress[1] = 0x{{uppercase @root.mac_addr_array.[1]}};
+    pMacAddress[2] = 0x{{uppercase @root.mac_addr_array.[2]}};
+    pMacAddress[3] = 0x{{uppercase @root.mac_addr_array.[3]}};
+    pMacAddress[4] = 0x{{uppercase @root.mac_addr_array.[4]}};
+    pMacAddress[5] = 0x{{uppercase @root.mac_addr_array.[5]}};
+{{/if}}
+  }
+{{/with}}{{! @root.eth_cxt.basic ~}}
+}
+
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer 0)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#with @root.eth_cxt}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{assign 'use_tx_channels' false~}}
+{{#each eth_tx_channels}}
+{{#unless use_tx_channels}}
+{{#if use_channel}}
+{{log "ETH Tx Channel Configuration:" this~}}
+{{~assign 'use_tx_channels' true~}}
+{{/if}}
+{{/unless}}
+{{/each~}}{{! eth_tx_channels ~}}
+{{assign 'use_rx_channels' false~}}
+{{#each eth_rx_channels}}
+{{#unless use_rx_channels}}
+{{#if use_channel}}
+{{log "ETH Rx Channel Configuration:" this~}}
+{{~assign 'use_rx_channels' true~}}
+{{/if}}
+{{/unless}}
+{{/each}}{{! eth_rx_channels ~}}
+hal_eth_handle_t *{{@root.fct_name}}_init(void)
+{
+  /* Ethernet config */
+  hal_eth_config_t eth_config;
+  /* Ethernet MAC config */
+  hal_eth_mac_config_t eth_mac_config;
+{{#if @root.use_tx_channels}}
+  /* Ethernet DMA-Tx Channel Config */
+  hal_eth_tx_channel_config_t eth_tx_channel_config;
+{{/if}}
+{{#if @root.use_rx_channels}}
+  /* Ethernet DMA-Rx Channel Config */
+  hal_eth_rx_channel_config_t eth_rx_channel_config;
+{{/if}}
+
+  /****************************************************************************/
+  /* Configuration of Clocks                                                  */
+  /****************************************************************************/
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='ETH'}}
+
+{{#with system.gpio~}}
+  /****************************************************************************/
+  /* Configuration of GPIO                                                    */
+  /****************************************************************************/
+{{#> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+#warning "Partial GPIO is not present"
+{{/GPIO_HAL~}}
+{{/with}}  {{! system.gpio ~}}
+
+  if (HAL_ETH_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  /* Set the MAC Address */
+  {{lowercase @root.current_resource}}_set_mac_address(&eth_config.mac_addr[0]);
+
+{{#with basic}}
+  /* Set the Media Interface type */
+  eth_config.media_interface = {{media_interface~}};
+{{/with}}{{! basic }}
+
+  /*
+   * Call the Ethernet HAL API HAL_ETH_SetConfig() to set Peripheral's
+   * User Configuration.
+   */
+  if(HAL_ETH_SetConfig(&h{{@root.current_resource}}, &eth_config) != HAL_OK)
+  {
+    HAL_ETH_DeInit(&h{{@root.current_resource}});
+    return NULL;
+  }
+
+  /*
+   * Call the Ethernet HAL API HAL_ETH_MAC_GetConfig() to get the default
+   * Peripheral's MAC Configuration.
+   */
+  HAL_ETH_MAC_GetConfig(&h{{@root.current_resource}}, &eth_mac_config);
+
+{{#with basic.eth_mac_config}}
+  /* Set the Ethernet MAC Link Configuration */
+  eth_mac_config.link_config.speed        = {{speed~}};
+  eth_mac_config.link_config.duplex_mode  = {{duplex_mode~}};
+  /* Set the Ethernet MAC Loopback Mode */
+{{#if loopback_mode}}
+  eth_mac_config.loopback_mode            = HAL_ETH_MAC_LOOPBACK_ENABLE;
+{{else}}
+  eth_mac_config.loopback_mode            = HAL_ETH_MAC_LOOPBACK_DISABLE;
+{{/if}}
+{{/with}}{{! basic.eth_mac_config }}
+
+  /*
+   * Call the Ethernet HAL API HAL_ETH_MAC_SetConfig() to set the Peripheral's
+   * MAC Configuration.
+   */
+  if(HAL_ETH_MAC_SetConfig(&h{{@root.current_resource}}, &eth_mac_config) != HAL_OK)
+  {
+    HAL_ETH_DeInit(&h{{@root.current_resource}});
+    return NULL;
+  }
+
+{{#each eth_tx_channels}}
+{{#if use_channel}}
+  /*
+   * Call the Ethernet HAL API HAL_ETH_GetConfigTxChannel() to get the default
+   * configuration for the Tx Channel {{_foreignKey}}.
+   */
+  HAL_ETH_GetConfigTxChannel(&h{{@root.current_resource}}, HAL_ETH_TX_CHANNEL_{{_foreignKey}},
+                             &eth_tx_channel_config);
+
+  /* Set the Tx Channel {{_foreignKey}} Configuration */
+{{#with basic}}
+  eth_tx_channel_config.max_app_buffers_num                         = {{max_app_buffers_num}}UL;
+{{#if req_desc_size_align_byte}}
+  eth_tx_channel_config.req_desc_size_align_byte                    = {{req_desc_size_align_byte}}UL;
+{{else}}
+  eth_tx_channel_config.req_desc_size_align_byte                    = 1UL;
+{{/if}}
+  eth_tx_channel_config.fifo_event_config.event_mode                = {{event_mode}};
+{{#if event_params}}
+  eth_tx_channel_config.fifo_event_config.event_params              = {{event_params}}UL;
+{{/if}}
+{{/with}}{{! basic ~}}
+{{#with additional}}
+  eth_tx_channel_config.dma_channel_config.tx_dma_burst_length      = {{dma_channel_config.tx_dma_burst_length}};
+{{#if dma_channel_config.tx_pbl_x8_mode}}
+  eth_tx_channel_config.dma_channel_config.tx_pbl_x8_mode           = HAL_ETH_DMA_TX_PBL_X8_ENABLE;
+{{else}}
+  eth_tx_channel_config.dma_channel_config.tx_pbl_x8_mode           = HAL_ETH_DMA_TX_PBL_X8_DISABLE;
+{{/if}}
+{{#if dma_channel_config.tx_second_pkt_operate}}
+  eth_tx_channel_config.dma_channel_config.tx_second_pkt_operate    = HAL_ETH_DMA_TX_SEC_PKT_OP_ENABLE;
+{{else}}
+  eth_tx_channel_config.dma_channel_config.tx_second_pkt_operate    = HAL_ETH_DMA_TX_SEC_PKT_OP_DISABLE;
+{{/if}}
+  eth_tx_channel_config.mtl_queue_config.queue_size_byte            = {{mtl_queue_config.queue_size_byte}};
+  eth_tx_channel_config.mtl_queue_config.transmit_queue_mode        = {{mtl_queue_config.transmit_queue_mode}};
+{{#if mtl_queue_config.enable_av_mode}}
+  eth_tx_channel_config.mtl_queue_config.queue_op_mode              = HAL_ETH_MTL_TX_QUEUE_AV_ENABLED;
+{{else}}
+  eth_tx_channel_config.mtl_queue_config.queue_op_mode              = HAL_ETH_MTL_TX_QUEUE_ENABLED;
+{{/if}}
+{{#if mtl_queue_config.queue_av_algo}}
+  eth_tx_channel_config.mtl_queue_config.queue_av_algo              = {{mtl_queue_config.queue_av_algo}};
+{{/if}}
+{{/with}}{{! additional }}
+
+  /*
+   * Call the Ethernet HAL API HAL_ETH_SetConfigTxChannel() to set the
+   * Tx channel {{_foreignKey}} Configuration.
+   */
+  if(HAL_ETH_SetConfigTxChannel(&h{{@root.current_resource}}, HAL_ETH_TX_CHANNEL_{{_foreignKey}},
+                                &eth_tx_channel_config) != HAL_OK)
+  {
+    HAL_ETH_DeInit(&h{{@root.current_resource}});
+    return NULL;
+  }
+
+{{/if}}
+{{/each}}{{! eth_tx_channels ~}}
+{{#each eth_rx_channels}}
+{{#if use_channel}}
+  /*
+   * Call the Ethernet HAL API HAL_ETH_GetConfigRxChannel() to get the default
+   * configuration for the Rx channel {{_foreignKey}}.
+   */
+  HAL_ETH_GetConfigRxChannel(&h{{@root.current_resource}}, HAL_ETH_RX_CHANNEL_{{_foreignKey}},
+                             &eth_rx_channel_config);
+
+  /* Set the Rx Channel {{_foreignKey}} Configuration */
+{{#with basic}}
+  eth_rx_channel_config.dma_channel_config.rx_buffer_len_byte       = {{rx_buffer_len_byte}}UL;
+  eth_rx_channel_config.max_app_buffers_num                         = {{max_app_buffers_num}}UL;
+{{#if req_desc_size_align_byte}}
+  eth_rx_channel_config.req_desc_size_align_byte                    = {{req_desc_size_align_byte}}UL;
+{{else}}
+  eth_rx_channel_config.req_desc_size_align_byte                    = 1UL;
+{{/if}}
+  eth_rx_channel_config.fifo_event_config.event_mode                = {{event_mode}};
+{{#if event_params}}
+  eth_rx_channel_config.fifo_event_config.event_params              = {{event_params}}UL;
+{{/if}}
+{{/with}}{{! basic ~}}
+{{#with additional}}
+  eth_rx_channel_config.dma_channel_config.rx_dma_burst_length      = {{dma_channel_config.rx_dma_burst_length}};
+  eth_rx_channel_config.mtl_queue_config.queue_size_byte            = {{mtl_queue_config.queue_size_byte}};
+  eth_rx_channel_config.mtl_queue_config.receive_queue_mode         = {{mtl_queue_config.receive_queue_mode}};
+{{#if mtl_queue_config.enable_av_mode}}
+  eth_rx_channel_config.mtl_queue_config.queue_op_mode              = HAL_ETH_MTL_RX_QUEUE_AV_ENABLED;
+{{else}}
+  eth_rx_channel_config.mtl_queue_config.queue_op_mode              = HAL_ETH_MTL_RX_QUEUE_ENABLED;
+{{/if}}
+{{#if mtl_queue_config.drop_tcp_ip_csum_error_pkt}}
+  eth_rx_channel_config.mtl_queue_config.drop_tcp_ip_csum_error_pkt = HAL_ETH_MTL_RX_DROP_CS_ERR_ENABLE;
+{{else}}
+  eth_rx_channel_config.mtl_queue_config.drop_tcp_ip_csum_error_pkt = HAL_ETH_MTL_RX_DROP_CS_ERR_DISABLE;
+{{/if}}
+{{#if mtl_queue_config.fwd_error_pkt}}
+  eth_rx_channel_config.mtl_queue_config.fwd_error_pkt              = HAL_ETH_MTL_RX_FWD_ERR_PKT_ENABLE;
+{{else}}
+  eth_rx_channel_config.mtl_queue_config.fwd_error_pkt              = HAL_ETH_MTL_RX_FWD_ERR_PKT_DISABLE;
+{{/if}}
+{{#if mtl_queue_config.fwd_undersized_good_pkt}}
+  eth_rx_channel_config.mtl_queue_config.fwd_undersized_good_pkt    = HAL_ETH_MTL_RX_FWD_USZ_PKT_ENABLE;
+{{else}}
+  eth_rx_channel_config.mtl_queue_config.fwd_undersized_good_pkt    = HAL_ETH_MTL_RX_FWD_USZ_PKT_DISABLE;
+{{/if}}
+{{/with}}{{! additional }}
+
+  /*
+   * Call the Ethernet HAL API HAL_ETH_SetConfigRxChannel() to set the
+   * Rx channel {{_foreignKey}} Configuration.
+   */
+  if(HAL_ETH_SetConfigRxChannel(&h{{@root.current_resource}}, HAL_ETH_RX_CHANNEL_{{_foreignKey}},
+                                &eth_rx_channel_config) != HAL_OK)
+  {
+    HAL_ETH_DeInit(&h{{@root.current_resource}});
+    return NULL;
+  }
+
+{{/if}}
+{{/each}}{{! eth_rx_channels ~}}
+
+{{#with additional~}}
+{{/with}}{{! additional ~}}
+
+{{#with system~}}
+{{#with nvic~}}
+{{#if enable_global_interrupt~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic_config_global.needs @root.current_resource irq_handler_generation_global)}}
+  /****************************************************************************/
+  /* Configuration of NVIC                                                    */
+  /****************************************************************************/
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_global.needs}}
+#warning "Partial CORTEX is not present"
+{{/CORTEX~}}
+{{/if}}
+{{/with}}{{! nvic }}
+
+{{#if (not (eq @root.eth_exti_needs 'undefined'))}}
+  /****************************************************************************/
+  /* Configuration of EXTI                                                    */
+  /****************************************************************************/
+  {{#> EXTI fct='exti_get_init' layer=@root.current_layer needs=@root.eth_exti_needs found_exti=@root.found_exti~}}
+  {{/EXTI}}
+  {{~assign 'found_exti' true~}}
+{{/if}}
+{{/with}}  {{! system }}
+
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#with system.nvic~}}
+{{#if enable_global_interrupt}}
+  /* Disable the ETH Global interrupt */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_global.needs}}
+#warning "Partial CORTEX is not present"
+{{/CORTEX~}}
+{{/if}}
+{{/with}}  {{! system.nvic }}
+
+{{#if (not (eq @root.eth_exti_needs 'undefined'))}}
+  {{#> EXTI fct='exti_get_deinit' layer=@root.current_layer needs=@root.eth_exti_needs}}
+  {{/EXTI}}
+{{/if}}
+
+  /* Deinitialize the ETH peripheral */
+  (void)HAL_ETH_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+}
+
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_eth_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+{{/if}}
+
+{{/with}}
+
+{{#with security_privilege}}
+{{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/******************************************************************************/
+/*                      Privileged attribute management                       */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_privilege(void)
+{{else}}
+/******************************************************************************/
+/*                Security and privileged attributes management               */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+{{/if}}
+{
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+
+  return SYSTEM_OK;
+}
+{{/with}}
+
+{{#if (not (eq @root.eth_exti_needs 'undefined'))}}
+/******************************************************************************/
+/* EXTI get handle.                                                           */
+/******************************************************************************/
+{{#> EXTI fct='exti_gethandle' needs=@root.eth_exti_needs~}}
+{{/EXTI}}
+{{/if}}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+
+{{/each}}{{! root.instances ~}}
+{{~assign 'irq_info_list' (helper_cortex_nvic_get_irqline_info_list @root.NvicAPI @root.nvic_context @root.current_resource)}}
+{{#each @root.irq_info_list}}
+/******************************************************************************/
+{{~assign 'text' (helper_cortex_nvic_generate_comment_block description generate_handler)}}
+{{@root.text}}
+/******************************************************************************/
+    {{#if generate_handler}}
+
+{{return_type}} {{#if (and shared is_interruption)}}{{resource_hw}}{{else}}{{line}}{{/if}}_IRQHandler(void)
+{
+{{#if (eq component @root.current_resource)}}
+{{~assign 'component' 'ETH'}}
+{{~assign 'resource_hw' @root.current_resource}}
+{{else}}
+{{~assign 'component' component}}
+{{~assign 'resource_hw' resource_hw}}
+{{/if}}
+  {{#if return}}return (({{/if}}HAL_{{@root.component}}{{irq_suffix}}_IRQHandler({{#if has_handler}}&h{{@root.resource_hw}}{{/if}}){{#if return}} == HAL_OK) ? SYSTEM_OK : SYSTEM_PERIPHERAL_ERROR){{/if}};
+}
+  {{else}}
+/* void {{line}}_IRQHandler(void)
+{
+}
+*/
+    {{~/if}}{{!generate_handler}}
+  {{/each}}
+
+{{/helper_common_beautifier}}

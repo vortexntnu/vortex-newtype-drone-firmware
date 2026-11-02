@@ -1,0 +1,113 @@
+{{!
+ * @file Partial used to generate code for USART:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!
+  Partial used for LL USART:
+  how to use
+  > USART_LL fct='xxxx' with xxxx:
+    * exported_functions_init
+~}}
+{{#if (eq fct 'exported_functions_init')}}
+{{> DMA_LL fct='get_dma_lli_variables' resource=@root.dma_resource strategy=@root.strategy}}
+
+USART_TypeDef *{{@root.fct_name}}_init(void)
+{
+
+  /* Basic configuration */
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='UART'}}
+
+{{#if (eq basic.mode "SLAVE")}}
+  LL_USART_ConfigSyncSlaveMode({{@root.current_resource}});
+{{else}}
+  LL_USART_ConfigSyncMasterMode({{@root.current_resource}});
+{{/if}}
+{{#if basic.clock_last_bit}}
+{{assign 'clock_last_bit' 'ENABLED'}}
+{{else}}
+{{assign 'clock_last_bit' 'DISABLED'}}
+{{/if}}
+
+  LL_USART_ConfigXfer({{@root.current_resource}}, LL_USART_DATAWIDTH_{{basic.word_length}}_BIT | LL_USART_PARITY_{{basic.parity}}
+                              | LL_USART_DIRECTION_{{basic.direction}} | LL_USART_OVERSAMPLING_8,
+                              LL_USART_STOP_BIT_{{basic.stop_bit}} | LL_USART_CLOCK_POLARITY_{{basic.clock_polarity}}
+                              | LL_USART_CLOCK_PHASE_{{basic.clock_phase}}_EDGE | LL_USART_LASTCLKPULSE_{{@root.clock_last_bit}});
+
+  {{helper_common_gen_ll_code 'LL_USART_SetPrescaler'(concat 'LL_USART_PRESCALER_DIV' basic.clock_prescaler)}}
+
+  {{assign 'clock_config_object' (helper_rcc_get_clock_source_object @root.current_resource)}}
+  LL_USART_SetBaudRate({{@root.current_resource}}, {{round @root.clock_config_object.frequency}}, LL_USART_PRESCALER_DIV{{basic.clock_prescaler}}, LL_USART_OVERSAMPLING_8,
+                       {{basic.baud_rate}});
+{{#with additional}}
+{{#if enable_fifo_mode}}
+  /* Fifo configuration */
+  {{helper_common_gen_ll_code 'LL_USART_SetTXFIFOThreshold'(concat 'LL_USART_FIFO_THRESHOLD_' set_tx_fifo_threshold)}}
+  {{helper_common_gen_ll_code 'LL_USART_SetRXFIFOThreshold'(concat 'LL_USART_FIFO_THRESHOLD_' set_rx_fifo_threshold)}}
+  LL_USART_EnableFIFO({{@root.current_resource}});
+{{/if~}}
+{{#if am_enable_packet_trigger}}
+  LL_USART_AM_ConfigPacketTrigger({{@root.current_resource}}, LL_USART_AM_TRIG_{{trigger_polarity}}, LL_USART_AM_TRIG_{{source.source}},
+                                  {{packet_size_byte}});
+  LL_USART_Enable_SelectedTrigger({{@root.current_resource}});
+{{/if~}}
+{{/with}}
+  LL_USART_Enable({{@root.current_resource}});
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource return_if_failed='0'~}}
+{{#with system}}
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Enable interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config.needs @root.current_resource irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config.needs}}
+{{/if~}}
+{{/with}}{{! nvic~}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{> DMA_LL fct='init' needs=dma_config_tx.needs~}}
+{{/if~}}
+{{#if enable_dma_rx}}
+{{> DMA_LL fct='init' needs=dma_config_rx.needs~}}
+{{/if}}
+{{/with}}{{! dma~}}
+{{/with}}{{! system~}}
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource~}}
+{{#with system}}
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Disable interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/if}}
+{{/with}}{{! nvic~}}
+  LL_USART_Disable({{@root.current_resource}});
+
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{> DMA_LL fct='deinit' needs=dma_config_tx.needs~}}
+{{/if~}}
+{{#if enable_dma_rx}}
+{{> DMA_LL fct='deinit' needs=dma_config_rx.needs~}}
+{{/if~}}
+{{/with}}{{! dma~}}
+{{/with}}{{! system~}}
+}
+{{> DMA_LL fct='get_dma_lli_reg' resource=@root.dma_resource strategy=@root.strategy type='implementation'}}
+
+{{else}}
+#warning "step {{step}} in partial USART_LL not managed"
+{{/if}}

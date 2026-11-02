@@ -1,0 +1,198 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_pwr_template.h.hbs
+  * @brief          : Header for mx_pwr_template.c.cbs file.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'PWR' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "PWR template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'file_name' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign "_define_" "#define"~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.file_name}}.h
+  * @brief          : Header for mx_{{lowercase @root.file_name}}.c file.
+{{> LICENSE}}
+
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef MX_{{@root.file_name}}_H
+#define MX_{{@root.file_name}}_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Includes ------------------------------------------------------------------*/
+{{assign 'only_ll' true~}}
+{{#each @root.instances~}}
+  {{~assign 'PWR_ctx' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.PWR_ctx.info.layer~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+    {{~assign 'only_ll' false~}}
+  {{/if}}
+{{/each}}
+{{#if @root.only_ll}}
+#include "stm32_ll.h"
+#include "mx_def.h"
+{{else}}
+#include "stm32_hal.h"
+#include "mx_def.h"
+{{/if}}
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+{{#each @root.instances}}
+  {{~assign 'PWR_ctx' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.PWR_ctx.info.layer~}}
+  {{#if (eq @root.current_layer 'LL')}}
+#define USE_{{uppercase @root.current_resource}}
+  {{/if}}
+{{helper_gpio_generate_aliases @root.pinoutAPI @root.current_resource @root.current_layer~}}
+  {{#with @root.PWR_ctx}}
+    {{#with additional}}
+      {{#with wakeup_pins_configuration}}
+        {{#if wkup_1_configuration.enable}}
+          {{#each wkup_1_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_1
+          {{/each}}
+        {{/if}}
+        {{#if wkup_2_configuration.enable}}
+          {{#each wkup_2_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_2
+          {{/each}}
+        {{/if}}
+        {{#if wkup_3_configuration.enable}}
+          {{#each wkup_3_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_3
+          {{/each}}
+        {{/if}}
+        {{#if wkup_4_configuration.enable}}
+          {{#each wkup_4_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_4
+          {{/each}}
+        {{/if}}
+        {{#if wkup_5_configuration.enable}}
+          {{#each wkup_5_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_5
+          {{/each}}
+        {{/if}}
+        {{#if wkup_6_configuration.enable}}
+          {{#each wkup_6_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_6
+          {{/each}}
+        {{/if}}
+        {{#if wkup_7_configuration.enable}}
+          {{#each wkup_7_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_7
+          {{/each}}
+        {{/if}}
+        {{#if wkup_8_configuration.enable}}
+          {{#each wkup_8_configuration.labels}}
+{{@root._define_}} {{this}} {{@root.current_layer}}_PWR_WAKEUP_PIN_8
+          {{/each}}
+        {{/if}}
+      {{/with}}
+    {{/with}}
+  {{/with}}
+{{/each}}
+
+/* Exported macros -----------------------------------------------------------*/
+/* Exported variables --------------------------------------------------------*/
+/* Exported functions ------------------------------------------------------- */
+{{#each @root.instances}}
+  {{~assign 'PWR_ctx' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.PWR_ctx.info.layer~}}
+/******************************************************************************/
+/* Exported functions for PWR in {{@root.current_layer}} layer */
+/******************************************************************************/
+  {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+/**
+  * @brief {{@root.fct_name}} init function
+  * This function configures the hardware resources used in this example
+  * @retval pointer to handle or NULL in case of failure
+  */
+system_status_t {{@root.pwr_root_fct_name}}_init(void);
+
+/**
+  * @brief  De-initialize {{lowercase @root.current_resource}} instance.
+  */
+system_status_t {{@root.pwr_root_fct_name}}_deinit(void);
+
+  {{#if (eq @root.current_layer 'HAL')}}
+    {{#> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='prototype'}}
+    {{/GPIO_HAL}}
+  {{/if}}
+
+  {{#if (eq @root.current_layer 'HAL')}}
+  {{/if}}
+{{/each}}
+{{assign 'irq_info_list' (helper_cortex_nvic_get_irqline_info_list @root.NvicAPI @root.nvic_context 'PWR')~}}
+{{#each @root.irq_info_list}}
+  {{#if generate_handler}}
+/******************************************************************************/
+/*                     {{description}}                    */
+/******************************************************************************/
+void {{line}}_IRQHandler(void);
+
+  {{else}}
+/******************************************************************************/
+/*    {{description}} is managed directly in user code.   */
+/******************************************************************************/
+/* void {{line}}_IRQHandler(void); */
+
+  {{/if}}
+{{/each}}
+
+{{#if (or (eq @root.found_wkup1_exti 'true')(eq @root.found_wkup2_exti 'true')(eq @root.found_wkup3_exti 'true')(eq @root.found_wkup4_exti 'true')(eq @root.found_wkup5_exti 'true')(eq @root.found_wkup6_exti 'true')(eq @root.found_wkup7_exti 'true')(eq @root.found_wkup8_exti 'true')(eq @root.found_pvd_exti 'true')(eq @root.found_avd_exti 'true')(eq @root.found_pvd_avd_exti 'true'))}}
+/******************************************************************************/
+/* EXTI get handle.                                                           */
+/******************************************************************************/
+  {{#> EXTI fct='exti_gethandle_proto' needs=@root.pwr_exti_needs~}}
+  {{/EXTI}}
+
+{{/if}}
+{{#each @root.instances}}
+  {{~assign 'PWR_ctx' config~}}
+  {{#with @root.PWR_ctx}}
+    {{#with runtime}}
+      {{#if enable}}
+/******************************************************************************/
+/* Runtime APIs.                                                              */
+/******************************************************************************/
+        {{#if lp_entry}}
+system_status_t mx_pwr_enter_low_power(void);
+        {{/if}}
+        {{#if lp_exit}}
+system_status_t mx_pwr_exit_low_power(void);
+        {{/if}}
+        {{#if (eq lp_check true)}}
+uint32_t mx_pwr_system_was_low_power(void);
+        {{/if}}
+      {{/if}}
+    {{/with}}
+  {{/with}}
+{{/each}}
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* MX_{{@root.file_name}}_H */
+{{/helper_common_beautifier}}

@@ -1,0 +1,505 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_smbus_template.c.hbs
+  * @brief          : SMBUS Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'SMBUS' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "SMBUS template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'smbus_cxt' config~}}
+  {{~log "SMBUS template smbus_cxt:" (toJSON @root.smbus_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.smbus_cxt.info.layer~}}
+  {{~log "SMBUS template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+static hal_smbus_handle_t h{{@root.current_resource}};
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+  {{/if}}
+{{/each}}
+
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{assign 'nvic_generate_handler' true~}}
+{{#each @root.instances}}
+  {{~assign 'smbus_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'name' @root.smbus_cxt.name~}}
+  {{~assign 'current_layer' @root.smbus_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{! Initialize the context for LL code optimization ~}}
+{{assign 'lut_table'   (helper_i2c_get_lut_table 'I2CV1')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index 'SMBUS')~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#with @root.smbus_cxt}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_smbus_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_smbus_config_t smbus_config;
+{{#with additional}}
+{{#if enable_timeout_a}}
+  hal_smbus_timeout_config_t timeout_config;
+{{else}}
+{{#if enable_timeout_b}}
+  hal_smbus_timeout_config_t timeout_config;
+{{/if}}
+{{/if}}
+{{/with}}
+
+  if (HAL_SMBUS_Init(&h{{@root.current_resource}}, HAL_SMBUS{{removeFirst @root.current_resource 'I2C'}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{#with basic}}
+{{assign 'clock_input' (append @root.current_resource '_Input_Clock')~}}
+{{assign 'input_frequency' (@root.clockAPI.getClockFrequency @root.clock_input)~}}
+{{#if (not advanced_timing_configuration)}}
+  {{assign 'found_TimingCalculatedInTemplate' true~}}
+  {{assign 'timing_value' (helper_compute_timing_basic @root.input_frequency speed_frequency_hz)~}}
+  {{assign 'timing_value' @root.timing_value.timing_reg~}}
+/*
+    Timing automatically calculated with:
+     - {{@root.current_resource}} input clock at {{@root.input_frequency}} Hz
+     - I2C clock speed at {{speed_frequency_hz}} Hz
+  */
+{{!log "I2C template clock_input:" @root.clock_input~}}
+{{!log "I2C template input_frequency:" @root.input_frequency~}}
+{{else}}
+  {{assign 'found_TimingCalculatedInParameter' true~}}
+  {{assign 'timing_value' (helper_compute_timing_advanced @root.input_frequency clock_timing_configuration.speed_frequency_custom clock_timing_configuration.rise_time clock_timing_configuration.fall_time clock_timing_configuration.digital_noise_filter clock_timing_configuration.enable_analog_filter)~}}
+  {{assign 'timing_value' @root.timing_value.timing_reg~}}
+  /*
+    Timing calculated in advanced mode in the tool with:
+     - {{@root.current_resource}} input clock at {{@root.input_frequency}} Hz
+     - I2C clock speed at {{clock_timing_configuration.speed_frequency_custom}} KHz
+     - Rise time at {{clock_timing_configuration.rise_time}} ns
+     - Fall time at {{clock_timing_configuration.fall_time}} ns
+  */
+{{!log "I2C template timing:" timing~}}
+{{/if}}
+  smbus_config.timing           = 0x{{#if (eq @root.timing_value 0)}}00000000{{else}}{{uppercase (dec2hex @root.timing_value)}}{{/if}};
+  smbus_config.own_address1     = {{own_address1}} << 1U;
+  smbus_config.device_mode      = HAL_SMBUS_PERIPHERAL_MODE_{{device_mode}};
+  {{!log "I2C template timing_value:" @root.timing_value}}
+  {{assign 'found_SetConfig' true~}}
+  if (HAL_SMBUS_SetConfig(&h{{@root.current_resource}}, &smbus_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if clock_timing_configuration.digital_noise_filter}}
+  HAL_SMBUS_SetDigitalFilter(&h{{@root.current_resource}}, {{clock_timing_configuration.digital_noise_filter}});
+
+{{/if}}
+{{#if (or (not advanced_timing_configuration) clock_timing_configuration.enable_analog_filter)}}
+  {{assign 'found_EnableAnalogFilter' true~}}
+  HAL_SMBUS_EnableAnalogFilter(&h{{@root.current_resource}});
+{{else}}
+  {{assign 'found_DisableAnalogFilter' true~}}
+  HAL_SMBUS_DisableAnalogFilter(&h{{@root.current_resource}});
+{{/if}}
+{{/with}}
+{{#with additional}}
+{{#if enable_own_address2}}
+  {{assign 'found_SetConfigOwnAddress2' true~}}
+  HAL_SMBUS_SetConfigOwnAddress2(&h{{@root.current_resource}}, {{own_address2_configuration.own_address2}}, HAL_SMBUS_OWN_ADDR2_{{own_address2_configuration.mask_address2}});
+  HAL_SMBUS_EnableOwnAddress2(&h{{@root.current_resource}});
+
+{{/if}}
+{{#if enable_wake_up}}
+  {{assign 'found_SLAVE_EnableWakeUp' true~}}
+  HAL_SMBUS_SLAVE_EnableWakeUp(&h{{@root.current_resource}});
+
+{{/if}}
+{{#if enable_ack_general_call}}
+  {{assign 'found_SLAVE_EnableAckGeneralCall' true~}}
+  HAL_SMBUS_SLAVE_EnableAckGeneralCall(&h{{@root.current_resource}});
+
+{{/if}}
+{{#if enable_fast_mode_plus}}
+  {{assign 'found_EnableFastModePlus' true~}}
+  HAL_SMBUS_EnableFastModePlus(&h{{@root.current_resource}});
+
+{{/if}}
+{{#if enable_packet_error_check}}
+  {{assign 'found_EnablePacketErrorCheck' true~}}
+  HAL_SMBUS_EnablePacketErrorCheck(&h{{@root.current_resource}});
+
+{{/if}}
+{{#if enable_host_alert_detection}}
+  {{assign 'found_MASTER_EnableAlertIT' true~}}
+  HAL_SMBUS_MASTER_EnableAlertIT(&h{{@root.current_resource}});
+
+{{/if}}
+{{#if enable_timeout_a}}
+{{#if enable_timeout_b}}
+  {{assign 'found_EnableTimeoutAll' true~}}
+  {{assign 'timeouta_value' (helper_compute_timeouta @root.input_frequency timeout_a_configuration.timeout_a_mode timeout_a_configuration.timeout_a)~}}
+  {{assign 'timeoutb_value' (helper_compute_timeoutb @root.input_frequency ../basic.device_mode timeout_b_configuration.timeout_b)~}}
+  /* Timeout automatically calculated with:
+     Timeout A at {{timeout_a_configuration.timeout_a}} ns
+     Timeout A is used to detect {{timeout_a_configuration.timeout_a_mode}}
+     Timeout B at {{timeout_b_configuration.timeout_b}} ns
+  */
+  timeout_config.timeout_a = 0x{{#if (eq @root.timeouta_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeouta_value)}}{{/if}};
+  timeout_config.timeout_a_mode = HAL_SMBUS_TIMEOUTA_MODE_{{timeout_a_configuration.timeout_a_mode}};
+  timeout_config.timeout_b = 0x{{#if (eq @root.timeoutb_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeoutb_value)}}{{/if}};
+  HAL_SMBUS_SetConfigTimeout(&h{{@root.current_resource}}, &timeout_config);
+  HAL_SMBUS_EnableTimeout(&h{{@root.current_resource}}, HAL_SMBUS_TIMEOUT_ALL);
+
+{{else}}
+  {{assign 'found_EnableTimeoutA' true~}}
+  {{assign 'timeouta_value' (helper_compute_timeouta @root.input_frequency timeout_a_configuration.timeout_a_mode timeout_a_configuration.timeout_a)~}}
+  /* Timeout automatically calculated with:
+     Timeout A at {{timeout_a_configuration.timeout_a}} ns
+     Timeout A is used to detect {{timeout_a_configuration.timeout_a_mode}}
+  */
+  timeout_config.timeout_a = 0x{{#if (eq @root.timeouta_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeouta_value)}}{{/if}};
+  timeout_config.timeout_a_mode = HAL_SMBUS_TIMEOUTA_MODE_{{timeout_a_configuration.timeout_a_mode}};
+  timeout_config.timeout_b = 0x00U;
+
+  HAL_SMBUS_SetConfigTimeout(&h{{@root.current_resource}}, &timeout_config);
+  HAL_SMBUS_EnableTimeout(&h{{@root.current_resource}}, HAL_SMBUS_TIMEOUT_A);
+
+{{/if}}
+{{else}}
+{{#if enable_timeout_b}}
+  {{assign 'found_EnableTimeoutB' true~}}
+  {{assign 'timeoutb_value' (helper_compute_timeoutb @root.input_frequency ../basic.device_mode timeout_b_configuration.timeout_b)~}}
+  /* Timeout automatically calculated with:
+     Timeout B at {{timeout_b_configuration.timeout_b}} ns
+  */
+  timeout_config.timeout_a = 0x00U;
+  timeout_config.timeout_a_mode = HAL_SMBUS_TIMEOUTA_MODE_SCL_LOW;
+  timeout_config.timeout_b = 0x{{#if (eq @root.timeoutb_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeoutb_value)}}{{/if}};
+
+  HAL_SMBUS_SetConfigTimeout(&h{{@root.current_resource}}, &timeout_config);
+  HAL_SMBUS_EnableTimeout(&h{{@root.current_resource}}, HAL_SMBUS_TIMEOUT_B);
+
+{{/if}}
+{{/if}}
+{{/with}}
+{{#with additional}}
+{{#if enable_autonomous_mode}}
+{{#with autonomous_configuration}}
+{{assign 'group' 1~}}
+{{#if (eq @root.current_resource 'I2C3')}}
+{{assign 'group' 2~}}
+{{/if}}
+  hal_smbus_am_trig_config_t autonomous_trig_config =
+  {
+    .source = HAL_SMBUS_AM_TRIG_GRP{{@root.group}}_{{source.source}},
+    .trigger_polarity = HAL_SMBUS_AM_TRIG_{{polarity}}
+  };
+  {{assign 'found_AM_SetConfigTrigger' true~}}
+  if (HAL_SMBUS_AM_SetConfigTrigger(&h{{@root.current_resource}}, &autonomous_trig_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  HAL_SMBUS_AM_EnableTrigger(&h{{@root.current_resource}});
+{{/with}}
+
+{{/if}}
+{{/with}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource}}
+{{#if system.nvic.enable_event_interruption}}
+  {{assign 'found_i2c_nvic_ev' true~}}
+  /* Enable the Event interruption for I2C */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config_event.needs @root.current_resource system.nvic.event_irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config_event.needs}}
+#warning "Partial CORTEX is not present"
+{{/CORTEX}}
+
+{{/if}}
+{{#if system.nvic.enable_error_interruption}}
+  {{assign 'found_i2c_nvic_er' true~}}
+  /* Enable the Error interruption for I2C */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config_error.needs @root.current_resource system.nvic.error_irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config_error.needs}}
+#warning "Partial CORTEX is not present"
+{{/CORTEX}}
+
+{{/if}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_event_interruption}}
+  /* Disable the Event interruption for I2C */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config_event.needs}}
+{{/CORTEX}}
+
+{{/if}}
+{{#if system.nvic.enable_error_interruption}}
+  /* Disable the Error interruption for I2C */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config_error.needs}}
+{{/CORTEX}}
+
+{{/if}}
+  (void)HAL_SMBUS_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+}
+
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined 'SMBUS')~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_smbus_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+
+{{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+I2C_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_ressource='SMBUS'}}
+
+{{#with basic}}
+{{assign 'clock_input' (append @root.current_resource '_Input_Clock')~}}
+{{assign 'input_frequency' (@root.clockAPI.getClockFrequency @root.clock_input)~}}
+{{#if (not advanced_timing_configuration)}}
+  {{assign 'found_TimingCalculatedInTemplate' true~}}
+  {{assign 'timing_value' (helper_compute_timing_basic @root.input_frequency speed_frequency_hz)~}}
+  {{assign 'timing_value' @root.timing_value.timing_reg~}}
+/*
+    Timing automatically calculated with:
+     - {{@root.current_resource}} input clock at {{@root.input_frequency}} Hz
+     - I2C clock speed at {{speed_frequency_hz}} Hz
+  */
+{{!log "I2C template clock_input:" @root.clock_input~}}
+{{!log "I2C template input_frequency:" @root.input_frequency~}}
+{{else}}
+  {{assign 'found_TimingCalculatedInParameter' true~}}
+  {{assign 'timing_value' (helper_compute_timing_advanced @root.input_frequency clock_timing_configuration.speed_frequency_custom clock_timing_configuration.rise_time clock_timing_configuration.fall_time clock_timing_configuration.digital_noise_filter clock_timing_configuration.enable_analog_filter)~}}
+  {{assign 'timing_value' @root.timing_value.timing_reg~}}
+  /*
+    Timing calculated in advanced mode in the tool with:
+     - {{@root.current_resource}} input clock at {{@root.input_frequency}} Hz
+     - I2C clock speed at {{clock_timing_configuration.speed_frequency_custom}} KHz
+     - Rise time at {{clock_timing_configuration.rise_time}} ns
+     - Fall time at {{clock_timing_configuration.fall_time}} ns
+  */
+{{!log "I2C template timing:" timing~}}
+{{/if}}
+  {{#if (eq @root.timing_value 0)}}{{assign 'timing_value' '0x00000000'~}}{{else~}}{{assign 'timing_value' (append '0x' (uppercase (dec2hex @root.timing_value)))~}}{{/if~}}
+  {{helper_common_gen_ll_code 'LL_I2C_SetTiming' @root.timing_value}}
+  {{{helper_common_gen_ll_code 'LL_I2C_ConfigOwnAddress1' (concat own_address1 ' << 1U') 'LL_I2C_OWNADDRESS1_7BIT'}}}
+  {{{helper_common_gen_ll_code 'LL_I2C_SetMode' (concat 'LL_I2C_MODE_SMBUS_'device_mode)}}}
+  LL_I2C_WRITE_REG({{@root.current_resource}}, CR2, (LL_I2C_READ_REG({{@root.current_resource}}, CR2) | I2C_CR2_AUTOEND | I2C_CR2_NACK));
+
+{{#if clock_timing_configuration.digital_noise_filter}}
+  {{helper_common_gen_ll_code 'LL_I2C_SetDigitalFilter' clock_timing_configuration.digital_noise_filter}}
+
+{{/if}}
+{{#if clock_timing_configuration.enable_analog_filter}}
+  LL_I2C_EnableAnalogFilter({{@root.current_resource}});
+
+{{/if}}
+{{/with}}
+{{#with additional}}
+{{#if enable_own_address2}}
+  {{helper_common_gen_ll_code 'LL_I2C_SetOwnAddress2' own_address2_configuration.own_address2 (concat 'LL_I2C_OWNADDRESS2_' own_address2_configuration.mask_address2)}}
+  {{helper_common_gen_ll_code 'LL_I2C_EnableOwnAddress2'}}
+
+{{/if}}
+{{#if enable_fast_mode_plus}}
+  LL_I2C_EnableFastModePlus({{@root.current_resource}});
+
+{{/if}}
+{{#if enable_wake_up}}
+  LL_I2C_EnableWakeUpFromStop({{@root.current_resource}});
+
+{{/if}}
+{{#if enable_ack_general_call}}
+  LL_I2C_EnableGeneralCall({{@root.current_resource}});
+
+{{/if}}
+{{#if enable_packet_error_check}}
+  LL_I2C_EnableSMBusPEC({{@root.current_resource}});
+
+{{/if}}
+{{#if enable_host_alert_detection}}
+  LL_I2C_EnableSMBusAlert({{@root.current_resource}});
+
+{{/if}}
+{{#if enable_timeout_a}}
+{{#if enable_timeout_b}}
+  {{assign 'found_EnableTimeoutAll' true~}}
+  {{assign 'timeouta_value' (helper_compute_timeouta @root.input_frequency timeout_a_configuration.timeout_a_mode timeout_a_configuration.timeout_a)~}}
+  {{assign 'timeoutb_value' (helper_compute_timeoutb @root.input_frequency ../basic.device_mode timeout_b_configuration.timeout_b)~}}
+  /* Timeout automatically calculated with:
+     Timeout A at {{timeout_a_configuration.timeout_a}} ns
+     Timeout A is used to detect {{timeout_a_configuration.timeout_a_mode}}
+     Timeout B at {{timeout_b_configuration.timeout_b}} ns
+  */
+  LL_I2C_ConfigSMBusTimeout({{@root.current_resource}}, 0x{{#if (eq @root.timeouta_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeouta_value)}}{{/if}}, LL_I2C_SMBUS_TIMEOUTA_MODE_{{timeout_a_configuration.timeout_a_mode}}, 0x{{#if (eq @root.timeoutb_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeoutb_value)}}{{/if}});
+  LL_I2C_EnableSMBusTimeout({{@root.current_resource}}, LL_I2C_SMBUS_ALL_TIMEOUT);
+
+{{else}}
+  {{assign 'found_EnableTimeoutA' true~}}
+  {{assign 'timeouta_value' (helper_compute_timeouta @root.input_frequency timeout_a_configuration.timeout_a_mode timeout_a_configuration.timeout_a)~}}
+  /* Timeout automatically calculated with:
+     Timeout A at {{timeout_a_configuration.timeout_a}} ns
+     Timeout A is used to detect {{timeout_a_configuration.timeout_a_mode}}
+  */
+  LL_I2C_ConfigSMBusTimeout({{@root.current_resource}}, 0x{{#if (eq @root.timeouta_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeouta_value)}}{{/if}}, LL_I2C_SMBUS_TIMEOUTA_MODE_{{timeout_a_configuration.timeout_a_mode}}, 0x00U);
+  LL_I2C_EnableSMBusTimeout({{@root.current_resource}}, LL_I2C_SMBUS_TIMEOUTA);
+
+{{/if}}
+{{else}}
+{{#if enable_timeout_b}}
+  {{assign 'found_EnableTimeoutB' true~}}
+  {{assign 'timeoutb_value' (helper_compute_timeoutb @root.input_frequency ../basic.device_mode timeout_b_configuration.timeout_b)~}}
+  /* Timeout automatically calculated with:
+     Timeout B at {{timeout_b_configuration.timeout_b}} ns
+  */
+  LL_I2C_ConfigSMBusTimeout({{@root.current_resource}}, 0x00U, LL_I2C_SMBUS_TIMEOUTA_MODE_SCL_LOW, 0x{{#if (eq @root.timeoutb_value 0)}}00U{{else}}{{uppercase (dec2hex @root.timeoutb_value)}}{{/if}});
+  LL_I2C_EnableSMBusTimeout({{@root.current_resource}}, LL_I2C_SMBUS_TIMEOUTB);
+
+{{/if}}
+{{/if}}
+{{/with}}
+{{#with additional}}
+{{#if enable_autonomous_mode}}
+{{#with autonomous_configuration}}
+{{assign 'group' 1~}}
+{{#if (eq @root.current_resource 'I2C3')}}
+{{assign 'group' 2~}}
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_I2C_SetConfigAutonomousModeTrigger' (concat 'LL_I2C_TRIG_GRP' @root.group '_' source.source ', LL_I2C_TRIG_POLARITY_' polarity)}};
+  LL_I2C_Enable_SelectedTrigger({{@root.current_resource}});
+{{/with}}
+
+{{/if}}
+{{/with}}
+  LL_I2C_Enable({{@root.current_resource}});
+
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource return_if_failed='0'}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='I2C'}}
+{{#if system.nvic.enable_event_interruption}}
+  /* Enable the Event interruption for I2C */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config_event.needs @root.current_resource system.nvic.event_irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config_event.needs}}
+
+{{/if}}
+{{#if system.nvic.enable_error_interruption}}
+  /* Enable the Error interruption for I2C */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config_error.needs @root.current_resource system.nvic.error_irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config_error.needs}}
+
+{{/if}}
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_event_interruption}}
+  /* Disable the Event interruption for I2C */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config_event.needs}}
+{{/CORTEX}}
+
+{{/if}}
+{{#if system.nvic.enable_error_interruption}}
+  /* Disable the Error interruption for I2C */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config_error.needs}}
+{{/CORTEX}}
+
+{{/if}}
+  LL_I2C_Disable({{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource~}}
+}
+{{/if}}
+{{/with}}
+
+{{#with @root.smbus_cxt.security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Enable clock for RIF/RCC peripherals
+    - Configure the security/privilege items for SMBUS peripheral
+    - other SMBUS systems security/privilege configuration if any (GPIO/EXTI)
+    */
+
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GTZC fct='gtzc_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/GTZC}}
+
+  {{#if (eq @root.current_layer 'HAL')~}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+  {{else}}
+{{#> GPIO_LL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_LL}}
+  {{/if}}
+
+  return SYSTEM_OK;
+}
+
+{{/with}}
+{{/each}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='SMBUS'}}
+{{/helper_common_beautifier}}

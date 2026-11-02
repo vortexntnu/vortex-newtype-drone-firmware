@@ -1,0 +1,646 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_fdcan_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'FDCAN' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "FDCAN template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'hal_handle_exist' false~}}
+{{#each @root.instances~}}
+  {{~assign 'fdcan_cxt' config~}}
+  {{~log "FDCAN template fdcan_cxt:" (toJSON @root.fdcan_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.fdcan_cxt.info.layer~}}
+  {{~log "FDCAN template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+    {{#unless @root.hal_handle_exist}}
+      {{~assign 'hal_handle_exist' true~}}
+static hal_fdcan_handle_t h{{@root.current_resource}};
+    {{/unless}}
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+  {{/if}}
+{{/each}}
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'fdcan_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'name' @root.fdcan_cxt.name~}}
+  {{~assign 'current_layer' @root.fdcan_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~log "FDCAN template instance:" (toJSON this)~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer                                 */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index @root.current_function @root.from_where)~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#with @root.fdcan_cxt~}}
+{{#if (eq @root.current_layer 'HAL')~}}
+{{assign 'found_dynamic_filter' false~}}
+{{#if (helper_common_object_has_property  additional.interrupts "ccu_interrupts")~}}
+  {{assign 'hw_version' 'c7amba_fdcan1'~}}
+{{else~}}
+  {{assign 'hw_version' 'c7amba_fdcan2'~}}
+{{/if~}}
+{{#if (and (eq @root.current_resource 'FDCAN1') (eq @root.hw_version 'c7amba_fdcan1'))~}}
+  {{assign 'ccu_configurable' true~}}
+{{else~}}
+  {{assign 'ccu_configurable' false~}}
+{{/if~}}
+hal_fdcan_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_fdcan_config_t fdcan_config;
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+  if (HAL_FDCAN_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource=@root.current_resource}}
+{{#with basic}}
+
+  /* FDCAN configuration */
+
+{{#if (or (eq timings.clock_route 'BYPASS') (eq @root.hw_version 'c7amba_fdcan2'))}}
+  /* FDCAN clock Divider                      = {{timings.clock_divider}} */
+  /* FDCAN clock frequency after prescaler    = {{timings.fdcan_clk}} */
+
+  /* Nominal bitrate                          = {{timings.bit_timing.nominal_bit_timing.nominal_bitrate}} */
+  /* Nominal time quanta                      = {{timings.bit_timing.nominal_bit_timing.nominal_time_quantum}} */
+{{else}}
+  /* FDCAN clock frequency routed to the CCU  = {{fdcan_kernel_clock}} */
+
+{{/if}}
+  /* Nominal sample point                     = {{timings.bit_timing.nominal_bit_timing.nominal_sample_point}} */
+
+  hal_fdcan_nominal_bit_timing_t fdcan_nominal_bit_timing;
+  fdcan_nominal_bit_timing.nominal_prescaler  = {{timings.bit_timing.nominal_bit_timing.nominal_prescaler}};
+  fdcan_nominal_bit_timing.nominal_time_seg1  = {{timings.bit_timing.nominal_bit_timing.nominal_time_seg1}};
+  fdcan_nominal_bit_timing.nominal_time_seg2  = {{timings.bit_timing.nominal_bit_timing.nominal_time_seg2}};
+  fdcan_nominal_bit_timing.nominal_jump_width = {{timings.bit_timing.nominal_bit_timing.nominal_jump_width}};
+
+{{#if (eq frame_format "FD_BRS")}}
+{{#if (or (eq timings.clock_route 'BYPASS') (eq @root.hw_version 'c7amba_fdcan2'))}}
+  /* Data bitrate                             = {{timings.bit_timing.data_bit_timing.data_bitrate}} */
+  /* Data time quanta                         = {{timings.bit_timing.data_bit_timing.data_time_quantum}} */
+{{/if}}
+  /* Data sample point                        = {{timings.bit_timing.data_bit_timing.data_sample_point}} */
+
+  hal_fdcan_data_bit_timing_t fdcan_data_bit_timing;
+  fdcan_data_bit_timing.data_prescaler        = {{timings.bit_timing.data_bit_timing.data_prescaler}};
+  fdcan_data_bit_timing.data_time_seg1        = {{timings.bit_timing.data_bit_timing.data_time_seg1}};
+  fdcan_data_bit_timing.data_time_seg2        = {{timings.bit_timing.data_bit_timing.data_time_seg2}};
+  fdcan_data_bit_timing.data_jump_width       = {{timings.bit_timing.data_bit_timing.data_jump_width}};
+
+{{else}}
+
+  /* Data bit timing parameters are not used in Classic CAN or non-BRS modes */
+  /* hal_fdcan_data_bit_timing_t fdcan_data_bit_timing;                      */
+  /* fdcan_data_bit_timing.data_prescaler     = 1U;                          */
+  /* fdcan_data_bit_timing.data_time_seg1     = 1U;                          */
+  /* fdcan_data_bit_timing.data_time_seg2     = 1U;                          */
+  /* fdcan_data_bit_timing.data_jump_width    = 1U;                          */
+{{/if}}
+
+  fdcan_config.nominal_bit_timing   = fdcan_nominal_bit_timing;
+{{#if (eq frame_format "FD_BRS")}}
+  fdcan_config.data_bit_timing      = fdcan_data_bit_timing;
+{{/if}}
+
+  fdcan_config.frame_format         = HAL_FDCAN_FRAME_FORMAT_{{frame_format}};
+  fdcan_config.mode                 = HAL_FDCAN_MODE_{{mode}};
+  fdcan_config.auto_retransmission  = HAL_FDCAN_AUTO_RETRANSMISSION_{{#if auto_retransmission}}ENABLE{{else}}DISABLE{{/if}};
+  fdcan_config.transmit_pause       = HAL_FDCAN_TRANSMIT_PAUSE_{{#if transmit_pause}}ENABLE{{else}}DISABLE{{/if}};
+  fdcan_config.protocol_exception   = HAL_FDCAN_PROTOCOL_EXCEPTION_{{#if protocol_exception}}ENABLE{{else}}DISABLE{{/if}};
+{{#with frame_filters}}
+  fdcan_config.std_filters_nbr      = {{std_filters_nbr}}U;
+  fdcan_config.ext_filters_nbr      = {{ext_filters_nbr}}U;
+{{/with}}
+  fdcan_config.tx_fifo_queue_mode   = HAL_FDCAN_TX_MODE_{{tx_fifo_queue_mode}};
+{{#if (eq @root.hw_version 'c7amba_fdcan1')}}
+
+  /** The following diagram illustrates the message RAM allocation for {{@root.current_resource}}:
+
+{{#each message_ram_config.message_ram_start_offset}}
+{{#if (eq _foreignKey @root.current_resource)}}
+{{assign 'start_offset' start_offset~}}
+{{/if}}
+{{/each}}
+    +--------------------------+ Start Address: FDCAN RAM Base + ({{@root.start_offset}} x 4 Bytes)
+{{#if frame_filters.std_filters_nbr}}
+    | 11-bit (Standard) filter | {{frame_filters.std_filters_nbr}} x 4 Bytes
+    +--------------------------+
+{{/if}}
+{{#if frame_filters.ext_filters_nbr}}
+    | 29-bit (Extended) filter | {{frame_filters.ext_filters_nbr}} x 8 Bytes
+    +--------------------------+
+{{/if}}
+{{#if message_ram_config.rx_fifo_0.rx_fifo0_elem_nbr}}
+    |        Rx FIFO 0         | {{message_ram_config.rx_fifo_0.rx_fifo0_elem_nbr}} x {{message_ram_config.rx_fifo_0.rx_fifo0_elem_size}} Bytes
+    +--------------------------+
+{{/if}}
+{{#if message_ram_config.rx_fifo_1.rx_fifo1_elem_nbr}}
+    |        Rx FIFO 1         | {{message_ram_config.rx_fifo_1.rx_fifo1_elem_nbr}} x {{message_ram_config.rx_fifo_1.rx_fifo1_elem_size}} Bytes
+    +--------------------------+
+{{/if}}
+{{#if message_ram_config.rx_buffers.rx_buffer_nbr}}
+    |        Rx buffer         | {{message_ram_config.rx_buffers.rx_buffer_nbr}} x {{message_ram_config.rx_buffers.rx_buffer_size}} Bytes
+    +--------------------------+
+{{/if}}
+{{#if message_ram_config.tx_event.tx_event_nbr}}
+    |      Tx event FIFO       | {{message_ram_config.tx_event.tx_event_nbr}} x 8 Bytes
+    +--------------------------+
+{{/if}}
+{{#if (or message_ram_config.tx_fifo_queue.tx_buffer_nbr message_ram_config.tx_fifo_queue.tx_fifo_queue_elem_nbr)}}
+    |        Tx buffers        | ({{message_ram_config.tx_fifo_queue.tx_buffer_nbr}} + {{message_ram_config.tx_fifo_queue.tx_fifo_queue_elem_nbr}}) x {{message_ram_config.tx_fifo_queue.tx_fifo_queue_elem_size}} Bytes
+{{/if}}
+    +--------------------------+
+    <----------32 bits--------->
+  */
+{{#with message_ram_config}}
+  fdcan_config.message_ram_offset      = {{@root.start_offset}}U;
+  fdcan_config.rx_fifo0_elem_nbr       = {{rx_fifo_0.rx_fifo0_elem_nbr}}U;
+  fdcan_config.rx_fifo0_elem_size      = HAL_FDCAN_DATA_{{rx_fifo_0.rx_fifo0_elem_size}}_BYTE;
+  fdcan_config.rx_fifo1_elem_nbr       = {{rx_fifo_1.rx_fifo1_elem_nbr}}U;
+  fdcan_config.rx_fifo1_elem_size      = HAL_FDCAN_DATA_{{rx_fifo_1.rx_fifo1_elem_size}}_BYTE;
+  fdcan_config.rx_buffer_nbr           = {{rx_buffers.rx_buffer_nbr}}U;
+  fdcan_config.rx_buffer_size          = HAL_FDCAN_DATA_{{rx_buffers.rx_buffer_size}}_BYTE;
+  fdcan_config.tx_buffer_nbr           = {{tx_fifo_queue.tx_buffer_nbr}}U;
+  fdcan_config.tx_fifo_queue_elem_nbr  = {{tx_fifo_queue.tx_fifo_queue_elem_nbr}}U;
+  fdcan_config.tx_fifo_queue_elem_size = HAL_FDCAN_DATA_{{tx_fifo_queue.tx_fifo_queue_elem_size}}_BYTE;
+  fdcan_config.tx_event_nbr            = {{tx_event.tx_event_nbr}}U;
+{{/with}}
+{{/if}} {{!c7amba_fdcan1}}
+  {{assign 'found_FDCAN_SetConfig' true~}}
+
+  if (HAL_FDCAN_SetConfig(&h{{@root.current_resource}}, &fdcan_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if @root.ccu_configurable}}
+{{#if (eq timings.clock_route 'BYPASS')}}
+  /* CCU routing: The kernel clock bypasses the CCU and is routed through the clock divider */
+{{else}}
+  /* CCU routing: The kernel clock is routed through the CCU (clock divider not used) */
+{{/if}}
+  if (HAL_FDCAN_CCU_SetClockRouting(&h{{@root.current_resource}}, HAL_FDCAN_CCU_CLOCK_ROUTE_{{timings.clock_route}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}} {{!ccu_configurable}}
+
+{{#if (eq @root.current_resource 'FDCAN1')}}
+{{#if (or (eq timings.clock_route 'BYPASS' ) (eq @root.hw_version 'c7amba_fdcan2'))}}
+  if (HAL_FDCAN_SetClockDivider(&h{{@root.current_resource}}, HAL_FDCAN_CLOCK_DIV_{{timings.clock_divider}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}} {{!timings.clock_route}}
+{{#if (and @root.ccu_configurable (or timings.clock_calibration.clock_calibration_enable (eq timings.clock_route 'CALIBRATION')))}}
+  /* FDCAN CCU configuration */
+  hal_fdcan_ccu_config_t fdcan_ccu_cfg;
+
+  fdcan_ccu_cfg.time_quanta_per_bit_time = {{timings.clock_calibration.time_quanta_per_bit_time}}U; /* auto-computed: nominal time seg1 + nominal time seg2 + 1 */
+  fdcan_ccu_cfg.calibration_field_length = HAL_FDCAN_CCU_FIELD_LENGTH_{{timings.clock_calibration.calibration_field_length}}_BIT;
+  fdcan_ccu_cfg.min_osc_clk_periods      = {{timings.clock_calibration.min_osc_clk_periods}}U;
+  fdcan_ccu_cfg.watchdog_start_value     = {{timings.clock_calibration.watchdog_start_value}}U;
+
+  if (HAL_FDCAN_CCU_SetConfigCalibrationUnit(&h{{@root.current_resource}}, &fdcan_ccu_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}} {{!ccu_configurable}}
+{{/if}} {{!FDCAN1}}
+
+{{#with frame_filters}}
+{{#if (eq std_filters_nbr 0)}}
+  /* Standard filters: No filters allocated */
+
+{{else}}
+{{assign 'std_configured' (helper_fdcan_object_value_count filter_standard "configure" true)~}}
+{{#if (eq @root.std_configured 0)}}
+  /* Standard filters: {{std_filters_nbr}} allocated but none configured */
+
+{{else}}
+  /* Standard filters: {{@root.std_configured}} of {{std_filters_nbr}} are configured, the remaining(s) is(are) allocated but not configured */
+
+{{/if}}
+{{/if}}
+{{#each filter_standard }}
+{{#if configure}}
+{{#unless @root.found_dynamic_filter}}
+  {{assign 'found_dynamic_filter' true~}}
+  hal_fdcan_filter_t filter_cfg;
+
+{{/unless}}
+  /* Standard filter {{@index}} */
+  filter_cfg.filter_index    = {{@index}}U;
+  filter_cfg.id_type         = HAL_FDCAN_ID_STANDARD;
+{{#if (eq filter_config "TO_RX_BUFFER")}}
+  /* filter_cfg.filter_type     = HAL_FDCAN_FILTER_TYPE_DUAL; Ignored when configured to Rx buffer */
+{{else}}
+  filter_cfg.filter_type     = HAL_FDCAN_FILTER_TYPE_{{filter_type}};
+{{/if}}
+  filter_cfg.filter_config   = HAL_FDCAN_FILTER_{{filter_config}};
+  filter_cfg.filter_id1      = 0x{{#if filter_id1}}{{uppercase (dec2hex filter_id1)}}{{else}}00{{/if}};
+{{#if (eq filter_config "TO_RX_BUFFER")}}
+  /* filter_cfg.filter_id2      = 0x0U; Ignored when configured to Rx buffer                       */
+  filter_cfg.rx_buffer_index = HAL_FDCAN_RX_BUFFER_{{rx_buffer_index}};
+  filter_cfg.message_type    = HAL_FDCAN_MSG_{{message_type}};
+{{else}}
+  filter_cfg.filter_id2      = 0x{{#if filter_id2}}{{uppercase (dec2hex filter_id2)}}{{else}}00{{/if}};
+{{#if (eq @root.hw_version 'c7amba_fdcan1')}}
+  /* filter_cfg.rx_buffer_index = HAL_FDCAN_RX_BUFFER_0; Ignored when not configured to Rx buffer  */
+  /* filter_cfg.message_type    = HAL_FDCAN_MSG_STANDARD; Ignored when not configured to Rx buffer */
+{{/if}}
+{{/if}} {{!filter_config}}
+  if (HAL_FDCAN_SetFilter(&h{{@root.current_resource}}, &filter_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/each}}
+{{#if (eq ext_filters_nbr 0)}}
+  /* Extended filters: No filters allocated */
+
+{{else}}
+{{assign 'ext_configured' (helper_fdcan_object_value_count filter_extended "configure" true)}}
+{{#if (eq @root.ext_configured 0)}}
+  /* Extended filters: {{ext_filters_nbr}} allocated but none configured */
+
+{{else}}
+  /* Extended filters: {{@root.ext_configured}} of {{ext_filters_nbr}} are configured, the remaining(s) is(are) allocated but not configured */
+
+{{/if}}
+{{/if}}
+{{#each filter_extended }}
+{{#if configure}}
+{{#unless @root.found_dynamic_filter}}
+  {{assign 'found_dynamic_filter' true~}}
+  hal_fdcan_filter_t filter_cfg;
+
+{{/unless}}
+  /* Extended filter {{@index}} */
+  filter_cfg.filter_index    = {{@index}}U;
+  filter_cfg.id_type         = HAL_FDCAN_ID_EXTENDED;
+{{#if (eq filter_config "TO_RX_BUFFER")}}
+  /* filter_cfg.filter_type     = HAL_FDCAN_FILTER_TYPE_DUAL; Ignored when configured to Rx buffer */
+{{else}}
+  filter_cfg.filter_type     = HAL_FDCAN_FILTER_TYPE_{{filter_type}};
+{{/if}}
+  filter_cfg.filter_config   = HAL_FDCAN_FILTER_{{filter_config}};
+  filter_cfg.filter_id1      = 0x{{#if filter_id1}}{{uppercase (dec2hex filter_id1)}}{{else}}00{{/if}};
+{{#if (eq filter_config "TO_RX_BUFFER")}}
+  /* filter_cfg.filter_id2      = 0x0U; Ignored when configured to Rx buffer                       */
+  filter_cfg.rx_buffer_index = HAL_FDCAN_RX_BUFFER_{{rx_buffer_index}};
+  filter_cfg.message_type    = HAL_FDCAN_MSG_{{message_type}};
+{{else}}
+  filter_cfg.filter_id2      = 0x{{#if filter_id2}}{{uppercase (dec2hex filter_id2)}}{{else}}00{{/if}};
+{{#if (eq @root.hw_version 'c7amba_fdcan1')}}
+  /* filter_cfg.rx_buffer_index = HAL_FDCAN_RX_BUFFER_0; Ignored when not configured to Rx buffer  */
+  /* filter_cfg.message_type    = HAL_FDCAN_MSG_STANDARD; Ignored when not configured to Rx buffer */
+{{/if}}
+{{/if}} {{!filter_config}}
+  if (HAL_FDCAN_SetFilter(&h{{@root.current_resource}}, &filter_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/each}}
+{{#with global_filter_config}}
+  /* Configure the global filter acceptance/rejection rules */
+  hal_fdcan_global_filter_config_t global_filter_cfg;
+  global_filter_cfg.acceptance_non_matching_std = HAL_FDCAN_NO_MATCH_{{acceptance_non_matching_std}};
+  global_filter_cfg.acceptance_non_matching_ext = HAL_FDCAN_NO_MATCH_{{acceptance_non_matching_ext}};
+  global_filter_cfg.acceptance_remote_std       = HAL_FDCAN_REMOTE_{{acceptance_remote_std}};
+  global_filter_cfg.acceptance_remote_ext       = HAL_FDCAN_REMOTE_{{acceptance_remote_ext}};
+  if (HAL_FDCAN_SetGlobalFilter(&h{{@root.current_resource}}, &global_filter_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}
+{{/with}}
+{{/with}}{{!Basic}}
+{{#with additional}}
+{{#if enable_tx_delay_compensation}}
+{{#with tx_delay_compensation_config}}
+  hal_fdcan_tx_delay_comp_config_t tx_delay_compensation_cfg;
+  tx_delay_compensation_cfg.tx_delay_comp_offset      = {{tx_delay_comp_offset}};
+  tx_delay_compensation_cfg.tx_delay_comp_win_length  = {{tx_delay_comp_win_length}};
+
+  if (HAL_FDCAN_SetConfigTxDelayCompensation(&h{{@root.current_resource}}, &tx_delay_compensation_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}
+{{/if}}
+{{#if enable_timeout_counter}}
+{{#with timeout_config}}
+  hal_fdcan_timeout_config_t timeout_cfg;
+  timeout_cfg.timeout_operation = HAL_FDCAN_TIMEOUT_{{timeout_operation}};
+  timeout_cfg.timeout_period    = {{timeout_period}};
+  if (HAL_FDCAN_SetConfigTimeoutCounter(&h{{@root.current_resource}}, &timeout_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  if (HAL_FDCAN_EnableTimeoutCounter(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}
+{{/if}}
+{{#if enable_timestamp_counter}}
+{{#with timestamp_config}}
+  hal_fdcan_timestamp_config_t timestamp_cfg;
+  timestamp_cfg.timestamp_source    = HAL_FDCAN_TIMESTAMP_SOURCE_{{timestamp_source}};
+  timestamp_cfg.timestamp_prescaler = HAL_FDCAN_TIMESTAMP_PRESC_{{timestamp_prescaler}};
+  if (HAL_FDCAN_SetConfigTimestampCounter(&h{{@root.current_resource}}, &timestamp_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}
+{{/if}}
+{{#if (not enable_iso_mode)}}
+  if (HAL_FDCAN_DisableISOMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_edge_filtering}}
+  if (HAL_FDCAN_EnableEdgeFiltering(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_rx_fifo_operation_mode}}
+{{#each rx_fifo_operation_mode}}
+  if (HAL_FDCAN_SetRxFifoOverwrite(&h{{@root.current_resource}}, HAL_FDCAN_RX_FIFO_{{@index}},
+                                   HAL_FDCAN_RX_FIFO_MODE_{{this}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/each}}
+{{/if}}
+{{#if enable_set_extended_id_mask}}
+  uint32_t mask = 0x{{#if (eq set_extended_id_mask 0)}}00000000{{else}}{{dec2hex set_extended_id_mask}}{{/if}}U;
+  if (HAL_FDCAN_SetExtendedIdMask(&h{{@root.current_resource}}, mask)!= HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_set_ram_watchdog}}
+  uint32_t counter_start_value = {{set_ram_watchdog}};
+  if (HAL_FDCAN_SetRamWatchdog(&h{{@root.current_resource}}, counter_start_value) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}
+
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'~}}
+
+{{!-- Preprocess interrupts/lines --}}
+{{assign 'interrupts_to_lines' (helper_fdcan_interrupts_by_line additional.interrupts @root.ccu_configurable)~}}
+
+{{!-- Set watermark if any --}}
+{{#each @root.interrupts_to_lines.watermark.select as |select idx|}}
+  /* Set {{lookup @root.interrupts_to_lines.watermark.commentLabel idx}} watermark level detection */
+  if (HAL_FDCAN_SetFifoWatermark(&h{{@root.current_resource}}, {{select}}, {{lookup @root.interrupts_to_lines.watermark.level idx}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/each}}
+{{!-- Enable interrupts if any --}}
+{{#each @root.interrupts_to_lines.all_interrupts as |intr|}}
+  {{#if intr.value}}
+  /* Enable {{intr.commentLabel}} interrupts */
+  if (HAL_FDCAN{{intr.ccuLabel}}_Enable{{intr.funcLabel}}Interrupts(&h{{@root.current_resource}}, {{intr.value}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  {{/if}}
+{{/each}}
+{{#each @root.interrupts_to_lines.interrupts_by_line as |interrupts idx|}}
+  {{#if interrupts}}
+  /* Connect {{@root.interrupts_to_lines.interrupts_or_group.commentLabel}} to interrupt {{idx}} */
+  if (HAL_FDCAN_Set{{@root.interrupts_to_lines.interrupts_or_group.funcLabel}}ToLine(&h{{@root.current_resource}},
+                                         {{interrupts}},
+                                         HAL_FDCAN_IT_{{uppercase idx}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  {{/if}}
+{{/each}}
+{{!-- Enable interrupt lines --}}
+{{#if (lookup @root.interrupts_to_lines "lines")}}
+  if (HAL_FDCAN_EnableInterruptLines(&h{{@root.current_resource}}, {{@root.interrupts_to_lines.lines}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+
+{{#if system.nvic.enable_interrupt_line0~}}
+{{assign 'found_fdcan_nvic_it0' true~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config_line0.needs @root.current_resource system.nvic.irq_handler_generation_line0)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config_line0.needs}}
+
+{{/if~}}
+{{#if system.nvic.enable_interrupt_line1~}}
+{{assign 'found_fdcan_nvic_it1' true~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config_line1.needs @root.current_resource system.nvic.irq_handler_generation_line1)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config_line1.needs}}
+
+{{/if}}
+{{#if @root.ccu_configurable~}}
+{{#if system.nvic.enable_interrupt_ccu}}
+{{assign 'found_fdcan_nvic_ccu' true~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config_ccu.needs @root.current_resource system.nvic.irq_handler_generation_ccu)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config_ccu.needs}}
+
+{{/if}}
+{{/if}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_interrupt_line0}}
+  /* Disable the FDCAN interrupt line 0 */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config_line0.needs}}
+
+{{/if~}}
+{{#if system.nvic.enable_interrupt_line1}}
+  /* Disable the FDCAN interrupt line 1 */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config_line1.needs~}}
+
+{{/if}}
+
+{{#if @root.ccu_configurable~}}
+{{#if system.nvic.enable_interrupt_ccu}}
+  /* Disable the FDCAN CCU interrupt line */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config_ccu.needs~}}
+
+{{/if}}
+{{/if}}
+
+  /* Deinitialize the FDCAN peripheral */
+  (void)HAL_FDCAN_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+}
+
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_fdcan_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+{{/if}}
+{{#with @root.fdcan_cxt.security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Enable clock for RIF/RCC peripherals
+    - Configure the security/privilege items for FDCAN peripheral
+    - other FDCAN systems security/privilege configuration if any (GPIO)
+    */
+
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GTZC fct='gtzc_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/GTZC}}
+  {{#if (eq @root.current_layer 'HAL')~}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+  {{else}}
+{{#> GPIO_LL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_LL}}
+  {{/if}}
+
+  return SYSTEM_OK;
+}
+
+{{/with}}
+{{/with}}
+{{/each}}
+
+{{assign 'irq_info_list' (helper_cortex_nvic_get_irqline_info_list @root.NvicAPI @root.nvic_context 'FDCAN')~}}
+{{#each @root.irq_info_list}}
+{{assign 'line_0_index' (concat @root.current_resource '_IT0')~}}
+{{assign 'line_1_index' (concat @root.current_resource '_IT1')~}}
+{{!-- Treat HAL_FDCAN_CCU_IRQHandler alone  --}}
+{{#if (eq line "FDCAN_CAL")}}
+{{!-- Prohibit CCU generation if FDCAN1 instance not used --}}
+{{#if @root.ccu_configurable}}
+{{#if generate_handler}}
+/******************************************************************************/
+/*                             {{description}}                             */
+/******************************************************************************/
+void {{line}}_IRQHandler(void)
+{
+  HAL_FDCAN_CCU_IRQHandler(&h{{resource_hw}});
+}
+
+{{else}}
+/******************************************************************************/
+/*    {{description}} is managed directly in user code.   */
+/*
+void {{line}}_IRQHandler(void)
+{
+}
+  */
+/******************************************************************************/
+{{/if}}
+{{/if}}
+{{else}}
+{{#if generate_handler}}
+/******************************************************************************/
+/*                             {{description}}                             */
+/******************************************************************************/
+void {{line}}_IRQHandler(void)
+{
+{{#if (eq line @root.line_0_index)}}
+  HAL_FDCAN_Line0_IRQHandler(&h{{resource_hw}});
+{{else if (eq line @root.line_1_index)}}
+  HAL_FDCAN_Line1_IRQHandler(&h{{resource_hw}});
+{{else}} {{!-- EXTI lines --}}
+  HAL_EXTI_IRQHandler(&h{{line}});
+{{/if}}
+}
+
+{{else}}
+/******************************************************************************/
+/*    {{description}} is managed directly in user code.   */
+/*
+void {{line}}_IRQHandler(void)
+{
+}
+  */
+/******************************************************************************/
+{{/if}}
+{{/if}}
+{{/each}}
+{{/helper_common_beautifier}}

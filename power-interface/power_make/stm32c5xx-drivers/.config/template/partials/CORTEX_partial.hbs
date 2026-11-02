@@ -1,0 +1,248 @@
+{{!
+ * @file Partial used to generate code for CORTEX:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{#if (eq fct 'init')}}
+{{! }}
+{{! Generate the CORTEX HAL or ARM CMSIS NVIC initialization code inside the PPPi init function}}
+{{! > CORTEX fct='init' layer=@root.current_layer needs=System.nvicConfig.needs}}
+{{! }}
+{{!log "CORTEX fct='init': layer=" layer " needs=" needs~}}
+{{assign 'layer' layer~}}
+{{#each needs}}
+{{assign 'nvic_config' (@root.NvicAPI.getNeedById id)~}}
+{{log "CORTEX fct='init': nvic_config=" @root.nvic_config~}}
+{{/each}}
+{{#with @root.nvic_config}}
+{{#if (eq @root.layer 'HAL')}}
+  HAL_CORTEX_NVIC_SetPriority({{name}}_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_{{priority}}, HAL_CORTEX_NVIC_SUB_PRIORITY_{{subpriority}});
+  HAL_CORTEX_NVIC_EnableIRQ({{name}}_IRQn);
+{{else}}
+  NVIC_SetPriority({{name}}_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), {{priority}}, {{subpriority}}));
+  NVIC_EnableIRQ({{name}}_IRQn);
+{{/if}}
+{{/with}}
+{{else if (eq fct 'deinit')}}
+{{! }}
+{{! Generate the CORTEX HAL or ARM CMSIS code de-initialization inside the PPPi init function}}
+{{! > CORTEX fct='deinit' layer=@root.current_layer needs=System.nvicConfig.needs}}
+{{! }}
+{{!log "CORTEX fct='deinit': layer=" layer " needs=" needs~}}
+{{assign 'layer' layer~}}
+{{#each needs}}
+{{assign 'nvic_config' (@root.NvicAPI.getNeedById id)~}}
+{{log "CORTEX fct='deinit': nvic_config=" (toJSON @root.nvic_config)~}}
+{{/each}}
+{{#with @root.nvic_config}}
+{{#if (eq @root.layer 'HAL')}}
+  HAL_CORTEX_NVIC_DisableIRQ({{name}}_IRQn);
+{{else}}
+  NVIC_DisableIRQ({{name}}_IRQn);
+{{/if}}
+{{/with}}
+{{else if (eq fct 'cortex_create_aliases')}}
+{{! }}
+{{! Create labels inside mx_pppi.h for IRQ lines and handler}}
+{{! > CORTEX fct='cortex_create_aliases' hw_resource='I2C1' labels=@root.labels needs=@root.needs}}
+{{! }}
+{{log "CORTEX fct='cortex_create_aliases': labels:" (toJSON labels)~}}
+{{assign 'labels' labels~}}
+{{#each needs}}
+{{assign 'nvic_config' (@root.NvicAPI.getNeedById id)~}}
+{{log "CORTEX fct='cortex_create_aliases': nvic_config=" @root.nvic_config~}}
+{{/each}}
+{{#with @root.nvic_config}}
+{{assign 'found_label' false~}}
+{{assign 'current_nvic' this}}
+{{#each @root.labels}}
+{{#if (not @root.found_label)}}
+{{assign 'found_label' true~}}
+{{assign 'master' (uppercase this)~}}
+{{@root._define_}} {{@root.master}}_IRQN       {{@root.current_nvic.name}}_IRQn
+{{@root._define_}} {{@root.master}}_IRQHANDLER {{@root.current_nvic.name}}_IRQHandler
+{{else}}
+{{@root._define_}} {{uppercase this}}_IRQN       {{@root.master}}_IRQN
+{{@root._define_}} {{uppercase this}}_IRQHANDLER {{@root.master}}_IRQHANDLER
+{{/if}}{{!not @root.found_label~}}
+{{/each}}{{!labels~}}
+{{/with}}
+{{else if (eq fct 'cortex_system_lines')}}
+{{! }}
+{{! Generate the CORTEX HAL or ARM CMSIS NVIC initialization code inside the CORTEX_xxx init function}}
+{{! > CORTEX fct='cortex_system_lines' system_line='SysTick'}}
+{{! }}
+{{~log "CORTEX fct='cortex_system_lines'"}}
+{{~assign 'layer' @root.current_layer}}
+{{~assign 'system_line' system_line}}
+{{~assign 'getSystemLines' (@root.NvicAPI.getSystemLines)}}
+{{~assign 'getPriorityGrouping' (@root.NvicAPI.getPriorityGrouping)}}
+{{~log "[INFO] cortex_system_lines : getSystemLines =" (toJSON @root.getSystemLines)}}
+{{~log "[INFO] cortex_system_lines : getPriorityGrouping =" (toJSON @root.getPriorityGrouping)}}
+
+{{#if (eq @root.system_line 'NVIC')}}
+  /* Configure the Priority grouping */
+  {{~#if (eq @root.layer 'HAL')}}
+    {{~assign "hal_group_prio" (helper_cortex_nvic_retrieve_hal_priority_grouping @root.getPriorityGrouping)}}
+  HAL_CORTEX_NVIC_SetPriorityGrouping(HAL_CORTEX_NVIC_PRIORITY_GROUP_{{@root.hal_group_prio}});
+  {{~else}}
+    {{~assign "ll_group_prio" (helper_cortex_nvic_retrieve_ll_priority_grouping @root.getPriorityGrouping)}}
+  NVIC_SetPriorityGrouping({{@root.ll_group_prio}});
+  {{~/if}}
+{{/if}}
+{{assign 'system_lines_list' (helper_cortex_nvic_convert_system_lines @root.getSystemLines system_line)}}
+{{~#each @root.system_lines_list}}
+
+
+  /* {{description}} */
+  {{#if (eq @root.layer 'HAL')}}
+  HAL_CORTEX_NVIC_SetPriority({{alias}}_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_{{priority}}, HAL_CORTEX_NVIC_SUB_PRIORITY_{{subpriority}});
+  {{else}}
+  NVIC_SetPriority({{alias}}_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), {{priority}}, {{subpriority}}));
+  {{/if}}
+{{/each}}
+{{else if (eq fct 'generate_irqhandler')}}
+{{! }}
+{{! Generate HAL or ARM CMSIS code for IRQ Handler }}
+{{! > CORTEX fct='generate_irqhandler' type='prototype'/'implementation' component='PPP'}}
+{{! }}
+{{log "CORTEX fct='generate_irqhandler' type=" type " component=" component}}
+{{~assign 'type' type}}
+{{~assign 'component' component}}
+{{~#if (eq @root.type 'implementation')}}
+  {{~assign 'irq_info_list' (helper_cortex_nvic_get_irqline_info_list @root.NvicAPI @root.nvic_context @root.component)}}
+  {{#each @root.irq_info_list}}
+
+
+/******************************************************************************/
+{{~assign 'text' (helper_cortex_nvic_generate_comment_block description generate_handler)}}
+{{@root.text}}
+/******************************************************************************/
+    {{~#if generate_handler}}
+
+{{return_type}} {{#if (and shared is_interruption)}}{{resource_hw}}{{else}}{{line}}{{/if}}_IRQHandler(void)
+{
+  {{#if return}}return (({{/if}}HAL_{{component}}{{irq_suffix}}_IRQHandler({{#if has_handler}}&h{{resource_hw}}{{/if}}){{#if return}} == HAL_OK) ? SYSTEM_OK : SYSTEM_PERIPHERAL_ERROR){{/if}};
+}
+    {{~else}}
+      {{#if shared}}
+
+__WEAK {{return_type}} {{#if (and shared is_interruption)}}{{resource_hw}}{{else}}{{line}}{{/if}}_IRQHandler(void)
+{
+  /* NOTE : This function must not be modified in this file, when the IRQHandler is needed,
+            the function must preferably be implemented in the user file
+   */
+  {{#if (not is_interruption)}}
+  return SYSTEM_PERIPHERAL_ERROR;
+  {{else}}
+  while(1);
+  {{/if}}
+}
+      {{~else}}
+
+/* void {{line}}_IRQHandler(void)
+{
+}
+  */
+      {{~/if}}{{!shared}}
+    {{~/if}}{{!generate_handler}}
+  {{/each}}{{!irq_info_list}}
+{{~else}}{{! type = 'prototype'}}
+  {{~#each @root.irq_info_list}}
+
+
+/******************************************************************************/
+{{~assign 'text' (helper_cortex_nvic_generate_comment_block description generate_handler)}}
+{{@root.text}}
+/******************************************************************************/
+    {{~#if (or generate_handler shared)}}
+
+{{return_type}} {{#if (and shared is_interruption)}}{{resource_hw}}{{else}}{{line}}{{/if}}_IRQHandler(void);
+    {{~else}}
+
+/* void {{line}}_IRQHandler(void); */
+    {{~/if}}
+  {{~/each}}
+{{~/if}}{{! type == 'implementation'}}
+{{else if (eq fct 'generate_handler')}}
+{{! }}
+{{! Generate HAL or ARM CMSIS code for Handler }}
+{{! > CORTEX fct='generate_handler' type='prototype'/'implementation' component='PPP'}}
+{{! }}
+{{log "CORTEX fct='generate_handler' type=" type " component=" component}}
+{{~assign 'type' type}}
+{{~assign 'component' component}}
+{{~#if (eq @root.type 'implementation')}}
+  {{~assign 'irq_info_list' (helper_cortex_nvic_get_irqline_info_list @root.NvicAPI @root.nvic_context @root.component)}}
+  {{#each @root.irq_info_list}}
+
+
+/******************************************************************************/
+{{~assign 'text' (helper_cortex_nvic_generate_comment_block description generate_handler)}}
+{{@root.text}}
+/******************************************************************************/
+    {{~#if generate_handler}}
+
+void {{line}}_Handler(void)
+{
+  HAL_{{component}}{{irq_suffix}}_IRQHandler();
+}
+    {{~else}}
+
+/* void {{line}}_Handler(void)
+{
+}
+  */
+    {{~/if}}{{!generate_handler}}
+  {{/each}}{{!irq_info_list}}
+{{~else}}{{! type = 'prototype'}}
+  {{~#each @root.irq_info_list}}
+
+
+/******************************************************************************/
+{{~assign 'text' (helper_cortex_nvic_generate_comment_block description generate_handler)}}
+{{@root.text}}
+/******************************************************************************/
+    {{~#if generate_handler}}
+
+void {{line}}_Handler(void);
+    {{~else}}
+
+/* void {{line}}_Handler(void); */
+    {{~/if}}
+  {{~/each}}
+{{~/if}}{{! type == 'implementation'}}
+{{else if (eq fct 'suspend_tick')}}
+{{! }}
+{{! Generate HAL or ARM CMSIS code to suspend Tick }}
+{{! > CORTEX fct='suspend_tick'}}
+{{! }}
+{{log "CORTEX fct='suspend_tick'"}}
+  /* Suspend Tick increment */
+{{#if (eq @root.current_layer 'HAL')}}
+  HAL_SuspendTick();
+{{else}}
+  SysTick_DisableIT();
+{{/if}}
+{{else if (eq fct 'resume_tick')}}
+{{! }}
+{{! Generate HAL or ARM CMSIS code to resume Tick }}
+{{! > CORTEX fct='resume_tick'}}
+{{! }}
+{{log "CORTEX fct='resume_tick'"}}
+  /* Resume Tick increment */
+{{#if (eq @root.current_layer 'HAL')}}
+  HAL_ResumeTick();
+{{else}}
+  SysTick_EnableIT();
+{{/if}}
+{{else}}
+#warning "Function {{fct}} not present in partial CORTEX_partial.hbs"
+{{/if}}

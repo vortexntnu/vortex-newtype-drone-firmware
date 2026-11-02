@@ -1,0 +1,228 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_comp_template.c.hbs
+  * @brief          : COMP Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'COMP' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "COMP template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+{{#each @root.instances~}}
+  {{~assign 'comp_cxt' config~}}
+  {{#if (eq @root.comp_cxt.basic.multi_inst_mode "multi_inst_window_main")}}
+#include "mx_hal_def.h" /* For window mode, include other comparator instance */
+  {{/if}}{{!helper_comp_is_window_instance_main}}
+
+  {{#unless (eq @root.comp_cxt.basic.multi_inst_mode undefined)}}
+  {{#unless (eq @root.comp_cxt.basic.multi_inst_mode "multi_inst_independent")}}
+    {{assign 'comp_window_other_instance_nb' (helper_comp_get_window_other_instance_nb @root.codegen_ctxt.parent_resource)~}}
+    {{log "comp_window_other_instance_nb:" @root.comp_window_other_instance_nb~}}
+  {{/unless}}{{!multi_inst_mode multi_inst_independent}}
+  {{/unless}}{{!multi_inst_mode undefined}}
+{{/each~}}{{!instances~}}
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'comp_cxt' config~}}
+  {{~log "COMP template comp_cxt:" (toJSON @root.comp_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.comp_cxt.info.layer~}}
+  {{~log "COMP template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+static hal_comp_handle_t h{{@root.current_resource}};
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+  {{/if}}
+{{/each}}
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{assign 'nvic_generate_handler' true~}}
+{{#each @root.instances}}
+  {{~assign 'comp_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'name' @root.comp_cxt.name~}}
+  {{~assign 'current_layer' @root.comp_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~log "COMP template instance:" (toJSON this)~}}
+{{! Initialize the context for LL code optimization ~}}
+{{assign 'lut_table'   (helper_comp_get_lut_table 'COMP_V1')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#with @root.comp_cxt}}
+{{#if (eq @root.current_layer 'HAL')~}}
+hal_comp_handle_t *{{@root.fct_name~}}_init(void)
+{{else}}{{! eq @root.current_layer 'LL'~}}
+COMP_TypeDef *{{@root.fct_name}}_init(void)
+{{/if}}{{! eq @root.current_layer 'HAL'~}}
+{
+{{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_COMP_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! current_layer 'HAL'}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='COMP'}}
+
+{{#with system}}
+{{#with exti}}
+{{log "exti needs:" needs}}
+{{#each needs~}}
+  {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+{{/each~}}
+{{/with}}{{!exti}}
+{{/with~}}{{!system}}
+{{log "get_exti_cfg_config_object (HAL):" @root.get_exti_cfg_config_object~}}
+{{assign 'exti_line_nb' (helper_exti_extract_number @root.get_exti_cfg_config_object.resourceId)~}}
+{{log "exti_line_nb :" @root.exti_line_nb~}}
+{{assign 'exti_config' @root.get_exti_cfg_config_object.configuration.basic~}}
+{{log "exti_config :" @root.exti_config~}}
+{{assign 'exti_nvic_needs' @root.exti_config.interruption.nvic~}}
+{{log "exti_nvic_needs :" @root.exti_nvic_needs~}}
+{{log "@root.exti_config.interruption.irq_handler_generation :" @root.exti_config.interruption.irq_handler_generation~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context @root.exti_nvic_needs.needs @root.current_resource @root.exti_config.interruption.irq_handler_generation)~}}
+{{log "nvic_context :" @root.nvic_context~}}
+
+{{#if (eq @root.current_layer 'HAL')}}
+{{> COMP_HAL fct='init'}}
+{{else}}{{! current_layer 'LL'}}
+{{> COMP_LL fct='init'}}
+{{/if}}{{! current_layer 'HAL'}}
+
+{{#with system}}
+{{!==================== GPIO ====================}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+{{else}}{{! current_layer 'LL'}}
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+{{/if}}{{! current_layer 'HAL'}}
+
+{{!==================== EXTI ====================}}
+{{#if (eq @root.comp_cxt.basic.multi_inst_mode "multi_inst_window_sec")}}
+{{assign 'output_trigger' @root.comp_cxt.basic.output.output_trigger~}}
+{{~else}}{{!multi_inst_window_sec}}
+{{assign 'output_trigger' @root.comp_cxt.basic.output.output_trigger~}}
+{{/if}}{{!multi_inst_window_sec}}
+{{#if (eq @root.output_trigger "NONE")}}
+{{! no exti to configure}}
+{{else}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{! exti configured in hal comp driver ~}}
+{{else}}{{! current_layer 'LL'}}
+{{#if (eq @root.exti_config.interruption.enable_interruption false)}}
+  /* Configuration of EXTI line used by comparator to generate an event */
+{{else}}
+  /* Configuration of EXTI line used by comparator to generate an interrupt */
+{{/if}}{{! exti_config.interruption.enable_interruption false}}
+{{~#unless (eq @root.exti_config.trigger_detection "FALLING")}}
+{{! rising or rising_falling}}
+{{#if (lt @root.exti_line_nb 64)}}
+  LL_EXTI_EnableRisingTrig_32_63(LL_EXTI_LINE_{{@root.exti_line_nb}});
+{{else}}
+  LL_EXTI_EnableRisingTrig_64_95(LL_EXTI_LINE_{{@root.exti_line_nb}});
+{{/if}}{{! < 64}}
+{{~/unless~}}{{! not FALLING}}
+{{~#unless (eq @root.exti_config.trigger_detection "RISING")}}
+{{! falling or rising_falling}}
+{{#if (lt @root.exti_line_nb 64)}}
+  LL_EXTI_EnableFallingTrig_32_63(LL_EXTI_LINE_{{@root.exti_line_nb}});
+{{else}}
+  LL_EXTI_EnableFallingTrig_64_95(LL_EXTI_LINE_{{@root.exti_line_nb}});
+{{/if}}{{! < 64}}
+{{/unless}}{{! not FALLING}}
+{{/if}}{{! current_layer 'HAL'}}
+
+{{!==================== EXTI-NVIC ====================}}
+{{#if (eq @root.exti_config.interruption.enable_interruption.enable_interruption false)}}
+{{else}}
+  /* Enable comparator interruption through EXTI */
+{{#> CORTEX fct='init' layer=@root.current_layer needs=@root.exti_nvic_needs.needs}}
+#warning "Partial CORTEX is not present"
+{{/CORTEX}}
+{{/if}}{{! exti_config.interruption false}}
+{{/if}}{{! output_trigger != NONE~}}
+{{/with}}{{!system}}
+
+{{#if (eq @root.current_layer 'HAL')}}
+  return &h{{@root.current_resource}};
+{{else}}{{! eq @root.current_layer 'LL'}}
+  return {{@root.current_resource}};
+{{/if}}{{! eq @root.current_layer 'HAL'}}
+}
+
+void {{@root.fct_name~}}_deinit(void)
+{
+{{#if (eq @root.current_layer 'HAL')~}}
+{{> COMP_HAL fct='deinit'}}
+{{else}}{{! eq @root.current_layer 'LL' ~}}
+{{> COMP_LL fct='deinit'}}
+{{/if~}}{{! eq @root.current_layer 'HAL' ~}}
+
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+{{#with system}}
+{{!==================== GPIO ====================}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource}}
+{{else}}{{! current_layer 'LL'}}
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource}}
+{{/if}}{{! current_layer 'HAL'}}
+{{!==================== EXTI-NVIC ====================}}
+{{#if (eq @root.exti_config.interruption.enable_interruption.enable_interruption false)}}
+{{else}}
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=@root.exti_nvic_needs.needs}}
+{{/if}}{{! exti_config.interruption false}}
+{{/with}}{{! system ~}}
+}
+
+{{#if (eq @root.current_layer 'HAL')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+hal_comp_handle_t *{{@root.fct_name~}}_gethandle(void)
+{
+  return &h{{@root.current_resource~}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+
+{{/if}}{{! current_layer 'HAL'}}
+{{/with}}
+{{/each~}}{{!instance~}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='COMP'}}
+
+{{/helper_common_beautifier}}

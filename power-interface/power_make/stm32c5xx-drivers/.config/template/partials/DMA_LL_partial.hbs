@@ -1,0 +1,451 @@
+{{!
+ * @file Partial used to generate code for DMA:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{#each needs}}
+{{assign 'dma_config' (@root.DmaAPI.getNeedById id)~}}
+{{/each}}
+{{log "DMA_LL fct='init' dma_config:" @root.dma_config~}}
+  {{assign 'dma_channel_instance' @root.dma_config.resourceId~}}
+  {{assign 'dma_parent' (helper_dma_get_parent @root.dma_channel_instance)~}}
+{{#if (eq fct 'init')}}
+{{! }}
+{{! Generate the DMA code inside the PPPi init function}}
+{{! > DMA_LL fct='init' needs=dma_config_tx.needs}}
+{{! }}
+
+  /* ################################################## {{@root.dma_config.owner}}_{{@root.dma_config.selector}} DMA configuration */
+
+  /* Enable {{@root.dma_parent}} clock */{{! ~}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.dma_parent~}}
+{{#with @root.dma_config.configuration}}
+  {{#with basic}}
+    {{~assign 'dma_transfer_mode' dma_mode~}}
+    {{~assign 'dma_node' (concat (uppercase request.id) '_LLi_reg')~}}
+
+  {{! Initialize LL optimization context with DMA channel instance if LUT available }}
+  {{> SYSTEM fct='system_check_ll_optim'}}
+  {{assign 'lut_table'   (helper_dma_get_lut_table 'DMA3')~}}
+  {{log "DMA_LL init: optim_enable=" @root.optim_enable " lut_table=" (toJSON @root.lut_table)~}}
+  {{helper_common_initialize_ll_code @root.optim_enable @root.lut_table 'undefined'~}}
+  {{helper_common_gen_ll_code_add_subinst @root.dma_channel_instance~}}
+  {{/with}}
+{{/with}}
+
+{{#if (eq @root.dma_transfer_mode 0)}}{{! Direct mode with PPP}}
+{{#with @root.dma_config.configuration}}
+  {{#with basic}}
+      {{#if request}}
+        {{~assign 'req' (helper_dma_get_request @root.dma_channel_instance @root.current_layer request.id)}}
+  /* Configure DMA channel transfer request */
+  LL_DMA_SetPeriphRequest({{@root.dma_channel_instance}}, {{@root.req}});
+
+      {{/if}}
+  /* Configure DMA channel transfer direction */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_SetDataTransferDirection' (concat 'LL_DMA_DIRECTION_' direction)}}
+
+  /* Configure DMA channel priority level */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_SetChannelPriorityLevel' (concat 'LL_DMA_PRIORITY_' priority )}}
+
+  /* Configure DMA channel transfer register 1 */
+  LL_DMA_ConfigTransfer({{@root.dma_channel_instance}},
+                        (LL_DMA_SRC_ADDR_{{src_inc}} | LL_DMA_SRC_DATA_WIDTH_{{src_data_width}} | \
+                         LL_DMA_DEST_ADDR_{{dest_inc}} | LL_DMA_DEST_DATA_WIDTH_{{dest_data_width}}));
+  {{/with}}
+
+  {{#with additional.data_handling_xfer}}
+    {{#if configuration}}
+  /* Configure DMA channel data handling */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_ConfigDataHandling' (concat 'LL_DMA_DEST_DATA_TRUNC_' trunc_padd)}}
+    {{/if}}
+  {{/with}}
+  {{#with additional.trigger_xfer}}
+    {{#if configuration}}
+      {{~assign 'trigger' (helper_dma_get_trigger @root.dma_channel_instance @root.current_layer dma_channel_trigger_source.id)}}
+  /* Configure DMA channel trigger */
+  LL_DMA_ConfigChannelTrigger({{@root.dma_channel_instance}}, {{@root.trigger}}, \
+                              LL_DMA_TRIGGER_POLARITY_{{dma_channel_trigger_polarity}} | LL_DMA_TRIGGER_{{dma_channel_trigger_mode}});
+    {{/if}}
+  {{/with}}
+{{#each @root.dma_config}}
+{{#if system.nvic.nvic_config}}
+  /* Enable the interruption for DMA */
+{{assign 'nvic_needs' (helper_common_concatenate_needs system.nvic.nvic_config.needs @root.nvic_needs)~}}
+{{!assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config.needs @root.dma_channel_instance system.nvic.irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config.needs}}
+#warning "Partial HAL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}
+{{/each}}
+{{/with}}
+{{else if (eq @root.dma_transfer_mode 2)}}{{! Circular mode with PPP}}
+{{#with @root.dma_config.configuration}}
+  {{#with basic}}
+  /* Configure DMA channel control parameters */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_ConfigControl' (concat (concat 'LL_DMA_PRIORITY_' priority) " | LL_DMA_LINKEDLIST_EXECUTION_Q")}}
+
+  /* Configure DMA channel transfer event mode */
+  LL_DMA_SetTransferEventMode({{@root.dma_channel_instance}}, LL_DMA_LINKEDLIST_XFER_EVENT_Q);
+
+  /* Configure DMA channel block data length */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_SetBlkDataLength''0U'}}
+
+  /* Configure DMA channel linked-list base address */
+  LL_DMA_SetLinkedListBaseAddr({{@root.dma_channel_instance}}, (uint32_t)&{{@root.dma_node}});
+
+  /* Configure DMA channel registers update and node address offset during the link transfer */
+  LL_DMA_ConfigLinkUpdate({{@root.dma_channel_instance}}, LL_DMA_UPDATE_ALL, (uint32_t)&{{@root.dma_node}});
+
+  /* CTR1 register : Data width and address increment configuration */
+  {{@root.dma_node~}}[LL_DMA_NODE_CTR1_REG_OFFSET] = LL_DMA_SRC_ADDR_{{src_inc}} | LL_DMA_SRC_DATA_WIDTH_{{src_data_width}} | \
+                                                     LL_DMA_DEST_ADDR_{{dest_inc}} | LL_DMA_DEST_DATA_WIDTH_{{dest_data_width}};
+  {{/with}}
+
+  {{#with additional.data_handling_xfer}}
+    {{#if configuration}}
+  /* CTR1 register : Data handling configuration */
+  {{@root.dma_node~}}[LL_DMA_NODE_CTR1_REG_OFFSET] |= LL_DMA_DEST_DATA_TRUNC_{{trunc_padd}};
+    {{/if}}
+  {{/with}}
+
+  {{#with basic}}
+    {{#if request}}
+      {{~assign 'req' (helper_dma_get_request @root.dma_channel_instance @root.current_layer request.id)}}
+    {{/if}}
+  /* CTR2 register : Request and direction configuration */
+  {{@root.dma_node~}}[LL_DMA_NODE_CTR2_REG_OFFSET] = {{@root.req}} | LL_DMA_DIRECTION_{{direction}};
+  {{/with}}
+
+  {{#with additional.trigger_xfer}}
+    {{#if configuration}}
+      {{~assign 'trigger' (helper_dma_get_trigger @root.dma_channel_instance @root.current_layer dma_channel_trigger_source.id)}}
+  /* CTR2 register : Trigger configuration*/
+  {{@root.dma_node~}}[LL_DMA_NODE_CTR2_REG_OFFSET] |= ({{@root.trigger}} << DMA_CTR2_TRIGSEL_Pos) | LL_DMA_TRIGGER_POLARITY_{{dma_channel_trigger_polarity}} | \
+                                                      LL_DMA_TRIGGER_{{dma_channel_trigger_mode}};
+    {{/if}}
+  {{/with}}
+{{/with}}
+
+  /* CLLR register */
+  {{@root.dma_node~}}[LL_DMA_NODE_CLLR_REG_OFFSET] = LL_DMA_UPDATE_ALL | ((uint32_t)&{{@root.dma_node}} & DMA_CLLR_LA);
+
+{{! DMA channel NVIC configuration : }}
+{{#each @root.dma_config}}
+{{#if system.nvic.nvic_config}}
+  /* Enable the interruption for DMA */
+{{assign 'nvic_needs' (helper_common_concatenate_needs system.nvic.nvic_config.needs @root.nvic_needs)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config.needs}}
+{{/if}}
+{{/each}}
+
+{{/if}}
+{{else if (eq fct 'deinit')}}
+{{! }}
+{{! Generate the DMA code inside the DMAi_Channely or PPPi init fct}}
+{{! > DMA_LL fct='deinit' needs=dma_config_tx.needs}}
+{{! }}
+  /* De-initialize the DMA channel */
+  LL_DMA_DisableChannel({{@root.dma_channel_instance}});
+  LL_DMA_ClearFlag({{@root.dma_channel_instance}}, LL_DMA_FLAG_ALL);
+
+  LL_DMA_WRITE_REG({{@root.dma_channel_instance}}, CCR, 0U);
+  LL_DMA_WRITE_REG({{@root.dma_channel_instance}}, CTR1, 0U);
+  LL_DMA_WRITE_REG({{@root.dma_channel_instance}}, CTR2, 0U);
+  LL_DMA_WRITE_REG({{@root.dma_channel_instance}}, CBR1, 0U);
+  LL_DMA_WRITE_REG({{@root.dma_channel_instance}}, CLLR, 0U);
+
+{{#each @root.dma_config}}
+{{#if system.nvic.nvic_config}}
+  /* Disable the interruption for DMA */
+{{assign 'nvic_needs' (helper_common_concatenate_needs system.nvic.nvic_config.needs @root.nvic_needs)~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config.needs @root.dma_channel_instance false)~}}
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config.needs}}
+#warning "Partial HAL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}
+{{/each}}
+
+{{else if (eq fct 'init_dma')}}
+{{! }}
+{{! Generate the DMA code inside the DMAi_CHy init function}}
+{{! > DMA_LL fct='init_dma' arg1=@root.current_resource arg2=@root.current_config}}
+{{! }}
+{{~assign 'dma_channel_instance' arg1~}}
+{{~assign 'dma_config' arg2~}}
+{{~assign 'dma_parent' (helper_dma_get_parent @root.dma_channel_instance)}}
+  /* Enable {{@root.dma_parent}} clock */{{! ~}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.dma_parent~}}
+
+{{#with @root.dma_config}}
+  {{#with basic}}
+    {{~assign 'dma_transfer_mode' dma_mode~}}
+  {{/with}}
+{{/with}}
+
+{{#with @root.dma_config}}
+{{#if (eq @root.dma_transfer_mode 0)}}{{! Direct mode / DMA standalone}}
+  {{#with basic}}
+
+ {{> SYSTEM fct='system_check_ll_optim'}}
+ {{assign 'lut_table'   (helper_dma_get_lut_table 'DMA3')~}}
+  {{helper_common_initialize_ll_code @root.optim_enable @root.lut_table 'undefined'~}}
+  {{helper_common_gen_ll_code_add_subinst @root.dma_channel_instance~}}
+
+  /* Configure DMA channel transfer direction */
+  LL_DMA_SetDataTransferDirection({{@root.dma_channel_instance}}, LL_DMA_DIRECTION_{{direction}});
+
+  /* Configure DMA channel priority level */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_SetChannelPriorityLevel' (concat 'LL_DMA_PRIORITY_' priority )}}
+
+  /* Configure DMA channel transfer register 1 */
+  LL_DMA_ConfigTransfer({{@root.dma_channel_instance}},
+                        (LL_DMA_SRC_ADDR_{{src_inc}} | LL_DMA_SRC_DATA_WIDTH_{{src_data_width}} |
+                         LL_DMA_DEST_ADDR_{{dest_inc}} | LL_DMA_DEST_DATA_WIDTH_{{dest_data_width}}));
+  {{/with}}
+
+  {{#with additional.data_handling_xfer}}
+    {{#if configuration}}
+  /* Configure DMA channel data handling */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_ConfigDataHandling' (concat 'LL_DMA_DEST_DATA_TRUNC_' trunc_padd)}}
+    {{/if}}
+  {{/with}}
+  {{#with additional.trigger_xfer}}
+    {{#if configuration}}
+      {{~assign 'trigger' (helper_dma_get_trigger @root.dma_channel_instance @root.current_layer dma_channel_trigger_source.id)}}
+  /* Configure DMA channel trigger */
+  LL_DMA_ConfigChannelTrigger({{@root.dma_channel_instance}}, {{@root.trigger}}, \
+                              LL_DMA_TRIGGER_POLARITY_{{dma_channel_trigger_polarity}} | LL_DMA_TRIGGER_{{dma_channel_trigger_mode}});
+    {{/if}}
+  {{/with}}
+
+{{else if (eq @root.dma_transfer_mode 1)}}{{! Linked-list mode / DMA standalone}}
+  {{#with basic}}
+
+  {{> SYSTEM fct='system_check_ll_optim'}}
+ {{assign 'lut_table'   (helper_dma_get_lut_table 'DMA3')~}}
+  {{helper_common_initialize_ll_code @root.optim_enable @root.lut_table 'undefined'~}}
+  {{helper_common_gen_ll_code_add_subinst @root.dma_channel_instance~}}
+
+  /* Configure DMA channel control parameters */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_ConfigControl' (concat (concat 'LL_DMA_PRIORITY_' priority) " | LL_DMA_LINKEDLIST_EXECUTION_Q")}}
+
+  /* Configure DMA channel transfer event mode */
+  LL_DMA_SetTransferEventMode({{@root.dma_channel_instance}}, LL_DMA_LINKEDLIST_XFER_EVENT_Q);
+
+  /* Configure DMA channel block data length */
+  {{helper_common_gen_ll_code_subinst 'LL_DMA_SetBlkDataLength''0U'}}
+
+  {{/with}}
+{{/if}}
+{{! DMA channel NVIC configuration : }}
+{{#if system.nvic.nvic_config}}
+  /* Enable the interruption for {{@root.dma_channel_instance}} */
+{{assign 'nvic_needs' (helper_common_concatenate_needs system.nvic.nvic_config.needs @root.nvic_needs)~}}
+{{ assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config.needs @root.dma_channel_instance false)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config.needs}}
+#warning "Partial LL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}
+{{/with}}
+{{else if (eq fct 'get_dma_lli_variables')}}
+    {{! > DMA_HAL fct='get_dma_lli_variables' resource='I2C1' strategy='HW'}}
+    {{!       strategy can be HW or SW depending of project options }}
+    {{!                if SW resource is equle to 'STM32 HAL Code Gen:I2C Init'}}
+    {{! }}
+    {{~log "DMA_HAL fct='get_dma_lli_variables' resource:" resource " strategy:" strategy~}}
+    {{~assign 'a_dma_instances' 'undefined'~}}
+    {{#if (or (eq strategy undefined) (eq strategy 'HW'))}}
+      {{~assign 'get_allocated_resource_needs' (@root.DmaAPI.getAllocatedResourceNeedsByHwInstance resource)~}}
+      {{~log 'DMA_HAL (get_dma_lli_variables): get_allocated_resource_needs (by HW)=' (toJSON @root.get_allocated_resource_needs)~}}
+    {{else}}
+      {{~assign 'get_allocated_resource_needs' (@root.DmaAPI.getAllocatedResourceNeedsByComponent resource)~}}
+      {{~log 'DMA_HAL (get_dma_lli_variables): get_allocated_resource_needs (by SW)=' (toJSON @root.get_allocated_resource_needs)~}}
+    {{/if}}
+    {{~assign 'dma_node_exist' true~}}
+    {{#each @root.get_allocated_resource_needs}}
+      {{~assign 'sw_instance_config' (@root.SWConfigurationAPI.getSwInstanceConfiguration swInstanceId)~}}
+      {{!log "test_dma_partial sw_instance_config:" (toJSON @root.sw_instance_config)~}}
+      {{#if (eq @root.sw_instance_config.info.layer 'LL')}}
+        {{~assign 'dma_config' (@root.DmaAPI.getNeedById needId)~}}
+        {{~assign 'a_dma_instances' (helper_dma_get_dma_handle @root.dma_config @root.a_dma_instances)~}}
+        {{#with @root.dma_config}}
+          {{#with configuration.basic}}
+{{#if (eq dma_mode 2)}}
+{{~assign 'dma_node' (concat (uppercase request.id) '_LLi_reg')~}}
+static uint32_t {{@root.dma_node~}}[LL_DMA_NODE_REGISTER_NUM];
+{{~assign 'dma_node_exist' false}}
+{{/if~}}
+          {{/with~}}
+        {{/with~}}
+        {{!log "test_dma_partial dma_config:" (toJSON @root.dma_config)~}}
+      {{/if}}
+    {{/each}}
+    {{~log "DMA_HAL fct='get_dma_lli_variables' a_dma_instances:" @root.a_dma_instances~}}
+{{else if (eq fct 'get_dma_lli_reg')}}
+{{! }}
+{{! Get pointer to DMA linked-list registers array}}
+{{! > DMA_LL fct='get_dma_lli_reg' resource='I2C1' strategy='HW' type='prototype'}}
+{{! > DMA_LL fct='get_dma_lli_reg' resource='I2C1' strategy='HW' type='implementation'}}
+{{! }}
+    {{~log "DMA_HAL fct='get_dma_lli_reg' resource:" resource " strategy:" strategy "type:" type~}}
+    {{~assign 'a_dma_instances' 'undefined'~}}
+    {{#if (or (eq strategy undefined) (eq strategy 'HW'))}}
+      {{~assign 'get_allocated_resource_needs' (@root.DmaAPI.getAllocatedResourceNeedsByHwInstance resource)~}}
+      {{~log 'DMA_HAL (get_dma_lli_reg): get_allocated_resource_needs (by HW)=' (toJSON @root.get_allocated_resource_needs)~}}
+    {{else}}
+      {{~assign 'get_allocated_resource_needs' (@root.DmaAPI.getAllocatedResourceNeedsByComponent resource)~}}
+      {{~log 'DMA_HAL (get_dma_lli_reg): get_allocated_resource_needs (by SW)=' (toJSON @root.get_allocated_resource_needs)~}}
+    {{/if}}
+    {{~assign 'dma_node_exist' true~}}
+    {{~assign 'type' type~}}
+    {{~assign 'resource' resource~}}
+    {{#each @root.get_allocated_resource_needs}}
+      {{~assign 'sw_instance_config' (@root.SWConfigurationAPI.getSwInstanceConfiguration swInstanceId)~}}
+      {{!log "test_dma_partial sw_instance_config:" (toJSON @root.sw_instance_config)~}}
+      {{#if (eq @root.sw_instance_config.info.layer 'LL')}}
+        {{~assign 'dma_config' (@root.DmaAPI.getNeedById needId)~}}
+        {{~assign 'a_dma_instances' (helper_dma_get_dma_handle @root.dma_config @root.a_dma_instances)~}}
+        {{#with @root.dma_config}}
+          {{#with configuration.basic}}
+{{#if (eq dma_mode 2)}}
+{{~assign 'dma_node' (concat (uppercase request.id) '_LLi_reg')~}}
+  {{#if (eq @root.type 'prototype')}}
+/**
+  * @brief  Get pointer to {{@root.resource}} {{#if (not (eq request.signal_id 'GLOBAL'))}}{{uppercase request.signal_id}} {{/if}}DMA linked-list registers array.
+  * @return Pointer to array holding LL DMA node register values for {{@root.resource}} {{#if (not (eq request.signal_id 'GLOBAL'))}}{{uppercase request.signal_id}}{{/if}}
+  */
+uint32_t *mx_{{request.id}}_get_lli_reg(void);
+
+  {{else}}
+uint32_t *mx_{{request.id}}_get_lli_reg(void)
+{
+  return {{@root.dma_node~}};
+}
+
+  {{/if}}
+{{~assign 'dma_node_exist' false}}
+{{/if~}}
+          {{/with~}}
+        {{/with~}}
+        {{!log "test_dma_partial dma_config:" (toJSON @root.dma_config)~}}
+      {{/if}}
+    {{/each}}
+    {{~log "DMA_HAL fct='get_dma_lli_reg' a_dma_instances:" @root.a_dma_instances~}}
+
+{{else if (eq fct 'config_security')}}
+{{!
+ Generate the DMA LL code inside the mx_pppi_config_security function
+ > DMA_LL fct='dma_config_security' resource=@root.current_resource
+~}}
+{{~assign 'dma_channel_instance' resource}}
+{{assign 'dma_parent' (helper_dma_get_parent @root.dma_channel_instance)}}
+  /* Enable {{@root.dma_parent}} clock */
+{{#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.dma_parent}}
+{{/RCC}}
+{{~assign 'dma_channel' (helper_dma_get_ll_channel @root.dma_channel_instance)}}
+
+{{#with @root.dma_config.security_privilege}}
+
+  {{#if (eq security.channel_sec 'SEC')}}
+  /* Configure the DMA channel security access level attribute */
+  LL_DMA_SetSecAttr({{@root.dma_parent}}, {{@root.dma_channel}}, LL_DMA_ATTR_SEC);
+  {{/if}}
+
+  {{#with security.xfer_sec}}
+  {{#with @root.dma_config.basic}}
+  {{#if (eq dma_mode 0)}}
+   {{~assign "security_items" (helper_dma_get_security_items @root.current_layer @root.dma_config.security_privilege.security.xfer_sec)}}
+   {{#unless (eq @root.security_items '')}}
+  /* Configure the DMA channel xfer security access levels attributes */
+  LL_DMA_SetXferSecAttr({{@root.dma_channel_instance}}, {{@root.security_items}}, LL_DMA_ATTR_SEC);
+    {{/unless}}
+  {{/if}}
+  {{/with}}
+  {{/with}}
+
+  {{log "DMA_HAL privilege.channel_priv:" privilege.channel_priv}}
+  {{#if (eq privilege.channel_priv 'PRIV')}}
+  /* Configure the the DMA channel privileged access level attribute */
+  LL_DMA_SetPrivAttr({{@root.dma_parent}}, {{@root.dma_channel}}, LL_DMA_ATTR_PRIV);
+  {{/if}}
+
+  {{#if lock.channel_lock}}
+  /* Lock the security and privileged access levels attributes for DMA channel */
+  LL_DMA_LockAttr({{@root.dma_parent}}, {{@root.dma_channel}});
+  {{/if}}
+
+  {{#if clock}}
+  /* Disable {{@root.dma_parent}} clock */
+  {{#> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.dma_parent}}
+  {{/RCC}}
+  {{/if}}
+
+{{/with}}
+{{else if (eq fct 'dma_config_security')}}
+{{!
+ Generate the DMA LL code inside the mx_pppi_config_security function
+ > DMA_LL fct='dma_config_security' resource=@root.current_resource
+~}}
+{{~assign 'needs' (@root.DmaAPI.getAllocatedResourceNeedsByHwInstance resource)~}}
+{{log "DMA_LL needs:" @root.needs~}}
+{{#each @root.needs}}
+{{log "DMA_LL needs1:" @root.needs~}}
+{{assign 'dma_channel_instance' resourceId~}}
+{{assign 'dma_config' (@root.DmaAPI.getNeedById needId)~}}
+{{assign 'dma_parent' (helper_dma_get_parent @root.dma_channel_instance)}}
+  {{log "DMA_HAL dma_channel_instance:" @root.dma_channel_instance}}
+  {{log "DMA_HAL dma_config:" @root.dma_config}}
+
+  /* Enable {{@root.dma_parent}} clock */
+{{#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.dma_parent}}
+{{/RCC}}
+{{~assign 'dma_channel' (helper_dma_get_ll_channel @root.dma_channel_instance)}}
+
+{{#with @root.dma_config.configuration.security_privilege}}
+
+  {{#if (eq security.channel_sec 'SEC')}}
+  /* Configure the DMA channel security access level attribute */
+  LL_DMA_SetSecAttr({{@root.dma_parent}}, {{@root.dma_channel}}, LL_DMA_ATTR_SEC);
+  {{/if}}
+
+  {{#with security.xfer_sec}}
+  {{#with @root.dma_config.configuration.basic}}
+  {{#if (eq dma_mode 0)}}
+   {{~assign "security_items" (helper_dma_get_security_items @root.current_layer @root.dma_config.configuration.security_privilege.security.xfer_sec)}}
+   {{#unless (eq @root.security_items '')}}
+  /* Configure the DMA channel xfer security access levels attributes */
+  LL_DMA_SetXferSecAttr({{@root.dma_channel_instance}}, {{@root.security_items}}, LL_DMA_ATTR_SEC);
+    {{/unless}}
+  {{/if}}
+  {{/with}}
+  {{/with}}
+
+  {{#if (eq privilege.channel_priv 'PRIV')}}
+  /* Configure the the DMA channel privileged access level attribute */
+  LL_DMA_SetPrivAttr({{@root.dma_parent}}, {{@root.dma_channel}}, LL_DMA_ATTR_PRIV);
+  {{/if}}
+
+  {{#if lock.channel_lock}}
+  /* Lock the security and privileged access levels attributes for DMA channel */
+  LL_DMA_LockAttr({{@root.dma_parent}}, {{@root.dma_channel}});
+  {{/if}}
+
+  {{#if clock}}
+  /* Disable {{@root.dma_parent}} clock */
+  {{#> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.dma_parent}}
+  {{/RCC}}
+  {{/if}}
+
+{{/with}}
+{{/each}}
+{{else}}
+#warning "Function {{fct}} not present in partial DMA_LL_partial.hbs"
+{{/if}}

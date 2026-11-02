@@ -1,0 +1,498 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:WWDG",
+  "grammarVersion": "3.7",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/wwdg_helpers.js",
+      "accessor": "common"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": "",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ]
+              }
+            },
+            "layer": {
+              "title": "Software layer",
+              "type": "string",
+              "oneOf": [
+                {
+                  "const": "HAL",
+                  "title": "HAL"
+                },
+                {
+                  "const": "LL",
+                  "title": "LL"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_WWDG_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "security_privilege": {
+          "title": "Security and privilege",
+          "description": "Manage security and privileged access levels attributes.",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+          "properties": {
+            "security": {
+              "type": "string",
+              "title": "Security attribute",
+              "description": "Set the security attribute of the securable peripheral.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "SEC"
+                  },
+                  "condition": "$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "NSEC"
+                  },
+                  "condition": "!$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', $resource.id)",
+                  "message": "The security attribute of the peripheral is automatically set to secure when the peripheral is bound to a secure resource and to non-secure when it is not. Manual configuration is not allowed."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-sec-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Secure",
+                  "const": "SEC"
+                },
+                {
+                  "title": "Non-secure",
+                  "const": "NSEC"
+                }
+              ],
+              "default": "NSEC"
+            },
+            "privilege": {
+              "type": "string",
+              "title": "Privileged attribute",
+              "description": "Manage the privileged attribute of a securable RISC peripheral.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-priv-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Privileged",
+                  "const": "PRIV"
+                },
+                {
+                  "title": "Unprivileged",
+                  "const": "NPRIV"
+                }
+              ],
+              "default": "PRIV"
+            },
+            "lock": {
+              "type": "boolean",
+              "title": "Lock",
+              "description": "Optional. Lock security and privilege attributes to prevent changes.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-lock-attr",
+                "custom": "$resource.id"
+              },
+              "default": false
+            },
+            "illegal_access": {
+              "title": "Illegal access interrupt",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure-only')",
+                  "message": "Secure-only mode: Illegal access interrupt is forced to disabled."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-iac-peripheral",
+                "custom": "$resource.id"
+              },
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "properties": {
+            "nvic": {
+              "type": "object",
+              "title": "NVIC",
+              "properties": {
+                "enable_interruption": {
+                  "type": "boolean",
+                  "title": "Interrupt",
+                  "default": false
+                },
+                "irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "Interrupt handler generation",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "irq_config": {
+                  "title": "IRQ line priority",
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "title": "Runtime",
+          "properties": {
+            "start_function": {
+              "type": "boolean",
+              "title": "Start function generation",
+              "description": "If the box is checked, a function to start the WWDG using the values inputted in the interface is generated.",
+              "default": true
+            },
+            "wwdg_calculator": {
+              "type": "object",
+              "title": "Calculator",
+              "properties": {
+                "wwdg_clock_frequency": {
+                  "description": "PCLK 1 frequency.",
+                  "title": "WWDG clock frequency",
+                  "unit": "Hz",
+                  "type": "integer",
+                  "default": 1000,
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('clock.frequency', 'APB1_Peripheral_Clock')"
+                      }
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "WWDG_FREQ",
+                      "condition": "true",
+                      "computed_value": "$get('clock.frequency', 'APB1_Peripheral_Clock')"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "title": "Time unit",
+                  "description": "Time unit used by WWDG driver. The selection of a smaller unit provides higher resolution.",
+                  "oneOf": [
+                    {
+                      "title": "Microseconds",
+                      "const": "microseconds"
+                    },
+                    {
+                      "title": "Milliseconds",
+                      "const": "milliseconds"
+                    },
+                    {
+                      "title": "Seconds",
+                      "const": "seconds"
+                    }
+                  ],
+                  "default": "milliseconds"
+                },
+                "allowed_min_time": {
+                  "type": "integer",
+                  "title": "Inputs lower limit",
+                  "description": "Minimum possible value that can be entered for max time and min time.",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$common.helper_wwdg_get_min_allowed_time($get('envVar.value', 'WWDG_FREQ'), $runtime.wwdg_calculator.unit)"
+                      }
+                    }
+                  ],
+                  "default": 0
+                },
+                "allowed_max_time": {
+                  "type": "integer",
+                  "title": "Inputs upper limit",
+                  "description": "Maximum possible value that can be entered for max time and min time.",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$common.helper_wwdg_get_max_allowed_time($get('envVar.value', 'WWDG_FREQ'), $runtime.wwdg_calculator.unit)"
+                      }
+                    }
+                  ],
+                  "default": 4294967295
+                },
+                "max_time": {
+                  "type": "object",
+                  "title": "Max time (reset time)",
+                  "description": "Maximum time duration before reset is triggered by the WWDG if the counter is not refreshed.",
+                  "properties": {
+                    "user_max_time": {
+                      "type": "integer",
+                      "title": "Input",
+                      "description": "User maximum time value input.",
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "true",
+                          "computed": {
+                            "maximum": "$runtime.wwdg_calculator.allowed_max_time"
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "true",
+                          "computed": {
+                            "minimum": "$runtime.wwdg_calculator.allowed_min_time"
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "true",
+                          "computed": {
+                            "default": "$common.helper_wwdg_get_max_allowed_time($get('envVar.value', 'WWDG_FREQ'), $runtime.wwdg_calculator.unit)"
+                          }
+                        }
+                      ],
+                      "variables": [
+                        {
+                          "on": "update-value",
+                          "name": "WWDG_PRESCALER",
+                          "condition": "$value !== undefined",
+                          "computed_value": "$common.helper_wwdg_compute_prescaler($get('envVar.value', 'WWDG_FREQ'),$runtime.wwdg_calculator.max_time.user_max_time, $runtime.wwdg_calculator.unit)"
+                        },
+                        {
+                          "on": "update-value",
+                          "name": "WWDG_STEP",
+                          "condition": "$value !== undefined",
+                          "computed_value": "$common.helper_wwdg_compute_step($get('envVar.value', 'WWDG_FREQ'), $get('envVar.value', 'WWDG_PRESCALER'), $runtime.wwdg_calculator.unit)"
+                        },
+                        {
+                          "on": "update-value",
+                          "name": "WWDG_RELOAD",
+                          "condition": "$value !== undefined",
+                          "computed_value": "$common.helper_wwdg_compute_reload($get('envVar.value', 'WWDG_FREQ'), $get('envVar.value', 'WWDG_PRESCALER'), $runtime.wwdg_calculator.max_time.user_max_time, $runtime.wwdg_calculator.unit)"
+                        }
+                      ]
+                    },
+                    "actual_max_time": {
+                      "type": "number",
+                      "title": "Actual",
+                      "description": "Actual Maximum time before reset.",
+                      "readOnly": true,
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($runtime.wwdg_calculator.max_time.user_max_time <= $runtime.wwdg_calculator.allowed_max_time)"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "true",
+                          "computed": {
+                            "const": "$common.helper_wwdg_adjust_time($get('envVar.value', 'WWDG_STEP'), $runtime.wwdg_calculator.max_time.user_max_time, $runtime.wwdg_calculator.unit)"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "min_time": {
+                  "type": "object",
+                  "title": "Min time (window time)",
+                  "description": "Minimum time duration before WWDG refresh is allowed (window).",
+                  "properties": {
+                    "user_min_time": {
+                      "type": "integer",
+                      "title": "Input",
+                      "description": "User minimum time value input.",
+                      "default": 0,
+                      "minimum": 0,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "true",
+                          "computed": {
+                            "maximum": "$runtime.wwdg_calculator.allowed_max_time"
+                          }
+                        },
+                        {
+                          "type": "error",
+                          "message": "Value is not within the capabilities boundaries.",
+                          "condition": "$runtime.wwdg_calculator.min_time.user_min_time >= $runtime.wwdg_calculator.max_time.user_max_time"
+                        }
+                      ]
+                    },
+                    "actual_min_time": {
+                      "type": "number",
+                      "title": "Actual",
+                      "description": "Actual minimum time before refresh is allowed.",
+                      "readOnly": true,
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "($runtime.wwdg_calculator.min_time.user_min_time < $runtime.wwdg_calculator.max_time.user_max_time)"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "true",
+                          "computed": {
+                            "const": "$common.helper_wwdg_adjust_time($get('envVar.value', 'WWDG_STEP'), $runtime.wwdg_calculator.min_time.user_min_time, $runtime.wwdg_calculator.unit)"
+                          }
+                        }
+                      ],
+                      "variables": [
+                        {
+                          "on": "update-value",
+                          "name": "WWDG_WINDOW",
+                          "condition": "$value !== undefined",
+                          "computed_value": "$common.helper_wwdg_compute_param($get('envVar.value', 'WWDG_FREQ'), $get('envVar.value', 'WWDG_PRESCALER'), $get('envVar.value', 'WWDG_RELOAD'), $runtime.wwdg_calculator.min_time.user_min_time, $runtime.wwdg_calculator.unit)"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

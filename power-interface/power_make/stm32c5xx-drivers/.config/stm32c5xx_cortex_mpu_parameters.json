@@ -1,0 +1,480 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:CORTEX MPU",
+  "grammarVersion": "3.8",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/mpu_helpers.js",
+      "accessor": "mpu"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "title": "General information",
+          "type": "object",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ],
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": ""
+              }
+            },
+            "layer": {
+              "title": "Software layer",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title":"HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "ARM CMSIS",
+                  "const": "LL"
+                }
+              ],
+              "default": "HAL",
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ]
+            },
+            "init_type": {
+              "title": "Resource initialization code generation",
+              "type": "string",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_CORTEX_CORE_ENABLED",
+                  "value": true
+                }
+              ],
+              "default": "called"
+            },
+            "note": {
+              "title": "Note",
+              "type": "string",
+              "description": "MPU default configuration:\n\nBecause the instruction cache is enabled, the MPU must be enabled with the OTP/RO data area defined as a non-cacheable read-only region (0x08FF FE00-0x08FF FFFF range cover the full area) if the region is effectively used.",
+              "default": "MPU default configuration:\n\nBecause the instruction cache is enabled, the MPU must be enabled with the OTP/RO data area defined as a non-cacheable read-only region (0x08FF FE00-0x08FF FFFF range cover the full area) if the region is effectively used",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('envVar.value', 'HAL_ICACHE_CORE_ENABLED') == true)"
+                },
+                {
+                  "type": "disable",
+                  "condition": "true",
+                  "message": "This note is informational and cannot be edited."
+                }
+              ]
+            }
+          }
+        },
+        "basic": {
+          "type": "object",
+          "title": "Main features",
+          "properties": {
+            "mpu_enabled": {
+              "title": "Use MPU",
+              "type": "boolean",
+              "default": true
+            },
+            "default_map_enabled": {
+              "title": "Use default map",
+              "type": "boolean",
+              "description": "Enable the default MPU memory configuration. If an address is not covered by any MPU region is accessed with this option enabled the base memory mapping applies. If the option is disabled, any memory access not covered by an MPU region triggers a memory management fault.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mpu_enabled"
+                }
+              ],
+              "default": true
+            },
+            "during_hardfault": {
+              "title": "MPU during fault",
+              "type": "boolean",
+              "description": "Enable the MPU during non-maskable interrupt (NMI) and hard fault events.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mpu_enabled"
+                }
+              ],
+              "default": false
+            },
+            "enable_mem_management_fault": {
+              "title": "Memory management fault",
+              "type": "boolean",
+              "description": "The system escalates to hard fault if you do not enable it.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "mem_management_fault",
+                "component": "CORTEX"
+              },
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mpu_enabled"
+                },
+                {
+                  "type": "disable",
+                  "condition": "!$get('peripheral.isBound', 'SCB')",
+                  "message": "Memory management fault is automatically enabled by the drivers. To enable hard fault escalation, please bind the CORTEX SCB panel."
+                },
+                {
+                  "type": "set",
+                  "condition": "!$get('peripheral.isBound', 'SCB')",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": true
+            }
+          }
+        },
+        "additional": {
+          "title": "Advanced features",
+          "type": "object",
+          "properties": {
+            "attributes": {
+              "title": "Attributes",
+              "type": "array",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mpu_enabled"
+                }
+              ],
+              "source": "Array.from({ length: (8)}, (_, i) => ({ id: ('ATTR_' + i ) }))",
+              "itemId": "id",
+              "itemVar": "attribute",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "memory_type": {
+                    "title": "Memory type",
+                    "type": "string",
+                    "description": "Choose the type of memory. Normal is used for RAM and Flash and exposes cacheability attributes. Device is used for peripherals, sets a region as non cacheable and exposes bus configuration options.",
+                    "oneOf": [
+                      {
+                        "title": "Device",
+                        "const": "DEVICE"
+                      },
+                      {
+                        "title": "Normal",
+                        "const": "NORMAL"
+                      }
+                    ],
+                    "default": "DEVICE"
+                  },
+                  "write_policy": {
+                    "title": "Write policy",
+                    "type": "string",
+                    "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$item.memory_type === 'NORMAL'"
+                      }
+                    ],
+                    "description": "This attribute defines the write policy of the region.",
+                    "oneOf": [
+                      {
+                        "title": "Not cacheable",
+                        "const": "NCACHEABLE"
+                      },
+                      {
+                        "title": "Write through",
+                        "const": "WT"
+                      },
+                      {
+                        "title": "Write back",
+                        "const": "WB"
+                      }
+                    ],
+                    "default": "NCACHEABLE"
+                  },
+                  "allocation_policy": {
+                    "title": "Allocation policy",
+                    "type": "string",
+                    "actions": [
+                      {
+                        "type": "include",
+                        "condition": "($item.memory_type === 'NORMAL') && ($item.write_policy !== 'NCACHEABLE')"
+                      }
+                    ],
+                    "description": "This option defines the cache line allocation policy.",
+                    "oneOf": [
+                      {
+                        "title": "No allocate",
+                        "const": "_NOA"
+                      },
+                      {
+                        "title": "Write allocate",
+                        "const": "_WA"
+                      },
+                      {
+                        "title": "Read allocate",
+                        "const": "_RA"
+                      },
+                      {
+                        "title": "Read write allocate",
+                        "const": "_RWA"
+                      }
+                    ],
+                    "default": "_NOA"
+                  },
+                  "device_attribute": {
+                    "title": "Device attribute",
+                    "type": "string",
+                    "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$item.memory_type === 'DEVICE'"
+                      }
+                    ],
+                    "description": "Define the bus access policies of Device Memory accesses (G: Gathering, R: Reordering, E: Early-Acknowledge).",
+                    "oneOf": [
+                      {
+                        "title": "nGnRnE",
+                        "description": "No Gathering, No Reordering, No Early-Acknowledge.",
+                        "const": "NGNRNE"
+                      },
+                      {
+                        "title": "nGnRE",
+                        "description": "No Gathering, No Reordering, Early-Acknowledge.",
+                        "const": "NGNRE"
+                      },
+                      {
+                        "title": "nGRE",
+                        "description": "No Gathering, Reordering, Early-Acknowledge.",
+                        "const": "NGRE"
+                      },
+                      {
+                        "title": "GRE",
+                        "description": "Gathering, Reordering, Early-Acknowledge.",
+                        "const": "GRE"
+                      }
+                    ],
+                    "default": "NGNRNE"
+                  }
+                }
+              }
+            },
+            "regions": {
+              "title": "Regions",
+              "type": "array",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mpu_enabled"
+                }
+              ],
+              "source": "Array.from({ length: ($resource.features.MPU_NS)}, (_, i) => ({ id: ('REGION_' + i ) }))",
+              "itemId": "id",
+              "itemVar": "region",
+              "items": {
+                "type": "object",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "$mpu.helper_cortex_is_overlapping($item, $additional.regions)",
+                    "message": "A region overlapping error is found, please check the configured regions."
+                  }
+                ],
+                "properties": {
+                  "use_region": {
+                    "title": "Use region",
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "base_address": {
+                    "title": "Base address",
+                    "type": "integer",
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_region",
+                        "message": "To modify this parameter, enable the corresponding region first."
+                      },
+                      {
+                        "type": "warning",
+                        "condition": "($value % 32) != 0",
+                        "message": "Any value that is not 32-byte aligned will have its lower order bits[4:0] ignored. It is recommended to provide a 32-byte aligned address."
+                      }
+                    ],
+                    "description": "Base address of the MPU region. This address must be 32-byte aligned.",
+                    "minimum": 0,
+                    "maximum": 4294967295,
+                    "display_format": [
+                      "hex"
+                    ],
+                    "default": 0
+                  },
+                  "limit_address": {
+                    "title": "Limit address",
+                    "type": "integer",
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_region",
+                        "message": "To modify this parameter, enable the corresponding region first."
+                      },
+                      {
+                        "type": "warning",
+                        "condition": "$value < $item.base_address",
+                        "message": "The limit address must be greater than or equal to the base address, else the configuration will be ignored."
+                      },
+                      {
+                        "type": "warning",
+                        "condition": "($value % 32) != 31",
+                        "message": "The value of the next address after the limit address must be 32-byte aligned. Therefore, bits[4:0] are not used and considered to be 0x1F."
+                      }
+                    ],
+                    "description": "Limit address of the region. Last address included in the region (bits[4:0] are not used and considered to be 0x1F).",
+                    "minimum": 0,
+                    "maximum": 4294967295,
+                    "display_format": [
+                      "hex"
+                    ],
+                    "default": 31
+                  },
+                  "attribute_number": {
+                    "title": "Attribute number",
+                    "type": "integer",
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_region",
+                        "message": "To modify this parameter, enable the corresponding region first."
+                      }
+                    ],
+                    "description": "The index of the attribute to apply to this region.",
+                    "oneOf": [
+                      {
+                        "title": "0",
+                        "const": 0
+                      },
+                      {
+                        "title": "1",
+                        "const": 1
+                      },
+                      {
+                        "title": "2",
+                        "const": 2
+                      },
+                      {
+                        "title": "3",
+                        "const": 3
+                      },
+                      {
+                        "title": "4",
+                        "const": 4
+                      },
+                      {
+                        "title": "5",
+                        "const": 5
+                      },
+                      {
+                        "title": "6",
+                        "const": 6
+                      },
+                      {
+                        "title": "7",
+                        "const": 7
+                      }
+                    ],
+                    "default": 0
+                  },
+                  "access_permission": {
+                    "title": "Access permission",
+                    "type": "string",
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_region",
+                        "message": "To modify this parameter, enable the corresponding region first."
+                      }
+                    ],
+                    "description": "This defines which types of accesses are allowed for the region.",
+                    "oneOf": [
+                      {
+                        "title": "All read",
+                        "const": "ALL_RO"
+                      },
+                      {
+                        "title": "Privilege read",
+                        "const": "ONLY_PRIV_RO"
+                      },
+                      {
+                        "title": "All read/write",
+                        "const": "ALL_RW"
+                      },
+                      {
+                        "title": "Privilege read/write",
+                        "const": "ONLY_PRIV_RW"
+                      }
+                    ],
+                    "default": "ONLY_PRIV_RW"
+                  },
+                  "instruction_access": {
+                    "title": "Instruction access",
+                    "type": "boolean",
+                    "default": true,
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_region",
+                        "message": "To modify this parameter, enable the corresponding region first."
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

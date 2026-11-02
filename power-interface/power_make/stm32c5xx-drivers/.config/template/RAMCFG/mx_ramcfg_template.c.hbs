@@ -1,0 +1,285 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_ramcfg_template.c.hbs
+  * @brief          : RAMCFG Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{~assign "strategy" (@root.EnvVarAPI.getVariableValue 'SYSTEM_PROJECT_CODEGEN_STRATEGY')~}}
+{{~log "strategy" @root.strategy~}}
+{{#if (eq @root.strategy "SW")}}
+  {{~assign 'instances' (@root.SWConfigurationAPI.getInstances 'STMicroelectronics::Device:STM32CubeMX2 Config:RAMCFG')~}}
+{{else}}
+  {{~assign "strategy" 'HW'~}}
+  {{~assign 'parent_resource' (get 'peripheral')~}}
+  {{~assign 'instances' (get 'context')~}}
+{{/if}}
+{{~log "RAMCFG template instances:" (toJSON @root.instances)~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.parent_resource}}.c
+  * @brief          : {{@root.parent_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.parent_resource}}.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#if (eq @root.strategy "SW")}}
+/******************************************************************************/
+/* Exported functions for shared {{@root.parent_resource}} resources */
+/******************************************************************************/
+  {{~assign 'only_ll' true~}}
+  {{#each @root.instances~}}
+    {{~assign 'ramcfg_cxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~assign 'current_layer' @root.ramcfg_cxt.info.layer~}}
+    {{#if (eq @root.current_layer 'HAL')}}
+      {{~assign 'only_ll' false~}}
+    {{/if}}
+  {{/each}}
+  {{#if @root.only_ll}}
+system_status_t mx_{{lowercase @root.current_resource}}_ll_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+  return SYSTEM_OK;
+}
+
+void mx_{{lowercase @root.current_resource}}_ll_deinit(void)
+{
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+}
+  {{else}}
+hal_status_t mx_{{lowercase @root.current_resource}}_hal_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+return HAL_OK;
+}
+
+hal_status_t mx_{{lowercase @root.current_resource}}_hal_deinit(void)
+{
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+}
+  {{/if}}
+
+{{/if}}
+
+{{~assign 'nvic_context' 'undefined'~}}
+{{~assign 'nvic_nmi_context' 'undefined'~}}
+{{~assign 'generate_global_handler' false~}}
+{{#each @root.instances}}
+  {{#if (eq @root.strategy "HW")}}
+    {{~assign 'current_resource' (append 'RAMCFG_' (replace this 'RAMCFG.' ''))~}}
+    {{~log "RAMCFG template current_resource:" @root.current_resource~}}
+    {{~assign 'configs' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+    {{~log "RAMCFG template configs:" @root.configs~}}
+  {{else}}
+    {{~assign 'ramcfg_cxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~assign 'current_resource' (@root.peripheralsResourceManagerAPI.getPeripheralBoundToSoftwareInstance this)~}}
+    {{~assign 'current_layer' @root.ramcfg_cxt.info.layer~}}
+    {{~assign 'configs' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+  {{/if}}
+  {{~assign 'ramcfg_lut_table' (helper_ramcfg_get_lut_table 'V1')~}}
+  {{~helper_common_initialize_ll_code @root.optim_enable @root.ramcfg_lut_table @root.current_resource~}}
+  {{#each @root.configs~}}
+    {{~assign 'config' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~log "RAMCFG template config:" @root.config~}}
+    {{#with @root.config}}
+      {{~assign 'current_layer' info.layer~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+      {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+      {{#if (eq @root.current_layer 'HAL')}}
+{{!
+Generation of initialization function used in HAL
+~}}
+        {{#if system.nvic.ramcfg_interruption }}
+          {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.irq_config1.needs @root.current_resource system.nvic.irq_handler_generation)~}}
+        {{/if}}
+        {{#if system.nvic.irq_handler_generation }}
+          {{~assign 'generate_global_handler' true~}}
+        {{/if}}
+        {{#if system.nvic.nmi_interruption }}
+          {{~assign 'nvic_nmi_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_nmi_context system.nvic.irq_config_nmi.needs @root.current_resource system.nvic.irq_handler_generation_nmi)~}}
+        {{/if}}
+
+hal_ramcfg_t {{@root.fct_name}}_init(void)
+{
+        {{#if (eq @root.strategy "HW")}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+        {{/if}}
+        {{#if additional.enable_ecc}}
+          {{#if (or (helper_ramcfg_is_global_it_enabled this) (helper_ramcfg_is_ecc_nmi_enabled this))}}
+
+  HAL_RAMCFG_ECC_Enable_IT(HAL_{{@root.current_resource}}, {{helper_ramcfg_get_it_enum 'HAL' this}});
+          {{else}}
+
+  HAL_RAMCFG_ECC_Enable(HAL_{{@root.current_resource}});
+          {{/if}}
+        {{/if}}
+        {{#if system.nvic.ramcfg_interruption}}
+
+  /* Enable the interruption for RAMCFG */
+{{#> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.irq_config1.needs}}
+{{/CORTEX}}
+        {{/if}}
+
+  return HAL_{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+        {{#if additional.enable_ecc}}
+  HAL_RAMCFG_ECC_Disable(HAL_{{@root.current_resource}});
+        {{/if}}
+}
+      {{else}}
+{{!
+Generation of initialization function used in LL
+~}}
+        {{#if system.nvic.ramcfg_interruption }}
+          {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.irq_config1.needs @root.current_resource false)~}}
+        {{/if}}
+        {{#if system.nvic.nmi_interruption }}
+          {{~assign 'nvic_nmi_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_nmi_context system.nvic.irq_config_nmi.needs @root.current_resource false)~}}
+        {{/if}}
+
+RAMCFG_TypeDef *{{@root.fct_name}}_init(void)
+{
+        {{#if (eq @root.strategy "HW")}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+        {{/if}}
+        {{#if additional.enable_ecc}}
+          {{#if (or (helper_ramcfg_is_global_it_enabled this) (helper_ramcfg_is_ecc_nmi_enabled this))}}
+
+  {{helper_common_gen_ll_code 'LL_RAMCFG_ClearFlag' 'LL_RAMCFG_FLAG_ECC_ALL'}}
+  LL_RAMCFG_EnableIT({{@root.current_resource}}, {{helper_ramcfg_get_it_enum 'LL' this}});
+          {{/if}}
+
+  LL_RAMCFG_EnableECC({{@root.current_resource}});
+        {{/if}}
+        {{#if system.nvic.ramcfg_interruption}}
+
+  /* Enable the interruption for RAMCFG */
+{{#> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.irq_config1.needs}}
+{{/CORTEX}}
+        {{/if}}
+
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+        {{#if additional.enable_ecc}}
+          {{#if (or (helper_ramcfg_is_global_it_enabled this) (helper_ramcfg_is_ecc_nmi_enabled this))}}
+  LL_RAMCFG_DisableIT({{@root.current_resource}}, LL_RAMCFG_IT_ALL);
+          {{/if}}
+
+  LL_RAMCFG_SetECCKey({{@root.current_resource}}, (uint32_t)LL_RAMCFG_ECC_KEY_1);
+  LL_RAMCFG_SetECCKey({{@root.current_resource}}, (uint32_t)LL_RAMCFG_ECC_KEY_2);
+  LL_RAMCFG_DisableECC({{@root.current_resource}});
+        {{/if}}
+}
+      {{/if}}
+      {{#with security_privilege}}
+        {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+        {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/******************************************************************************/
+/*                   privileged attributes management             */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_privilege(void)
+        {{else}}
+/******************************************************************************/
+/*                  Security and privileged attributes management             */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+        {{/if}}
+{
+
+        {{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}
+        {{/RIF}}
+
+  return SYSTEM_OK;
+}
+      {{/with}}
+      {{#if @root.only_ll}}
+        {{~assign 'generate_global_handler' false~}}
+      {{/if}}
+    {{/with}}
+
+  {{/each}}
+{{/each}}
+{{#if (eq @root.generate_global_handler true)}}
+/******************************************************************************/
+/* RAMCFG global interrupt (Grouping interrupts of all active RAMCFG instances)*/
+/******************************************************************************/
+void RAMCFG_IRQHandler(void)
+{
+  {{#each @root.nvic_context}}
+    {{#with (helper_ramcfg_parse_nvic_context this)}}
+      {{#if generate_handler}}
+  HAL_RAMCFG_IRQHandler(HAL_{{instance}});
+      {{else}}
+/* Managed directly in user code.
+HAL_RAMCFG_IRQHandler(HAL_{{instance}});
+*/
+      {{/if}}
+
+    {{/with}}
+  {{/each}}
+}
+{{else}}
+/******************************************************************************/
+/* RAMCFG global interrupt (Grouping interrupts of all active RAMCFG instances)*/
+/******************************************************************************/
+/* Managed directly in user code.
+void RAMCFG_IRQHandler(void)
+{
+}
+*/
+{{/if}}
+{{~assign 'nmi_irq_info_list' (helper_cortex_nvic_get_irqline_info_list @root.NvicAPI @root.nvic_nmi_context 'RAMCFG')~}}
+{{#if (not (isEmpty @root.nmi_irq_info_list))}}
+  {{#withFirst @root.nmi_irq_info_list}}
+
+/******************************************************************************/
+/* {{description}} */
+/******************************************************************************/
+  {{/withFirst}}
+{{/if}}
+{{#each @root.nmi_irq_info_list}}
+  {{#if generate_handler}}
+system_status_t {{resource_hw}}_NMI_IRQHandler(void)
+{
+  return ((HAL_RAMCFG_NMI_IRQHandler(HAL_{{resource_hw}}) == HAL_OK) ? SYSTEM_OK : SYSTEM_PERIPHERAL_ERROR);
+}
+  {{else}}
+__WEAK system_status_t {{resource_hw}}_NMI_IRQHandler(void)
+{
+  /* NOTE : This function is a weak implementation for the RAMCFG NMI handler.
+            User can override it to handle ECC NMI errors for RAMCFG.
+  */
+  /* Status to be updated to SYSTEM_OK when the user IRQhandler manages the NMI error */
+  return SYSTEM_PERIPHERAL_ERROR;
+}
+  {{/if}}
+{{/each}}
+{{/helper_common_beautifier}}
