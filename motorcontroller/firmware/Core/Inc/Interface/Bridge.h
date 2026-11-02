@@ -3,6 +3,7 @@
 
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
 typedef struct {
@@ -18,7 +19,7 @@ typedef struct {
 	float common_voltage;
 	float total_consumption;
 	ThrusterMeasurement thruster_measurements[4];
-} ThrusterMeasurements;
+} ThrusterMeasurementSet;
 
 typedef struct {
 	float voltage;
