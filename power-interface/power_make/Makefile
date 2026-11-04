@@ -13,7 +13,7 @@ HAL_INCLUDES := -I.\
 		-Istm32c5xx-dfp/Include/Templates
 
 # Add files here when you need to
-SRC := main.c can.c spi.c sdcard.c interrupts.c init.c gpio.c power.c silence.c
+SRC := main.c can.c spi.c sdcard.c indicator.c interrupts.c init.c gpio.c power.c silence.c
 SRC_OBJS := $(addprefix build/,$(patsubst %.c,%.o,$(SRC)))
 
 CC := arm-none-eabi-gcc
