@@ -17,8 +17,8 @@ int (*ifns[])(void* payload) =
 	[FI_CAN_SENT] = power_can_sentcallback,
 	[FI_CAN_RESEND] = can_resend,
 	[FI_CAN_ERR] = power_can_errcallback,
-	[FI_SPI_RECVD] = power_spi_slavecallback,
-	[FI_SPI_SENT] = power_spi_mastercallback,
+	[FI_SPI_SDM] = power_spi_sdmcallback,
+	[FI_SPI_INM] = power_spi_inmcallback,
 	[FI_SPI_ERR] = power_spi_errcallback,
 	[FI_STICK] = power_stick_callback,
 };

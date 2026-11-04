@@ -30,7 +30,7 @@ uint8_t buf[206] =
 // there are also some bit-indices and their sizes
 // these determine the position of the bit value
 // and the number of ones to be written
-uint16_t indices[24] =
+uint16_t bit_indices[24] =
 {
 	0x009, 0x022, 0x03C, 0x056, 0x070, 0x089, 0x0A3, 0x0BD,
 	0x0D6, 0x0F0, 0x10A, 0x124, 0x13D, 0x157, 0x171, 0x18A,
@@ -65,11 +65,11 @@ int indicator_send(uint8_t r, uint8_t g, uint8_t b)
 	{
 		for(int j = 0; j < sizes[i]; ++j)
 		{
-			buf[(indices[i] + j) >> 3] |= (v & 1) << (7 - ((indices[i] + j) & 7)); // big endian bit order
-			buf[(indices[i] + j) >> 3] &= ~(!(v & 1) << (7 - ((indices[i] + j) & 7))); // same here
+			buf[(bit_indices[i] + j) >> 3] |= (v & 1) << (7 - ((bit_indices[i] + j) & 7)); // big endian bit order
+			buf[(bit_indices[i] + j) >> 3] &= ~(!(v & 1) << (7 - ((bit_indices[i] + j) & 7))); // same here
 		}
 	}
-	HAL_SPI_TransmitReceive_IT(pindicator_spi, buf, recvdummy, 206);
+	HAL_SPI_TransmitReceive_IT(pinspim, buf, recvdummy, 206);
 	return 0;
 }
 

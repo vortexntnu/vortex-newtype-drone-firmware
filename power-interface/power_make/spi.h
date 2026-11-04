@@ -10,13 +10,14 @@
 
 #include <stm32c5xx_hal_spi.h>
 
-int spi_init_master(void);
-int spi_init_slave(void);
-int spi_master_send(char* data, int len);
-char* spi_master_getdata(void);
-char* spi_slave_getgata(void);
-int spi_slave_recv(int len);
+int spi_sdm_init(void); // sd card spi
+int spi_inm_init(void); // indicator spi
+int spi_sdm_send(char* data, int len);
+char* spi_sdm_getdata(void);
+int spi_inm_recv(int len);
+char* spi_inm_getgata(void);
 
-extern hal_spi_handle_t* pindicator_spi;
+extern hal_spi_handle_t* psdspim; // pointer to secure digital serial peripheral interface master
+extern hal_spi_handle_t* pinspim; // pointer to indicator serial peripheral interface master
 
 #endif /* SPI_H_ */

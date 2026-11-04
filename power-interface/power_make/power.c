@@ -3,6 +3,7 @@
 #include "power.h"
 #include "spi.h"
 #include "sdcard.h"
+#include "indicator.h"
 
 enum canide
 {
@@ -54,7 +55,7 @@ int power_can_rping(int caninst)
 {
 //	spi_slave_recv(8); // this is currently not init
 	((uint32_t*)spibuf)[0] = 0xadde;
-	spi_master_send((char*)spibuf, 8);
+	spi_sdm_send((char*)spibuf, 8);
 	power_can_spong(caninst, 0x42);
 	return 0;
 }
@@ -99,18 +100,19 @@ int power_can_errcallback(void* unused)
 	return 0;
 }
 
-int power_spi_slavecallback(void* unused)
+int power_spi_sdmcallback(void* unused)
 {
-	int* c = (int*)spi_slave_getgata();
-	power_can_spong(1, c[0]);
+	power_can_spong(1, 0x32);
+	sdcard_do();
 
 	return 0;
 }
 
-int power_spi_mastercallback(void* unused)
+int power_spi_inmcallback(void* unused)
 {
-	power_can_spong(1, 0x32);
-	sdcard_do();
+	int* c = (int*)spi_inm_getgata();
+	indicator_send_done();
+	power_can_spong(1, c[0]);
 
 	return 0;
 }

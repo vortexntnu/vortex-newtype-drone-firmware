@@ -116,11 +116,10 @@ int main(void)
 
 	can_init(1, HAL_GPIOB, HAL_GPIO_PIN_8, HAL_GPIO_PIN_9);
 	noerr(2);
-	//flash_init();
-//	spi_init_slave();
-//	noerr(2);
+	spi_inm_init();
+	noerr(2);
 //
-	spi_init_master(); // can't use blink after this
+	spi_sdm_init();
 //	sdcard_startup(); // this starts init, when interrupt loop starts init will continue
 
 //	push_interrupt(1, FI_CAN_RECVD, NULL);

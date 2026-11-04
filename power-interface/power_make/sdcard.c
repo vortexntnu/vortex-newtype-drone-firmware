@@ -88,13 +88,13 @@ int sdcard_wait() // wait for response
 {
 	CSLO;
 	char dummy = 0xff;
-	spi_master_send(&dummy, 1);
+	spi_sdm_send(&dummy, 1);
 	return 2;
 }
 int sdcard_waited() // if we haven't got real data, wait some more
 {
-	uint8_t data = spi_master_getdata()[0];
-	power_can_spong(data);
+	uint8_t data = spi_sdm_getdata()[0];
+	power_can_spong(1, data);
 	if(data == 0xff)
 		return sdcard_wait();
 	sd_response[0] = data;
@@ -105,12 +105,12 @@ int sdcard_waited() // if we haven't got real data, wait some more
 		return sdcard_do();
 	}
 	char dummies[waitbytes];
-	spi_master_send(dummies, waitbytes); // wait for long response
+	spi_sdm_send(dummies, waitbytes); // wait for long response
 	return 3;
 }
 int sdcard_done_waiting() // if the response is long, get it
 {
-	char* data = spi_master_getdata();
+	char* data = spi_sdm_getdata();
 	for(int i = 0; i < waitbytes; ++i)
 	{
 		sd_response[i + 1] = data[i];
@@ -118,7 +118,7 @@ int sdcard_done_waiting() // if the response is long, get it
 	waitbytes = 0;
 	CSHI;
 	char dummy = 0xff;
-	spi_master_send(&dummy, 1); // clocks after transmission
+	spi_sdm_send(&dummy, 1); // clocks after transmission
 	return 4;
 }
 int sdcard_waited_more() // waited for dummy clocks after transmission
@@ -130,7 +130,7 @@ int sdcard_waited_more() // waited for dummy clocks after transmission
 char* response;
 int sdcard_do(void)
 {
-//	power_can_spong(waitstate);
+//	power_can_spong(1, waitstate);
 	if(waitstate == 1)
 		return waitstate = sdcard_wait();
 	if(waitstate == 2)
@@ -140,7 +140,7 @@ int sdcard_do(void)
 	if(waitstate == 4)
 		return waitstate = sdcard_waited_more();
 	if(!~state)
-		power_can_spong(0x789);
+		power_can_spong(1, 0x789);
 	state = sdcard_fns[state]();
 	return 0;
 }
@@ -153,7 +153,7 @@ int sdcard_startup(void)
 	{
 		((uint32_t*)dummies)[i] = 0xffffffff;
 	}
-	spi_master_send((char*)dummies, 16);
+	spi_sdm_send((char*)dummies, 16);
 	return SDCARD_STARTUP_VAL;
 }
 int sdcard_startup_val(void)
@@ -171,7 +171,7 @@ int sdcard_command(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, u
 	};
 	waitstate = 1;
 	waitbytes = rlen;
-	return spi_master_send((char*)seq, 6);
+	return spi_sdm_send((char*)seq, 6);
 }
 
 // from section 7.3.2.1 of the sd card spec
@@ -184,12 +184,12 @@ int sdcard_cmd0(void)
 }
 int sdcard_cmd0_val(void)
 {
-	power_can_spong(0x63);
+	power_can_spong(1, 0x63);
 	if(sd_response[0] == SPI_IN_IDLE_STATE)
 	{
 		return sdcard_cmd8();
 	}
-	power_can_spong(0x123);
+	power_can_spong(1, 0x123);
 	return SDCARD_CMD0_VAL;
 }
 
@@ -206,12 +206,12 @@ int sdcard_cmd8_val(void)
 	uint8_t check = sd_response[4];
 	if(check != 0xaa)
 	{
-		power_can_spong(0x45);
+		power_can_spong(1, 0x45);
 	}
 	uint8_t vrange = sd_response[3] & 0xf;
 	if(vrange != 0x01) // 2.7-3.6, section 4.9.6
 	{
-		power_can_spong(0x46);
+		power_can_spong(1, 0x46);
 	}
 	acmdstate = SDCARD_ACMD41;
 	return sdcard_cmd55();
@@ -228,7 +228,7 @@ int sdcard_cmd55_val(void)
 	uint8_t r1 = sd_response[0];
 	if(r1 != 0x01) // first bit is idle state, sec 7.3.2.1
 	{
-		power_can_spong(0x47);
+		power_can_spong(1, 0x47);
 	}
 	return sdcard_fns[acmdstate]();
 }
@@ -259,7 +259,7 @@ int sdcard_cmd58_val(void)
 	ocr = *(uint32_t*)&sd_response[1];
 	if(r1 != 0x00) // no error
 	{
-		power_can_spong(0x48);
+		power_can_spong(1, 0x48);
 	}
 	return -1;
 }
@@ -283,7 +283,7 @@ int sdcard_cmd24_val(void)
 {
 	uint8_t r1 = sd_response[0]; // response from write is r1
 	if(r1)
-		power_can_spong(0x49);
+		power_can_spong(1, 0x49);
 	return sdcard_senddata();
 }
 int sdcard_senddata(void)
@@ -291,23 +291,23 @@ int sdcard_senddata(void)
 	CSLO;
 	uint8_t starttok = 0xfe; // start of write single or read single or multiple, sec 7.3.3.2
 	uint16_t nocrc = 0x0000; // crc is disabled by default, and is not enabled explicitly
-	spi_master_send((char*)&starttok, 1);
-	spi_master_send(wrdata, 512);
-	spi_master_send((char*)&nocrc, 2);
+	spi_sdm_send((char*)&starttok, 1);
+	spi_sdm_send(wrdata, 512);
+	spi_sdm_send((char*)&nocrc, 2);
 	return SDCARD_SENDDATA_VAL;
 }
 int sdcard_senddata_val(void)
 {
 	uint8_t r1 = sd_response[0];
 	if(r1)
-		power_can_spong(0x4a);
+		power_can_spong(1, 0x4a);
 	return sdcard_wait_busy();
 }
 int sdcard_wait_busy(void)
 {
 	CSLO;
 	uint8_t dummy = 0xff;
-	spi_master_send((char*)&dummy, 1);
+	spi_sdm_send((char*)&dummy, 1);
 	return SDCARD_WAIT_BUSY_VAL;
 }
 int sdcard_wait_busy_val(void)
