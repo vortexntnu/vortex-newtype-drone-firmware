@@ -39,6 +39,7 @@ Note that a multitude of these constants don't have accurate values
 | Measurement | $\tilde{I}_{ESC}$ | Current drawn by the ESC |$\mathbb{R}$| $\mathrm{A}$ |
 | Measurement | $\tilde{I}_{Q}$ | Current drawn by MCU |$\mathbb{R}$| $\mathrm{A}$ |
 | Constant | $R_L$ | Harness resistance | IDK | $\mathrm{\Omega}$ |
+| Constant | $R$ | Total bus resistance | IDK | $\mathrm{\Omega}$ |
 
 ### Thrusters variables and constants
 | Type | Symbol | Description | Domain | Units |
@@ -59,7 +60,7 @@ Note that a multitude of these constants don't have accurate values
 | Coefficient | $k_{Tf}$ | Thrust coefficient forward| $3.73\cdot 10^{-4}$ | $\mathrm{N\cdot s^2/rad^2}$ |
 | Coefficient | $k_{Tb}$ | Thrust coefficient forward| $2.96\cdot 10^{-4}$ | $\mathrm{N\cdot s^2/rad^2}$ |
 | Coefficient | $k_Q$ | Torque Coefficient | $3.73\cdot 10^{-6}$ | $\mathrm{N\cdot m\cdot s^2/rad^2}$ |
-| Constant | $b$ | Viscous friction constant | $420\cdot 10^{-9}$ | $\mathrm{N\cdot m\cdot s/rad}$ |
+| Constant | $B$ | Viscous friction constant | $420\cdot 10^{-9}$ | $\mathrm{N\cdot m\cdot s/rad}$ |
 | Constant | $J_M$ | Moment of inertia | $5.85\cdot 10^{-6}$ | $\mathrm{kg\cdot m^2}$ |
 
 ### BMS variables and constants
@@ -68,5 +69,30 @@ Note that a multitude of these constants don't have accurate values
 | Measurement | $\tilde{V}_{BMS}$ | Measured BMS voltage | $\mathbb{R}$ | $\mathrm{V}$ |
 | Measurement | $\tilde{I}_{BMS}$ | Total current draw from BMS | $\mathbb{R}$ | $\mathrm{A}$ |
 | Estimate | $\hat{I}_{AUV}$ | Current drawn by the rest of the AUV | $\mathbb{R}$ | $\mathrm{A}$ |
-| Coefficient | $V_B$ | Internal battery voltage | $(12, 16)$ | $\mathrm{V}$ |
+| Estimate | $\hat V_B$ | Internal battery voltage | $(12, 16)$ | $\mathrm{V}$ |
+| Estimate | $\hat V$ | The constant voltage | $(12, 16)$ | $\mathrm{V}$ |
 | Constant | $R_B$ | Battery internal resistance | $5$ | $\mathrm{m\Omega}$ |
+
+## 4. Model
+
+### Electrical Input Coefficients 
+$$
+\hat V_B := \tilde{V}_{BMS} + R_B\cdot \tilde{I}_{BMS}\\
+\hat{I}_{AUV} := \tilde{I}_{BMS} - \tilde{I}_{ESC}\\
+\underline{\hat V := \hat V_B -\hat{I}_{AUV}} \\
+\underline{R := R_B + R_L}
+$$
+### ESC and Motor model
+$$
+\tilde{I}_{ESC} := \boldsymbol{d}^T \boldsymbol{i} \\
+\tilde{V}_{ESC} := \hat{V} -R \cdot{\tilde{I}_{ESC}} \\
+\boldsymbol{\tilde{v}}  := \boldsymbol{d}\tilde{V}_{ESC} \\
+\underline{\boldsymbol{\tilde{v}} = \boldsymbol{d}\hat{V} -R \cdot{\boldsymbol{d}\boldsymbol{d}^T \boldsymbol{i}}} \\
+L_M\frac{d}{dt}\boldsymbol{i} = \boldsymbol{\tilde{v}} - R_M \boldsymbol{i} - K \boldsymbol{\omega} \\
+\underline{L_M\frac{d}{dt}\boldsymbol{i} = -(R \cdot{\boldsymbol{d}\boldsymbol{d}^T} + R_M I)\boldsymbol{i} + \boldsymbol{d}\hat{V}   - K \boldsymbol{\omega}} \\
+$$
+
+### ESC and Motor model
+$$
+\underline{L_M\frac{d}{dt}\boldsymbol{i} = -(R \cdot{\boldsymbol{d}\boldsymbol{d}^T} + R_M I)\boldsymbol{i} + \boldsymbol{d}\hat{V}   - K \boldsymbol{\omega}} \\
+$$
