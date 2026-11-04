@@ -10,7 +10,7 @@
 
 ## Overview
 
-This is where all the firmware and firmware related files are
+This is where all the firmware and firmware related files are.
 
 ---
 

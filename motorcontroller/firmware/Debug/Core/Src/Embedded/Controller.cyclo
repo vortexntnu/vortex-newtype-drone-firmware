@@ -1,4 +1,0 @@
-../Core/Src/Embedded/controller.c:20:6:controller_init	1
-../Core/Src/Embedded/controller.c:25:6:controller_main	1
-../Core/Src/Embedded/controller.c:31:6:controller_blinky	1
-../Core/Src/Embedded/controller.c:41:6:controller_can	1

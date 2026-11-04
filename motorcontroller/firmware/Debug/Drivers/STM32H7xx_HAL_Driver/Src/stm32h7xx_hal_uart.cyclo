@@ -5,11 +5,11 @@
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:632:19:HAL_UART_DeInit	2
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:677:13:HAL_UART_MspInit	1
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:692:13:HAL_UART_MspDeInit	1
-../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1119:19:HAL_uart_transmit	11
+../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1119:19:HAL_UART_Transmit	11
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1217:19:HAL_UART_Receive	16
-../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1309:19:HAL_uart_transmit_IT	11
+../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1309:19:HAL_UART_Transmit_IT	11
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1377:19:HAL_UART_Receive_IT	7
-../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1418:19:HAL_uart_transmit_DMA	7
+../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1418:19:HAL_UART_Transmit_DMA	7
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1488:19:HAL_UART_Receive_DMA	7
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1524:19:HAL_UART_DMAPause	9
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart.c:1554:19:HAL_UART_DMAResume	8
