@@ -1,4 +1,5 @@
 #include <Embedded/dshot.h>
+#include <Embedded/debug.h>
 
 extern TIM_HandleTypeDef htim1;
 
@@ -51,7 +52,19 @@ static void send_packet(DShotChannel* Channel)
     write_to_buffer(Channel, packet);
 
     HAL_StatusTypeDef status = HAL_TIM_PWM_Start_DMA(Channel->htim, Channel->channel, (uint32_t*)Channel->buffer, DSHOT_BIT_COUNT + 1);
-    if (status != HAL_OK) Channel->busy = false;
+    if (status != HAL_OK) {
+    	Channel->busy = false;
+    }
+
+//    if (status == HAL_ERROR) {
+//    	debug_print("Hal error");
+//    }
+//    if (status == HAL_BUSY) {
+//		debug_print("Hal busy");
+//        }
+//    if (status == HAL_TIMEOUT) {
+//		debug_print("Hal timeout");
+//	}
 }
 
 
