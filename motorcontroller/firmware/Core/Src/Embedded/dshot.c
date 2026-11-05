@@ -13,6 +13,7 @@ static DShotChannel channels[DSHOT_CHANNEL_COUNT] = {
 
 //
 
+//this is a test
 
 void dshot_init()
 {
