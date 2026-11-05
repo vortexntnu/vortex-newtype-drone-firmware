@@ -4,12 +4,6 @@
 #include <math.h>
 #include <stddef.h>
 
-/*
-Embedded, you need to call this function in the motor control task. The forces will be put in the input force array.
-Probably add some logic related to the status codes.
-Read thrust_allocator.h for more info about arguments.
-*/
-
 AllocatorStatus thrust_allocator_solve(const AllocatorInputs *inputs,
                                        double forces[8], double *cost)
 {
