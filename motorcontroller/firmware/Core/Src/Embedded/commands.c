@@ -22,23 +22,30 @@ typedef struct {
 //
 
 
-void command_dshot_set_duty(CommandContext *context)
+void command_dshot_set_throttle(CommandContext *context)
 {
-	if (context->arguments_count == 0) {
-		debug_print("No duty given");
+	if (context->arguments_count < 2) {
+		debug_print("Usage: dshot setthrottle {channel} {throttle}");
 		return;
 	}
 
-	char *duty_string = context->arguments_vector[0];
-	uint32_t duty;
+	char *channel_string = context->arguments_vector[0];
+	char *throttle_string = context->arguments_vector[1];
+	uint32_t channel;
+	uint32_t throttle;
 
-	if (!converter_string_to_uint(&duty, duty_string)) {
-		debug_print("Invalid DShot duty");
+	if (!converter_string_to_uint(&channel, channel_string)) {
+		debug_print("Invalid DShot channel");
 		return;
 	}
 
-	debug_print("Setting DShot duty to %", duty_string);
-	dshot_set_duty(duty, false);
+	if (!converter_string_to_uint(&throttle, throttle_string)) {
+		debug_print("Invalid DShot throttle");
+		return;
+	}
+
+	debug_print("Setting DShot channel %'s throttle to %", channel_string, throttle_string);
+	dshot_set_throttle(channel, throttle);
 }
 
 
@@ -46,7 +53,7 @@ void command_dshot_set_duty(CommandContext *context)
 
 
 static const StaticCommand COMMAND_TABLE[] = {
-	{"dshot", "setduty", command_dshot_set_duty},
+	{"dshot", "setthrottle", command_dshot_set_throttle},
 };
 
 #define COMMAND_COUNT (sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]))

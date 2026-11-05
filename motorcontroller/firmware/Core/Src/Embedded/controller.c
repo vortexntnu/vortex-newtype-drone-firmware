@@ -11,8 +11,6 @@ UART_HandleTypeDef *COMMUNICATION_PORT = &hcom_uart[COM1];
 
 
 
-
-
 //
 
 

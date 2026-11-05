@@ -1,8 +1,9 @@
-../Core/Src/Embedded/dshot.c:29:6:dshot_init	3
-../Core/Src/Embedded/dshot.c:36:10:dshot_calculate_checksum	1
-../Core/Src/Embedded/dshot.c:45:10:dshot_calculate_packet	1
-../Core/Src/Embedded/dshot.c:53:6:dshot_write_to_buffer	3
-../Core/Src/Embedded/dshot.c:64:6:dshot_send_packet	1
-../Core/Src/Embedded/dshot.c:72:6:HAL_TIM_PWM_PulseFinishedCallback	2
-../Core/Src/Embedded/dshot.c:82:6:dshot_update	2
-../Core/Src/Embedded/dshot.c:93:6:dshot_set_duty	1
+../Core/Src/Embedded/dshot.c:16:17:calculate_checksum	1
+../Core/Src/Embedded/dshot.c:25:17:calculate_packet	1
+../Core/Src/Embedded/dshot.c:33:13:write_to_buffer	3
+../Core/Src/Embedded/dshot.c:44:13:send_packet	3
+../Core/Src/Embedded/dshot.c:61:6:HAL_TIM_PWM_PulseFinishedCallback	8
+../Core/Src/Embedded/dshot.c:90:6:dshot_init	4
+../Core/Src/Embedded/dshot.c:102:6:dshot_update	2
+../Core/Src/Embedded/dshot.c:110:6:dshot_set_throttle	2
+../Core/Src/Embedded/dshot.c:116:6:dshot_set_telemetry	2
