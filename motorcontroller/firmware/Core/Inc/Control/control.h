@@ -1,8 +1,8 @@
 #ifndef EXAMPLE_H_
 #define EXAMPLE_H_
 
-#include <bridge.h>
-#include <debug.h>
+#include "Interface/bridge.h"
+#include "Embedded/debug.h"
 #include <stdint.h>
 
 typedef enum
