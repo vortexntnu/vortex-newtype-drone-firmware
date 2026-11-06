@@ -1,9 +1,10 @@
 #ifndef WEIGHT_H_
 #define WEIGHT_H_
 
-#include "main.h"
+#include <main.h>
+#include <stdbool.h>
 
-void Weight_Init();
-uint16_t Weight_Read(uint8_t cellIndex);
+void weight_init();
+bool weight_read(uint8_t cell, int32_t* output);
 
 #endif

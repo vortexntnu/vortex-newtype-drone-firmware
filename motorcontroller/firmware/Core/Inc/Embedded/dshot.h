@@ -1,6 +1,7 @@
 #ifndef DSHOT_H_
 #define DSHOT_H_
 
+#include <Embedded/debug.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <main.h>

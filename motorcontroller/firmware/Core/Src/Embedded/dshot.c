@@ -1,5 +1,4 @@
 #include <Embedded/dshot.h>
-#include <Embedded/debug.h>
 
 extern TIM_HandleTypeDef htim1;
 
