@@ -18,7 +18,7 @@ typedef struct {
 
 
 LoadChannel LoadChannels[LOAD_CHANNEL_COUNT] = {
-	{ .hspi = &hspi1, .tare = -113658, .scale = 1 }
+	{ .hspi = &hspi1, .tare = -113658, .scale = 211 }
 //	{ .hspi = hspi2 }
 };
 
@@ -51,7 +51,8 @@ static int32_t fetch_weight(LoadChannel *Channel)
 
 	return weight;
 }
-
+// 1272g 0
+// 268500
 bool weight_read(int32_t *output)
 {
 	for (uint8_t i = 0; i < LOAD_CHANNEL_COUNT; i++)

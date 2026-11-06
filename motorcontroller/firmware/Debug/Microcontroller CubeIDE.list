@@ -2497,7 +2497,8 @@ static int32_t fetch_weight(LoadChannel *Channel)
  80013c2:	bd80      	pop	{r7, pc}
 
 080013c4 <weight_read>:
-
+// 1272g 0
+// 268500
 bool weight_read(int32_t *output)
 {
  80013c4:	b580      	push	{r7, lr}
