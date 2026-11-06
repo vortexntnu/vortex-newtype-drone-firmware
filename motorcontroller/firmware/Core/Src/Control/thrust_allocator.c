@@ -4,12 +4,6 @@
 #include <math.h>
 #include <stddef.h>
 
-/*
-Embedded, you need to call this function in the motor control task. The forces will be put in the input force array.
-Probably add some logic related to the status codes.
-Read thrust_allocator.h for more info about arguments.
-*/
-
 AllocatorStatus thrust_allocator_solve(const AllocatorInputs *inputs,
                                        double forces[8], double *cost)
 {
@@ -20,8 +14,8 @@ AllocatorStatus thrust_allocator_solve(const AllocatorInputs *inputs,
         if (!isfinite(inputs->tau[i])) return THRUST_ALLOCATOR_INVALID_INPUT;
     }
     for (int i = 0; i < 8; ++i) {
-        if (!isfinite(inputs->lower[i]) || !isfinite(inputs->upper[i]) ||
-            !isfinite(inputs->x0[i]) || inputs->lower[i] > inputs->upper[i]) {
+        if (!isfinite(inputs->lower_force_bound[i]) || !isfinite(inputs->upper_force_bound[i]) ||
+            !isfinite(inputs->x0[i]) || inputs->lower_force_bound[i] > inputs->upper_force_bound[i]) {
             return THRUST_ALLOCATOR_INVALID_INPUT;
         }
     }
@@ -29,7 +23,7 @@ AllocatorStatus thrust_allocator_solve(const AllocatorInputs *inputs,
     double candidate[8];
     double candidate_cost;
     const casadi_real *arguments[allocator_solve_SZ_ARG] = {
-        inputs->tau, inputs->lower, inputs->upper, inputs->x0
+        inputs->tau, inputs->lower_force_bound, inputs->upper_force_bound, inputs->x0
     };
     casadi_real *results[allocator_solve_SZ_RES] = {
         candidate, &candidate_cost
@@ -47,8 +41,8 @@ AllocatorStatus thrust_allocator_solve(const AllocatorInputs *inputs,
     }
 
     for (int i = 0; i < 8; ++i) {
-        if (!isfinite(candidate[i]) || candidate[i] < inputs->lower[i] - 1e-7 ||
-            candidate[i] > inputs->upper[i] + 1e-7) {
+        if (!isfinite(candidate[i]) || candidate[i] < inputs->lower_force_bound[i] - 1e-7 ||
+            candidate[i] > inputs->upper_force_bound[i] + 1e-7) {
             return THRUST_ALLOCATOR_INVALID_SOLUTION;
         }
     }
