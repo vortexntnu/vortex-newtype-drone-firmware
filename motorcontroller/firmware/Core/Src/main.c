@@ -54,25 +54,25 @@ DMA_HandleTypeDef hdma_tim1_ch2;
 DMA_HandleTypeDef hdma_tim1_ch3;
 DMA_HandleTypeDef hdma_tim1_ch4;
 
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
+/* Definitions for Main */
+osThreadId_t MainHandle;
+const osThreadAttr_t Main_attributes = {
+  .name = "Main",
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for Blinky */
-osThreadId_t BlinkyHandle;
-const osThreadAttr_t Blinky_attributes = {
-  .name = "Blinky",
+/* Definitions for DShot */
+osThreadId_t DShotHandle;
+const osThreadAttr_t DShot_attributes = {
+  .name = "DShot",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityRealtime,
 };
-/* Definitions for CAN */
-osThreadId_t CANHandle;
-const osThreadAttr_t CAN_attributes = {
-  .name = "CAN",
-  .stack_size = 128 * 4,
+/* Definitions for Weight */
+osThreadId_t WeightHandle;
+const osThreadAttr_t Weight_attributes = {
+  .name = "Weight",
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* USER CODE BEGIN PV */
@@ -88,8 +88,8 @@ static void MX_TIM1_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
 void RTOS_Main(void *argument);
-void RTOS_Blinky(void *argument);
-void RTOS_CAN(void *argument);
+void DShot_Task(void *argument);
+void Weight_Task(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -160,14 +160,14 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(RTOS_Main, NULL, &defaultTask_attributes);
+  /* creation of Main */
+  MainHandle = osThreadNew(RTOS_Main, NULL, &Main_attributes);
 
-  /* creation of Blinky */
-  BlinkyHandle = osThreadNew(RTOS_Blinky, NULL, &Blinky_attributes);
+  /* creation of DShot */
+  DShotHandle = osThreadNew(DShot_Task, NULL, &DShot_attributes);
 
-  /* creation of CAN */
-  CANHandle = osThreadNew(RTOS_CAN, NULL, &CAN_attributes);
+  /* creation of Weight */
+  WeightHandle = osThreadNew(Weight_Task, NULL, &Weight_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -515,49 +515,45 @@ void RTOS_Main(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  controller_main();
-	  osDelay(50);
+	  osDelay(controller_main());
   }
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_RTOS_Blinky */
+/* USER CODE BEGIN Header_DShot_Task */
 /**
-* @brief Function implementing the Blinky thread.
+* @brief Function implementing the DShot thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_RTOS_Blinky */
-void RTOS_Blinky(void *argument)
+/* USER CODE END Header_DShot_Task */
+void DShot_Task(void *argument)
 {
-  /* USER CODE BEGIN RTOS_Blinky */
+  /* USER CODE BEGIN DShot_Task */
   /* Infinite loop */
   for(;;)
   {
-	  controller_blinky();
-//    osDelay(1000/1000);
-	  osDelay(250);
+	  osDelay(controller_dshot());
   }
-  /* USER CODE END RTOS_Blinky */
+  /* USER CODE END DShot_Task */
 }
 
-/* USER CODE BEGIN Header_RTOS_CAN */
+/* USER CODE BEGIN Header_Weight_Task */
 /**
-* @brief Function implementing the CAN thread.
+* @brief Function implementing the Weight thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_RTOS_CAN */
-void RTOS_CAN(void *argument)
+/* USER CODE END Header_Weight_Task */
+void Weight_Task(void *argument)
 {
-  /* USER CODE BEGIN RTOS_CAN */
+  /* USER CODE BEGIN Weight_Task */
   /* Infinite loop */
   for(;;)
   {
-	  controller_can();
-    osDelay(2000);
+	  osDelay(controller_weight());
   }
-  /* USER CODE END RTOS_CAN */
+  /* USER CODE END Weight_Task */
 }
 
  /* MPU Configuration */

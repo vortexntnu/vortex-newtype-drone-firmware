@@ -5,17 +5,20 @@
 extern SPI_HandleTypeDef hspi1;
 extern SPI_HandleTypeDef hspi2;
 
+
+#define LOAD_CHANNEL_COUNT 1
+#define RAW_READING_HISTORY_LENGTH 10
+
 typedef struct {
 	SPI_HandleTypeDef *hspi;
 	int32_t tare;
 	int32_t scale;
-	int32_t raw_readings[10];
+	int32_t raw_readings[RAW_READING_HISTORY_LENGTH];
 } LoadChannel;
 
-#define LOAD_CHANNEL_COUNT 1
 
 LoadChannel LoadChannels[LOAD_CHANNEL_COUNT] = {
-	{ .hspi = &hspi1, .tare = -113300, .scale = 1 }
+	{ .hspi = &hspi1, .tare = -113658, .scale = 1 }
 //	{ .hspi = hspi2 }
 };
 
@@ -23,11 +26,11 @@ LoadChannel LoadChannels[LOAD_CHANNEL_COUNT] = {
 //
 
 
-static void append_raw_reading(LoadChannel *Channel, uint32_t raw_reading)
+static void append_raw_reading(LoadChannel *Channel, int32_t raw_reading)
 {
-	for (uint8_t i = sizeof(Channel->raw_readings) - 2; i > 0; i--)
+	for (uint8_t i = RAW_READING_HISTORY_LENGTH - 1; i > 0; i--)
 	{
-		Channel->raw_readings[i] = Channel->raw_readings[i + 1];
+		Channel->raw_readings[i] = Channel->raw_readings[i - 1];
 	}
 
 	Channel->raw_readings[0] = raw_reading;
@@ -63,25 +66,24 @@ bool weight_read(int32_t *output)
 bool weight_tare(uint8_t channel)
 {
 	LoadChannel *Channel = &LoadChannels[channel];
-	int32_t count = sizeof(Channel->raw_readings);
 	int32_t sum = 0;
 
-	for (int32_t i = 0; i < count; i ++)
+	for (int32_t i = 0; i < RAW_READING_HISTORY_LENGTH; i++)
 	{
 		sum += Channel->raw_readings[i];
 	}
 
-	int32_t average = sum / count;
-
-	char string[11];
-	converter_int_to_string(string, average);
-	debug_print("Average: %", string);
+	int32_t average = sum / RAW_READING_HISTORY_LENGTH;
+	Channel->tare = average;
 
 	return true;
 }
 
 bool weight_tareall()
 {
-
+	for (uint8_t i = 0; i < LOAD_CHANNEL_COUNT; i++)
+	{
+		weight_tare(i);
+	}
 	return true;
 }

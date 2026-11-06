@@ -6,8 +6,8 @@
 ../Core/Src/main.c:455:13:MX_DMA_Init	1
 ../Core/Src/main.c:482:13:MX_GPIO_Init	1
 ../Core/Src/main.c:511:6:RTOS_Main	1
-../Core/Src/main.c:531:6:RTOS_Blinky	1
-../Core/Src/main.c:551:6:RTOS_CAN	1
-../Core/Src/main.c:565:6:MPU_Config	1
-../Core/Src/main.c:600:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:618:6:Error_Handler	1
+../Core/Src/main.c:530:6:DShot_Task	1
+../Core/Src/main.c:548:6:Weight_Task	1
+../Core/Src/main.c:561:6:MPU_Config	1
+../Core/Src/main.c:596:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:614:6:Error_Handler	1
