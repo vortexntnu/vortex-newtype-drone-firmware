@@ -1,6 +1,7 @@
 #include <commands.h>
 #include <converter.h>
 #include <dshot.h>
+#include <weight.h>
 
 
 
@@ -22,15 +23,15 @@ typedef struct {
 //
 
 
-void command_dshot_set_throttle(CommandContext *context)
+void command_dshot_set_throttle(CommandContext *Context)
 {
-	if (context->arguments_count < 2) {
+	if (Context->arguments_count < 2) {
 		debug_print("Usage: dshot setthrottle {channel} {throttle}");
 		return;
 	}
 
-	char *channel_string = context->arguments_vector[0];
-	char *throttle_string = context->arguments_vector[1];
+	char *channel_string = Context->arguments_vector[0];
+	char *throttle_string = Context->arguments_vector[1];
 	uint32_t channel;
 	uint32_t throttle;
 
@@ -52,8 +53,37 @@ void command_dshot_set_throttle(CommandContext *context)
 //
 
 
+void command_weight_tare(CommandContext *Context)
+{
+	if (Context->arguments_count < 1) {
+		debug_print("Usage: weight tare {channel}");
+		return;
+	}
+
+	char *channel_string = Context->arguments_vector[0];
+	uint32_t channel;
+
+	if (!converter_string_to_uint(&channel, channel_string)) {
+		debug_print("Invalid weight channel");
+		return;
+	}
+
+	weight_tare(channel);
+}
+
+void command_weight_tareall(CommandContext *Context)
+{
+	weight_tareall();
+}
+
+
+//
+
+
 static const StaticCommand COMMAND_TABLE[] = {
 	{"dshot", "setthrottle", command_dshot_set_throttle},
+	{"weight", "tare", command_weight_tare},
+	{"weight", "tareall", command_weight_tareall},
 };
 
 #define COMMAND_COUNT (sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]))
