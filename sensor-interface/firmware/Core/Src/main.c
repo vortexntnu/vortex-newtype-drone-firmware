@@ -24,55 +24,20 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include <string.h>          // for memcpy
+#include "stim.h"
+#include "sensor_msg.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-// One sensor group as sent by the STIM: X, Y, Z followed by one status byte (Table 6-19)
-typedef struct {
-  int32_t xyz[3];      // 24-bit two's complement raw counts, sign-extended to 32 bits
-  uint8_t status;      // status byte, Table 6-22 (0 = OK)
-} stim_axis3_t;
 
-// Temperatures for one sensor group: X, Y, Z (16-bit) followed by one status byte
-typedef struct {
-  int16_t xyz[3];      // 16-bit two's complement raw counts
-  uint8_t status;
-} stim_temp3_t;
 
-// One decoded Normal Mode datagram (ID 0xAF), raw counts, no unit conversion
-typedef struct {
-  stim_axis3_t gyro;         // bytes 1-10
-  stim_axis3_t accel;        // bytes 11-20
-  stim_axis3_t incl;         // bytes 21-30
-  stim_temp3_t gyro_temp;    // bytes 31-37
-  stim_temp3_t accel_temp;   // bytes 38-44
-  stim_temp3_t incl_temp;    // bytes 45-51
-  int32_t      aux;          // bytes 52-54 (24-bit)
-  uint8_t      aux_status;   // byte 55
-  uint8_t      counter;      // byte 56, internal sample counter (2000/s, wraps at 255)
-  uint16_t     latency_us;   // bytes 57-58, unsigned, already in microseconds
-  uint8_t      valid;        // 1 if all 7 status bytes are 0
-  uint64_t     timestamp_us; // filled in later (step 5)
-} stim_sample_t;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define RX_BUF_SIZE 1024
-#define STIM_FRAME_LEN 63
-#define STIM_FRAME_ID 0xAF
 
-//
-#define STIM_S24_SIGN_BIT   (1u << 23)     // sign bit of a 24-bit two's complement value
-#define STIM_S24_EXTEND     0xFF000000u    // bits 31-24: set to 1 for negative values -- sign extension
-
-
-//crc
-#define STIM_CRC_POLY      0x04C11DB7u   // datasheet 6.3.7
-#define STIM_CRC_SEED      0xFFFFFFFFu   // datasheet 6.3.7
-#define STIM_CRC_DATA_LEN  59            // bytes 0..58 are covered by the CRC
 
 /* USER CODE END PD */
 
@@ -95,33 +60,7 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-__attribute__((aligned(32)))
-static uint8_t stim_rx[RX_BUF_SIZE];          // DMA writes STIM300 bytes here (circular)
-static uint8_t stim_frame[STIM_FRAME_LEN];
-static stim_sample_t stim_latest;   // most recent verified, decoded sample
-static uint16_t rx_last = 0;                  // where we stopped reading last time
-static int  stim_frame_wr_index = 0;          // Write index for stim_frame 0 to 63
-static volatile uint32_t stim_frames = 0;     // how many complete frames have been assembled?
-static volatile uint32_t stim_bytes = 0;      // bytes received this second
-static uint8_t stim_synced = 0;
-static volatile uint32_t stim_errors = 0;     // UART errors (framing, overrun, noise)
-//crc
-static volatile uint32_t stim_crc_errors = 0;   // frames dropped because the CRC didn't match
-
-// Frame 20 pre-captured data, used for a CRC self-test at startup (expected CRC = 9E9ED1D9)
-static const uint8_t stim_test_frame[STIM_FRAME_LEN] = {
-  0xAF,0xFF,0xE9,0xF8,0xFF,0xB0,0x2E,0x00,0x3E,0x40,0x00,0xFF,0xE2,0x3B,0xFF,0xF3,
-  0x00,0x0F,0xEE,0x91,0x00,0xFF,0x63,0x92,0xFF,0xB1,0x47,0x41,0xF2,0x88,0x00,0x25,
-  0xE7,0x25,0xE4,0x25,0x67,0x00,0x25,0xF7,0x25,0xEC,0x26,0x04,0x00,0x26,0x80,0x26,
-  0xAC,0x26,0x80,0x00,0xFF,0xFD,0x43,0x00,0x41,0x01,0xFB,0x9E,0x9E,0xD1,0xD9 };
-
-//state
-typedef enum {
-    HUNT,
-    COLLECT
-} stim_frame_state_t;
-
-static stim_frame_state_t stim_frame_state = HUNT;
+osMessageQueueId_t sensor_queue;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -134,19 +73,7 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-static void stim_feed(const uint8_t *data, uint16_t len);
-static void stim_decode(const uint8_t *frame, stim_sample_t *out);
 
-static uint8_t stim_crc8(const char *s, size_t len);
-static void stim_send_cmd(const char *body);
-static void stim_configure(void);
-
-static int32_t stim_s24(const uint8_t *p);
-static int16_t stim_s16(const uint8_t *p);
-
-//crc
-static uint32_t stim_crc32_byte(uint32_t crc, uint8_t byte);
-static int stim_frame_crc_ok(const uint8_t *frame);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -195,16 +122,12 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
   setvbuf(stdout, NULL, _IONBF, 0);       // turn off printf buffering so text appears immediately
   printf("\r\nSTIM300 test start\r\n");   // board booted and printf works
-  printf("CRC self-test: %s\r\n", stim_frame_crc_ok(stim_test_frame) ? "PASS" : "FAIL");
-  printf("s24 test: %ld %ld\r\n", (long)stim_s24(&stim_test_frame[1]), (long)stim_s24(&stim_test_frame[7]));
-  stim_sample_t t;
-  stim_decode(stim_test_frame, &t);
-  printf("decode test: accZ %ld inclZ %ld gyroT_X %d lat %u cnt %u valid %u\r\n",
-         (long)t.accel.xyz[2], (long)t.incl.xyz[2], (int)t.gyro_temp.xyz[0],
-         (unsigned)t.latency_us, (unsigned)t.counter, (unsigned)t.valid);
+  stim_self_test();                       // CRC and decode checks on a stored test frame
   // STIM reception is started in StartDefaultTask(), once the RTOS is running
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -224,6 +147,8 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  sensor_queue = osMessageQueueNew(64, sizeof(sensor_msg_t), NULL); // 64 is a buffer to help vs ethernet delay. Right now, 64 messages * 104 bytes = 6.5 KB of FreeRTOS heap.
+  if (sensor_queue == NULL) printf("sensor_queue: not enough FreeRTOS heap\r\n");
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -438,200 +363,17 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-static int32_t stim_s24(const uint8_t *p)
-{
-  uint32_t v = ((int32_t)p[0] << 16) | ((int32_t)p[1] << 8) | (int32_t)p[2];  // 0 .. 0xFFFFFF
-  if (v & STIM_S24_SIGN_BIT)    // bit 23 set: the 24-bit value is negative
-  {
-    v |= STIM_S24_EXTEND;            // Sign extension -- pad 1's to bit 31-24 so it's a negative number
-  }
-  return (int32_t)v; // cast signed v
-}
-
-static int16_t stim_s16(const uint8_t *p)
-{
-  uint16_t v = ((uint16_t)p[0] << 8) | (uint16_t)p[1];
-  return (int16_t)v;
-}
-
-// CRC-8 for Utility Mode (11.2.3): poly 0x07, seed 0xFF
-static uint8_t stim_crc8(const char *s, size_t len)
-{
-  uint8_t crc = 0xFF;
-  for (size_t i = 0; i < len; i++)
-  {
-    crc ^= (uint8_t)s[i];
-    for (int b = 0; b < 8; b++)
-      crc = (crc & 0x80u) ? (uint8_t)((crc << 1) ^ 0x07u) : (uint8_t)(crc << 1);
-  }
-  return crc;
-}
-
-// Build "$<body>,<crc><CR>" and send it, e.g. body = "sgf,x,1"
-static void stim_send_cmd(const char *body)
-{
-  char cmd[100];
-  int n = snprintf(cmd, sizeof cmd, "$%s,", body);                       // "$sgf,x,1,"
-  n += snprintf(cmd + n, sizeof cmd - n, "%u\r", (unsigned)stim_crc8(cmd, (size_t)n));
-  HAL_UART_Transmit(&huart2, (uint8_t *)cmd, (uint16_t)n, 100);
-}
-
-static void stim_configure(void)
-{
-  HAL_UART_Transmit(&huart2, (uint8_t *)"\rSERVICEMODE\r", 13, 100);
-  osDelay(500);                                             // let it print its info block
-  HAL_UART_Transmit(&huart2, (uint8_t *)"m 3\r", 4, 100);  // sample rate -> 1000 samples/s
-  osDelay(100);
-  HAL_UART_Transmit(&huart2, (uint8_t *)"x N\r", 4, 100);  // back to Normal Mode, not saved
-}
-
-
 // Called by HAL (from interrupt) on DMA half-full, DMA full, and UART idle line
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t pos)
 {
-  if (huart->Instance != USART2) return;   // only handle the STIM300 UART
-
-  // D-cache is off right now; this keeps the code correct if it is enabled later
-  SCB_InvalidateDCache_by_Addr((uint32_t *)stim_rx, RX_BUF_SIZE); // relies that stim_rx is aligned 32 bit
-
-  // pos     = how far the DMA has written into the buffer (0..1024)
-  // rx_last = where we stopped reading last time (not necessarily a datagram boundary)
-  if (pos != rx_last)
-  {
-    if (pos > rx_last)
-    {
-      // one continuous block
-      stim_feed(&stim_rx[rx_last], pos - rx_last); // aka send dma buffer from rx_last to (pos-rx_last )
-    }
-    else
-    {
-      // DMA wrapped around: rest of the buffer, then the start
-      if (rx_last < RX_BUF_SIZE)
-      {
-        stim_feed(&stim_rx[rx_last], RX_BUF_SIZE - rx_last);
-      }
-      stim_feed(stim_rx, pos);
-    }
-    rx_last = pos;   // keep 1024 as-is so a duplicate "pos = 1024" event is ignored
-  }
+  if (huart->Instance == USART2) stim_on_rx_event(pos);
 }
 
-// Any UART error stops reception in HAL: count it and restart
+// Any UART error stops reception in HAL: count it and restart the USART instance
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-  if (huart->Instance == USART2)
-  {
-    stim_errors++;
-    rx_last = 0;
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, stim_rx, RX_BUF_SIZE);
-  }
+  if (huart->Instance == USART2) stim_on_uart_error();
 }
-
-//crc
-// Feed one byte into the CRC-32: MSB first, no reflection (datasheet 6.3.7)
-static uint32_t stim_crc32_byte(uint32_t crc, uint8_t byte)
-{
-  crc ^= (uint32_t)byte << 24;            // put the byte into the top 8 bits of the register
-  for (int bit = 0; bit < 8; bit++)
-  {
-    if (crc & 0x80000000u)                // top bit is 1: shift it out and XOR in the polynomial
-      crc = (crc << 1) ^ STIM_CRC_POLY;
-    else                                  // top bit is 0: just shift
-      crc = crc << 1;
-  }
-  return crc;
-}
-
-// Returns 1 if bytes 59..62 match the CRC of bytes 0..58 plus one 0x00 dummy byte
-static int stim_frame_crc_ok(const uint8_t *frame)
-{
-  uint32_t crc = STIM_CRC_SEED;
-  for (int i = 0; i < STIM_CRC_DATA_LEN; i++)
-  {
-    crc = stim_crc32_byte(crc, frame[i]);
-  }
-  crc = stim_crc32_byte(crc, 0x00);       // dummy byte for the 0xAF datagram (Table 6-21)
-
-  uint32_t rx_crc = ((uint32_t)frame[59] << 24) |   // CRC is sent most significant byte first
-                    ((uint32_t)frame[60] << 16) |
-                    ((uint32_t)frame[61] << 8)  |
-                     (uint32_t)frame[62];
-  return crc == rx_crc;
-}
-
-// Decode a CRC-verified 0xAF frame (63 bytes) into raw-count fields (Table 6-19)
-// Decode a CRC-verified 0xAF frame (63 bytes) into raw-count fields (Table 6-19)
-static void stim_decode(const uint8_t *frame, stim_sample_t *out)
-{
-  for (int k = 0; k < 3; k++)   // k = 0, 1, 2 -> X, Y, Z
-  {
-    out->gyro.xyz[k]       = stim_s24(&frame[1 + 3 * k]);
-    out->accel.xyz[k]      = stim_s24(&frame[11 + 3 * k]);
-    out->incl.xyz[k]       = stim_s24(&frame[21 + 3 * k]);
-
-    out->gyro_temp.xyz[k]  = stim_s16(&frame[31 + 2 * k]);
-    out->accel_temp.xyz[k] = stim_s16(&frame[38 + 2 * k]);
-    out->incl_temp.xyz[k]  = stim_s16(&frame[45 + 2 * k]);
-  }
-
-  out->gyro.status       = frame[10];
-  out->accel.status      = frame[20];
-  out->incl.status       = frame[30];
-  out->gyro_temp.status  = frame[37];
-  out->accel_temp.status = frame[44];
-  out->incl_temp.status  = frame[51];
-
-  out->aux        = stim_s24(&frame[52]);
-  out->aux_status = frame[55];
-  out->counter    = frame[56];
-  out->latency_us = (uint16_t)((frame[57]<<8) | frame[58]);
-
-  out->valid = (out->gyro.status | out->accel.status | out->incl.status | out->gyro_temp.status | out->accel_temp.status | out->incl_temp.status | out->aux_status) == 0;
-}
-
-static void new_byte_arrived(const uint8_t data)
- {
-     switch (stim_frame_state)
-     {
-     case HUNT:
-    	 if (data == STIM_FRAME_ID) {
-    		 stim_frame_wr_index = 0;
-    		 stim_frame[stim_frame_wr_index] = data;
-    		 stim_frame_state = COLLECT;
-    	 }
-         break;
-
-     case COLLECT:
-    	 stim_frame_wr_index += 1;
-    	 stim_frame[stim_frame_wr_index] = data;
-    	 if (stim_frame_wr_index == (STIM_FRAME_LEN-1)) {
-			 if (stim_frame_crc_ok(stim_frame)) {//crc
-			   stim_decode(stim_frame, &stim_latest);
-			   stim_synced = 1;
-			   stim_frames += 1;               // verified frame
-			 } else {
-				 if (stim_synced == 1) { // Reception can start mid-frame, so the first lock may be false.
-					 stim_crc_errors += 1;           // false lock or corrupted frame: drop it
-				 }
-			   //stim_synced = 0;
-			 }
-         stim_frame_state = HUNT;          // start over
-    	 }
-    	 break;
-     }
- }
-
-static void stim_feed(const uint8_t *data, uint16_t len) // personal note: i get in data, use len to not use more than necessary blabla
-{
-  stim_bytes += len;   // replace with the real datagram parser later
-  for(int i = 0; i < len; ++i) {
-	  new_byte_arrived(data[i]);
-  }
-
-
-}
-
-
 
 
 /* USER CODE END 4 */
@@ -646,32 +388,33 @@ static void stim_feed(const uint8_t *data, uint16_t len) // personal note: i get
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-	  // Start STIM reception (moved here from main so it begins once the RTOS is running)
-	  __HAL_UART_SEND_REQ(&huart2, UART_RXDATA_FLUSH_REQUEST);  // throw away the stale byte sitting in RDR
-	  __HAL_UART_CLEAR_OREFLAG(&huart2);                        // clear the overrun flag left over from before
-	  if (HAL_UARTEx_ReceiveToIdle_DMA(&huart2, stim_rx, RX_BUF_SIZE) != HAL_OK)
-	  {
-	    printf("DMA start failed\r\n");
-	  }
+	  stim_start(&huart2);   // start STIM reception now that the RTOS is running
 
-	  while (stim_frames == 0) osDelay(10);   // wait until the STIM is in Normal Mode
-	  stim_configure();                       // apply our settings via Utility Mode
+	  while (stim_get_frame_count() == 0) osDelay(10);   // wait until the STIM is in Normal Mode
+	  stim_configure();                                  // apply our settings via Service Mode (Our stim300 is older and does not have Utility Mode)
 	  printf("STIM configured\r\n");
-	  //static const uint8_t zeros[64] = {0};
-	  //for (;;) HAL_UART_Transmit(&huart2, (uint8_t *)zeros, sizeof zeros, 100);   // TEST: line mostly low
-	  for (;;)
-	  {
-	    osDelay(1000);   // sleep 1 s; the CPU is free for other tasks meanwhile
 
-	    uint32_t n = stim_bytes;  stim_bytes = 0;
-	    uint32_t f = stim_frames; stim_frames = 0;
-	    printf("STIM: %lu bytes/s, %lu frames/s, crc errors: %lu, uart errors: %lu\r\n",
-	           n, f, stim_crc_errors, stim_errors);
-	    printf("  accZ %ld  inclZ %ld  gyroT_X %d  lat %u  cnt %u  valid %u\r\n",
-	           (long)stim_latest.accel.xyz[2], (long)stim_latest.incl.xyz[2],
-	           (int)stim_latest.gyro_temp.xyz[0], (unsigned)stim_latest.latency_us,
-	           (unsigned)stim_latest.counter, (unsigned)stim_latest.valid);
-	  }
+
+	  // This loop is purely for debugging. Prints into terminal every second.
+	  stim_stats_t prev = {0};
+	    for (;;)
+	    {
+	      osDelay(1000);   // sleep 1 s
+
+	      stim_stats_t now;
+	      stim_sample_t s;
+	      stim_get_stats(&now);
+	      stim_get_latest(&s);
+
+	      printf("STIM: %lu bytes/s, %lu frames/s, crc errors: %lu, uart errors: %lu\r\n",
+	             (unsigned long)(now.bytes - prev.bytes), (unsigned long)(now.frames - prev.frames),
+	             (unsigned long)now.crc_errors, (unsigned long)now.uart_errors);
+	      printf("  accZ %ld  inclZ %ld  gyroT_X %d  lat %u  cnt %u  valid %u\r\n",
+	             (long)s.accel.z, (long)s.incl.z, (int)s.gyro_temp.x,
+	             (unsigned)s.latency_us, (unsigned)s.counter, (unsigned)s.valid);
+	      prev = now;
+	    }
+
   /* USER CODE END 5 */
 }
 
