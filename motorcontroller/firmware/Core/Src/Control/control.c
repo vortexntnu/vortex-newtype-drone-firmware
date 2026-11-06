@@ -26,22 +26,22 @@ AllocatorStatus control_allocate_thrust(float wrench[6], AllocatorParams allocat
 		inputs.tau[i] = wrench[i];
 	}
 	for (int i = 0; i < 8; ++i) {
-		float forward = allocator_parameters.max_thrust_forward[i];
-		float reverse = allocator_parameters.max_thrust_reverse[i];
-		if (forward < 0.0f || reverse < 0.0f) {
+		float forward_max = allocator_parameters.max_thrust_forward[i];
+		float reverse_max = allocator_parameters.max_thrust_reverse[i];
+		if (forward_max < 0.0f || reverse_max < 0.0f) {
 			return THRUST_ALLOCATOR_INVALID_INPUT;
 		}
-		//Make sure we use this convention
-		inputs.lower[i] = -reverse;
-		inputs.upper[i] = forward;
+		/* Reverse thrust is negative. Both maximum magnitudes above are positive. */
+		inputs.lower_force_bound[i] = -reverse_max;
+		inputs.upper_force_bound[i] = forward_max;
 		double initial = previous_forces != NULL ? previous_forces[i] : 0.0;
 		if (!isfinite(initial)) {
 			return THRUST_ALLOCATOR_INVALID_INPUT;
 		}
 
 		//Might be unecessary if we use constant bounds
-		if (initial < inputs.lower[i]) initial = inputs.lower[i];
-		if (initial > inputs.upper[i]) initial = inputs.upper[i];
+		if (initial < inputs.lower_force_bound[i]) initial = inputs.lower_force_bound[i];
+		if (initial > inputs.upper_force_bound[i]) initial = inputs.upper_force_bound[i];
 		inputs.x0[i] = initial;
 	}
 
