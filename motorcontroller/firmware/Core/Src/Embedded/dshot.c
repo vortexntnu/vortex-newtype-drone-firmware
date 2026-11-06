@@ -3,10 +3,10 @@
 extern TIM_HandleTypeDef htim1;
 
 static DShotChannel channels[DSHOT_CHANNEL_COUNT] = {
-	{ .htim = &htim1, .channel = TIM_CHANNEL_1 },
-	{ .htim = &htim1, .channel = TIM_CHANNEL_2 },
-	{ .htim = &htim1, .channel = TIM_CHANNEL_3 },
-	{ .htim = &htim1, .channel = TIM_CHANNEL_4 },
+	{ .htim = &htim1, .channel = TIM_CHANNEL_1, .telemetry = true },
+//	{ .htim = &htim1, .channel = TIM_CHANNEL_2 },
+//	{ .htim = &htim1, .channel = TIM_CHANNEL_3 },
+//	{ .htim = &htim1, .channel = TIM_CHANNEL_4 },
 };
 
 
@@ -55,15 +55,15 @@ static void send_packet(DShotChannel* Channel)
     	Channel->busy = false;
     }
 
-//    if (status == HAL_ERROR) {
-//    	debug_print("Hal error");
-//    }
-//    if (status == HAL_BUSY) {
-//		debug_print("Hal busy");
-//        }
-//    if (status == HAL_TIMEOUT) {
-//		debug_print("Hal timeout");
-//	}
+    if (status == HAL_ERROR) {
+    	debug_print("Hal error");
+    }
+    if (status == HAL_BUSY) {
+		debug_print("Hal busy");
+        }
+    if (status == HAL_TIMEOUT) {
+		debug_print("Hal timeout");
+	}
 }
 
 
@@ -82,7 +82,8 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
     	default: return;
     }
 
-    HAL_TIM_PWM_Stop_DMA(htim, channel);
+//    HAL_TIM_PWM_Stop_DMA(htim, channel);
+    __HAL_TIM_DISABLE_DMA(htim, channel);
 
     for (int i = 0; i < DSHOT_CHANNEL_COUNT; i++)
     {

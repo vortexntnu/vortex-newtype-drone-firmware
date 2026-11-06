@@ -1,0 +1,5 @@
+../Core/Src/Embedded/esc.c:14:16:crc8	4
+../Core/Src/Embedded/esc.c:25:17:be16	1
+../Core/Src/Embedded/esc.c:31:13:listen	17
+../Core/Src/Embedded/esc.c:37:6:HAL_UARTEx_RxEventCallback	4
+../Core/Src/Embedded/esc.c:63:6:esc_init	1

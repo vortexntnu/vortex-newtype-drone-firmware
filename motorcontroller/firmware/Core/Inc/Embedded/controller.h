@@ -6,6 +6,7 @@
 #include <dshot.h>
 #include <weight.h>
 #include <main.h>
+#include <esc.h>
 #include <stdbool.h>
 
 void controller_init();

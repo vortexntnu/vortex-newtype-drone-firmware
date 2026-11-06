@@ -7,7 +7,7 @@
 #include <main.h>
 
 #define DSHOT_BIT_COUNT 16
-#define DSHOT_CHANNEL_COUNT 4
+#define DSHOT_CHANNEL_COUNT 1
 
 typedef struct {
 	TIM_HandleTypeDef *htim;
