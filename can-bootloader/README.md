@@ -17,9 +17,16 @@ Can-bootloader for stm32c5.
 Currently configured to work on stm32c542RC, probably needs other ports on CC.
 
 To build:
-Either use the IDE, configure it correctly, and press the build button.
-OR
-Use 'cmake --build build/debug_GCC_NUCLEO-C542RC'.
+make
+
+To flash:
+make flash
+
+To flash to secondary bank:
+make flash-secondary
+
+To flash to both banks (for when you don't know what bank you are on):
+make flash-both
 
 ## Libraries/Dependencies
 
