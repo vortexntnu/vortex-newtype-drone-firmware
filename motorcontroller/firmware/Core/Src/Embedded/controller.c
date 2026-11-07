@@ -12,9 +12,11 @@ uint32_t controller_weight()
 {
 	BSP_LED_Toggle(LED_RED);
 
+//	esc_fetch_latest_telemetry();
+
 //	int32_t weight_value;
 //	char weight_string[20];
-
+//
 //	weight_read(&weight_value);
 //	converter_int_to_string(weight_string, weight_value);
 //	debug_print("Weight: %", weight_string);

@@ -1,5 +1,7 @@
 ../Core/Src/Embedded/esc.c:14:16:crc8	4
 ../Core/Src/Embedded/esc.c:25:17:be16	1
-../Core/Src/Embedded/esc.c:31:13:listen	17
-../Core/Src/Embedded/esc.c:37:6:HAL_UARTEx_RxEventCallback	4
+../Core/Src/Embedded/esc.c:31:13:listen	18
+../Core/Src/Embedded/esc.c:39:6:HAL_UARTEx_RxEventCallback	4
+../Core/Src/Embedded/esc.c:58:6:HAL_UART_ErrorCallback	2
 ../Core/Src/Embedded/esc.c:63:6:esc_init	1
+../Core/Src/Embedded/esc.c:69:14:esc_fetch_latest_telemetry	1
