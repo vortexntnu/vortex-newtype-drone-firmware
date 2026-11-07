@@ -1,0 +1,2518 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:CORE",
+  "grammarVersion": "3.8",
+  "license": "LICENSE.md",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/common_helpers.js",
+      "accessor": "com"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "common": {
+          "type": "object",
+          "title": "HAL common",
+          "properties": {
+            "prefetch_enable": {
+              "type": "boolean",
+              "title": "Prefetch",
+              "description": "Use FLASH prefetch.",
+              "default": true
+            },
+            "check_param": {
+              "type": "boolean",
+              "title": "Parameters runtime check",
+              "description": "Enable runtime parameter check (USE_HAL_CHECK_PARAM).",
+              "default": false
+            },
+            "secure_check_param": {
+              "type": "boolean",
+              "title": "Parameters runtime check for sensitive APIs",
+              "description": "Enable runtime sensitive parameter secure check (USE_HAL_SECURE_CHECK_PARAM).",
+              "default": false
+            },
+            "check_process_state": {
+              "type": "boolean",
+              "title": "Runtime check on the state during processing",
+              "description": "Enable protection of transition state to be thread-safe (USE_HAL_CHECK_PROCESS_STATE).",
+              "default": false
+            },
+            "assert_dbg_param": {
+              "type": "boolean",
+              "title": "Assert checks on function parameters",
+              "description": "Enable check param for HAL and LL (USE_ASSERT_DBG_PARAM define in pre-compilation). If enabled, 'assert_dbg_param_failed' function must be defined (check SYSTEM panel).",
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "CORE_PROJECT_USE_ASSERT_DBG_PARAM",
+                  "condition": "$value",
+                  "value": true
+                }
+              ],
+              "default": false,
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "assert_dbg_param",
+                "component": "HAL-CORE"
+              }
+            },
+            "assert_dbg_state": {
+              "type": "boolean",
+              "title": "Assert checks on module state",
+              "description": "Enable check state for HAL (USE_ASSERT_DBG_STATE define in pre-compilation). If enabled, 'assert_dbg_state_failed' function must be defined (check SYSTEM panel).",
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "CORE_PROJECT_USE_ASSERT_DBG_STATE",
+                  "condition": "$value",
+                  "value": true
+                }
+              ],
+              "default": false,
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "assert_dbg_state",
+                "component": "HAL-CORE"
+              }
+            },
+            "hal_mutex": {
+              "type": "boolean",
+              "title": "HAL mutex",
+              "description": "Enable semaphore creation for OS.",
+              "default": false
+            },
+            "hal_osal_selection": {
+              "type": "string",
+              "title": "HAL OSAL selection",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$common.hal_mutex"
+                }
+              ],
+              "oneOf": [
+                {
+                  "title": "HAL NO OS",
+                  "const": "HAL NO OS"
+                },
+                {
+                  "title": "HAL OS FreeRTOS",
+                  "const": "HAL OS FreeRTOS",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$get('swproject.hasRTOSenabled')",
+                      "message": "FreeRTOS must be enabled before selecting 'HAL OS FreeRTOS'."
+                    }
+                  ]
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_CORE_PROJECT_OSAL_SELECTION",
+                  "condition": "$value !== undefined",
+                  "computed_value": "$value"
+                }
+              ],
+              "default": "HAL NO OS"
+            },
+            "timebase_feature": {
+              "type": "object",
+              "title": "HAL timebase",
+              "properties": {
+                "hal_timebase_selection": {
+                  "type": "string",
+                  "title": "HAL timebase selection",
+                  "oneOf": [
+                    {
+                      "title": "SysTick",
+                      "const": "SYSTICK"
+                    },
+                    {
+                      "title": "RTC Alarm",
+                      "const": "RTC_ALARM"
+                    },
+                    {
+                      "title": "RTC Wakeup",
+                      "const": "RTC_WAKEUP"
+                    },
+                    {
+                      "title": "Timer",
+                      "const": "TIM"
+                    },
+                    {
+                      "title": "Custom",
+                      "description": "User has to implement the related functions: HAL_IncTick, HAL_GetTick, HAL_Delay, HAL_Delay_NoISR, HAL_SuspendTick and HAL_ResumeTick.",
+                      "const": "CUSTOM"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "warning",
+                      "condition": "($value === 'SYSTICK') && $get('swproject.hasRTOSenabled')",
+                      "message": "SysTick is already used by FreeRTOS. Pick a different timebase source."
+                    },
+                    {
+                      "type": "warning",
+                      "condition": "($value === 'TIM') && (!$common.timebase_feature.timer_selection?.selection)",
+                      "message": "No timer instance is selected. Pick one in 'Timer selection'. If there is no timer instance available, activate one in the peripherals view."
+                    },
+                    {
+                      "type": "warning",
+                      "condition": "(($value === 'RTC_ALARM') || ($value === 'RTC_WAKEUP')) && (!$common.timebase_feature.rtc_selection?.selection)",
+                      "message": "No RTC instance is selected. Pick one in 'RTC selection'. If there is no RTC instance available, activate one in the peripherals view."
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "CORE_PROJECT_TIMEBASE",
+                      "condition": "$value !== undefined",
+                      "computed_value": "$value"
+                    }
+                  ],
+                  "default": "SYSTICK"
+                },
+                "timer_selection": {
+                  "type": "object",
+                  "description": "Timer instance used for timebase.",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.timebase_feature.hal_timebase_selection === 'TIM'"
+                    }
+                  ],
+                  "objectType": "bind.peripheral.config",
+                  "criteria": {
+                    "peripheralType": [
+                      "tim"
+                    ]
+                  },
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "CORE_TIM_TIMEBASE",
+                      "condition": "$value !== undefined && $value.selection !== undefined",
+                      "computed_value": "$value.selection"
+                    }
+                  ],
+                  "title": "Timer selection"
+                },
+                "rtc_selection": {
+                  "type": "object",
+                  "description": "RTC instance used for timebase.",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.timebase_feature.hal_timebase_selection === 'RTC_ALARM' || $common.timebase_feature.hal_timebase_selection === 'RTC_WAKEUP'"
+                    }
+                  ],
+                  "objectType": "bind.peripheral.config",
+                  "criteria": {
+                    "peripheralType": [
+                      "rtc"
+                    ]
+                  },
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "CORE_RTC_WAKEUP_TIMEBASE",
+                      "condition": "$common.timebase_feature.hal_timebase_selection === 'RTC_WAKEUP' && $value !== undefined && $value.selection !== undefined",
+                      "computed_value": "$value.selection"
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "CORE_RTC_ALARM_TIMEBASE",
+                      "condition": "$common.timebase_feature.hal_timebase_selection === 'RTC_ALARM' && $value !== undefined && $value.selection !== undefined",
+                      "computed_value": "$value.selection"
+                    }
+                  ],
+                  "title": "RTC selection"
+                }
+              }
+            }
+          }
+        },
+        "used_components": {
+          "type": "boolean",
+          "title": "Used only",
+          "description": "Display only the components configured in the project.",
+          "default": true
+        },
+        "adc_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:ADC') == true"
+            }
+          ],
+          "type": "object",
+          "title": "HAL ADC",
+          "properties": {
+            "use_hal_adc_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL ADC",
+              "description": "Enable/Disable DMA code in HAL ADC (USE_HAL_ADC_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:ADC') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL ADC.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "title": "User data",
+              "description": "Enable the user data function in the HAL ADC.",
+              "default": false
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "title": "Get last errors",
+              "description": "Enable the get last errors in the HAL ADC.",
+              "default": false
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_ADC_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "aes_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:AES') == true"
+            }
+          ],
+          "type": "object",
+          "title": "HAL AES",
+          "properties": {
+            "use_hal_aes_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL AES",
+              "description": "Enable/Disable DMA code in HAL AES (USE_HAL_AES_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:AES') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL AES.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "title": "User data",
+              "description": "Enable the user data function in the HAL AES.",
+              "default": false
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "title": "Get last errors",
+              "description": "Enable the get last errors in the HAL AES.",
+              "default": false
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_AES_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_aes_ecb_cbc_algo": {
+              "type": "boolean",
+              "title": "ECB and/or CBC algorithm",
+              "description": "Electronic Code Book and/or Cipher Block Chaining algorithms (USE_HAL_AES_ECB_CBC_ALGO).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'AES_CORE_ECB_CBC_ALGO')",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'AES_CORE_ECB_CBC_ALGO')",
+                  "message": "Algorithm configured in AES panel."
+                }
+              ],
+              "default": false
+            },
+            "use_hal_aes_ctr_algo": {
+              "type": "boolean",
+              "title": "CTR algorithm",
+              "description": "Counter chaining mode algorithm (USE_HAL_AES_CTR_ALGO).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'AES_CORE_CTR_ALGO')",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'AES_CORE_CTR_ALGO')",
+                  "message": "Algorithm configured in AES panel."
+                }
+              ],
+              "default": false
+            },
+            "use_hal_aes_gcm_gmac_algo": {
+              "type": "boolean",
+              "title": "GCM/GMAC algorithm",
+              "description": "Galois/counter chaining mode algorithm (USE_HAL_AES_GCM_GMAC_ALGO).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'AES_CORE_GCM_GMAC_ALGO')",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'AES_CORE_GCM_GMAC_ALGO')",
+                  "message": "Algorithm configured in AES panel."
+                }
+              ],
+              "default": false
+            },
+            "use_hal_aes_ccm_algo": {
+              "type": "boolean",
+              "title": "CCM algorithm",
+              "description": "Cipher Block Chaining-Message algorithm (USE_HAL_AES_CCM_ALGO).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'AES_CORE_CCM_ALGO')",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'AES_CORE_CCM_ALGO')",
+                  "message": "Algorithm configured in AES panel."
+                }
+              ],
+              "default": false
+            },
+            "use_hal_aes_rng_recovery": {
+              "type": "boolean",
+              "title": "Rng recovery",
+              "description": "Enable the RNG recovery in the HAL AES.",
+              "default": true
+            },
+            "use_hal_aes_suspend_resume": {
+              "type": "boolean",
+              "title": "Use suspend/resume mode for AES",
+              "description": "Suspend/resume mode for AES peripheral (USE_HAL_AES_SUSPEND_RESUME).",
+              "default": true
+            }
+          }
+        },
+        "ccb_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:CCB') == true"
+            }
+          ],
+          "title": "HAL CCB",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL CCB.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "title": "User data",
+              "description": "Enable the user data function in the HAL CCB.",
+              "default": false
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "title": "Get last errors",
+              "description": "Enable the get last errors in the HAL CCB.",
+              "default": false
+            },
+            "use_hal_ccb_rng_recovery": {
+              "type": "boolean",
+              "title": "Rng recovery",
+              "description": "Enable the RNG recovery in the HAL CCB.",
+              "default": true
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_CCB_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "comp_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:COMP') == true"
+            }
+          ],
+          "type": "object",
+          "title": "HAL COMP",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL COMP.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL COMP.",
+              "default": false,
+              "title": "User data"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_COMP_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_comp_exti": {
+              "type": "boolean",
+              "title": "Use COMP with EXTI",
+              "description": "Use comparator with EXTI (USE_HAL_COMP_EXTI).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'COMP_CORE_USE_HAL_COMP_EXTI') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'COMP_CORE_USE_HAL_COMP_EXTI') == true",
+                  "message": "EXTI is enabled in a COMP SW instance"
+                }
+              ],
+              "default": false
+            },
+            "use_hal_comp_window_mode": {
+              "type": "boolean",
+              "title": "Use COMP window mode",
+              "description": "Use comparators window mode (USE_HAL_COMP_WINDOW_MODE).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'COMP_CORE_USE_HAL_COMP_WINDOW_MODE') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'COMP_CORE_USE_HAL_COMP_WINDOW_MODE') == true",
+                  "message": "Window mode is enabled in a COMP SW instance"
+                }
+              ],
+              "default": false
+            }
+          }
+        },
+        "cordic_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:CORDIC') == true"
+            }
+          ],
+          "title": "HAL CORDIC",
+          "type": "object",
+          "properties": {
+            "use_hal_cordic_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL CORDIC",
+              "description": "Enable/Disable DMA code in HAL CORDIC (USE_HAL_CORDIC_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:CORDIC') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL CORDIC.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL CORDIC.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL CORDIC.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_CORDIC_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "crc_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:CRC') == true"
+            }
+          ],
+          "title": "HAL CRC",
+          "type": "object",
+          "properties": {
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL CRC.",
+              "default": false,
+              "title": "User data"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_CRC_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "crs_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:CRS') == true"
+            }
+          ],
+          "title": "HAL CRS",
+          "type": "object",
+          "properties": {
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL CRS.",
+              "default": false,
+              "title": "User data"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_CRS_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL CRS.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL CRS.",
+              "default": false,
+              "title": "Use register callback"
+            }
+          }
+        },
+        "dac_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:DAC') == true"
+            }
+          ],
+          "title": "HAL DAC",
+          "type": "object",
+          "properties": {
+            "use_hal_dac_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL DAC",
+              "description": "Enable/Disable DMA code in HAL DAC (USE_HAL_DAC_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:DAC') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL DAC.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL DAC.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL DAC.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_DAC_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_dac_dual_channel": {
+              "type": "boolean",
+              "title": "Use DAC dual channel",
+              "description": "Dual Channels for DAC peripheral (USE_HAL_DAC_DUAL_CHANNEL).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'DAC_CORE_USE_HAL_DAC_DUAL_CHANNEL') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'DAC_CORE_USE_HAL_DAC_DUAL_CHANNEL') == true",
+                  "message": "Dual channel is enabled in a DAC SW instance"
+                }
+              ],
+              "default": false
+            }
+          }
+        },
+        "dma_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:DMA') == true"
+            }
+          ],
+          "title": "HAL DMA",
+          "type": "object",
+          "properties": {
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL DMA.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL DMA.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_DMA_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "exti_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('envVar.value', 'HAL_EXTI_PROJECT_USE_HAL')"
+            }
+          ],
+          "title": "HAL EXTI",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL EXTI.",
+              "default": false,
+              "title": "Use register callback",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'HAL_SYSTEM_CORE_EXTI_CALLBACK_USER_DATA') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'HAL_SYSTEM_CORE_EXTI_CALLBACK_USER_DATA') == true",
+                  "message": "'EXTI callback and user data upon activation' is enabled, then EXTI register callback is forced to be enabled"
+                }
+              ]
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL EXTI.",
+              "default": false,
+              "title": "User data",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'HAL_SYSTEM_CORE_EXTI_CALLBACK_USER_DATA') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'HAL_SYSTEM_CORE_EXTI_CALLBACK_USER_DATA') == true",
+                  "message": "'EXTI callback and user data upon activation' is enabled, then EXTI user data is forced to be enabled"
+                }
+              ]
+            }
+          }
+        },
+        "eth_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:ETH') == true"
+            }
+          ],
+          "title": "HAL ETH",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL ETH.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL ETH.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL ETH.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_ETH_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_eth_atomic_channel_lock": {
+              "type": "boolean",
+              "title": "Use atomic access to channel resources",
+              "description": "Enable atomic access to Channel resources (USE_HAL_ETH_ATOMIC_CHANNEL_LOCK).",
+              "default": false
+            },
+            "use_hal_eth_max_tx_ch_nb": {
+              "type": "integer",
+              "title": "User defined number of transmit channels",
+              "description": "Define the USE_HAL_ETH_MAX_TX_CH_NB switch.",
+              "minimum": 1,
+              "display_format": [
+                "dec"
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "max_tx_ch_nb",
+                "component": "HAL-ETH"
+              },
+              "actions": [
+                {
+                  "type": "set",
+                  "computed": {
+                    "default": "$get('peripheral.hardwareIpDescription', 'ETH1')?.features?.ETH_NUM_TXQ ?? 1",
+                    "maximum": "$get('peripheral.hardwareIpDescription', 'ETH1')?.features?.ETH_NUM_TXQ ?? 1"
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', 'ETH1') == true",
+                  "message": "Number of transmit channels is defined in a ETH SW instance"
+                }
+              ]
+            },
+            "use_hal_eth_max_rx_ch_nb": {
+              "type": "integer",
+              "title": "User defined number of receive channels",
+              "description": "Define the USE_HAL_ETH_MAX_RX_CH_NB switch.",
+              "minimum": 1,
+              "display_format": [
+                "dec"
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "path": "max_rx_ch_nb",
+                "component": "HAL-ETH"
+              },
+              "actions": [
+                {
+                  "type": "set",
+                  "computed": {
+                    "default": "$get('peripheral.hardwareIpDescription', 'ETH1')?.features?.ETH_NUM_RXQ ?? 1",
+                    "maximum": "$get('peripheral.hardwareIpDescription', 'ETH1')?.features?.ETH_NUM_RXQ ?? 1"
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', 'ETH1') == true",
+                  "message": "Number of receive channels is defined in an ETH SW instance"
+                }
+              ]
+            }
+          }
+        },
+        "fdcan_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:FDCAN') == true"
+            }
+          ],
+          "title": "HAL FDCAN",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL FDCAN.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL FDCAN.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL FDCAN.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_FDCAN_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "flash_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:flash') == true"
+            }
+          ],
+          "type": "object",
+          "title": "HAL FLASH",
+          "properties": {
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_FLASH_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL FLASH.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "title": "User data",
+              "description": "Enable the user data function in the HAL FLASH.",
+              "default": false
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "title": "Get last errors",
+              "description": "Enable the get last errors in the HAL FLASH.",
+              "default": false
+            },
+            "use_hal_flash_erase_by_addr": {
+              "type": "boolean",
+              "title": "Use FLASH erase by address",
+              "description": "Erase by address for FLASH peripheral (USE_HAL_FLASH_ERASE_BY_ADDR).",
+              "default": true,
+              "actions": [
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ERASE_BY_ADDR') == true",
+                  "message": "FLASH erase by address is enabled in a FLASH SW instance"
+                },
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ERASE_BY_ADDR') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ]
+            },
+            "use_hal_flash_erase_page": {
+              "type": "boolean",
+              "title": "Use FLASH by PAGE erase",
+              "description": "Erase by page for FLASH peripheral (USE_HAL_FLASH_ERASE_PAGE).",
+              "default": true,
+              "actions": [
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ERASE_PAGE') == true",
+                  "message": "FLASH page erase is enabled in a FLASH SW instance"
+                },
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ERASE_PAGE') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ]
+            },
+            "use_hal_flash_erase_bank": {
+              "type": "boolean",
+              "title": "Use FLASH bank erase",
+              "description": "Bank erase for FLASH peripheral (USE_HAL_FLASH_ERASE_BANK).",
+              "default": true,
+              "actions": [
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ERASE_BANK') == true",
+                  "message": "FLASH bank erase is enabled in a FLASH SW instance"
+                },
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ERASE_BANK') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ]
+            },
+            "use_hal_flash_mass_erase": {
+              "type": "boolean",
+              "title": "Use FLASH mass erase",
+              "description": "Mass erase for FLASH peripheral (USE_HAL_FLASH_MASS_ERASE).",
+              "default": true,
+              "actions": [
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'FLASH_USE_MASS_ERASE') == true",
+                  "message": "FLASH mass erase is enabled in a FLASH SW instance"
+                },
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'FLASH_USE_MASS_ERASE') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ]
+            },
+            "use_hal_flash_ecc": {
+              "type": "boolean",
+              "title": "Use ECC errors handling APIs",
+              "description": "Enable the usage of FLASH API linked to error correction code (USE_HAL_FLASH_ECC).",
+              "default": true,
+              "actions": [
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ECC') == true",
+                  "message": "FLASH ECC is enabled in a FLASH SW instance"
+                },
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'FLASH_USE_ECC') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ]
+            },
+            "use_hal_flash_ob_edata": {
+              "type": "boolean",
+              "title": "Use FLASH HAL API for EDATA",
+              "description": "Enable FLASH HAL API for EDATA (USE_HAL_FLASH_OB_EDATA).",
+              "default": true
+            },
+            "use_hal_flash_program_by_addr": {
+              "type": "boolean",
+              "title": "Use FLASH programming by address",
+              "description": "Programming by address for FLASH peripheral (USE_HAL_FLASH_PROGRAM_BY_ADDR).",
+              "default": true,
+              "actions": [
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'FLASH_USE_PROGRAM_BY_ADDR') == true",
+                  "message": "FLASH programming by address is enabled in a FLASH SW instance"
+                },
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'FLASH_USE_PROGRAM_BY_ADDR') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "gpio_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:GPIO') == true"
+            }
+          ],
+          "title": "HAL GPIO",
+          "type": "object",
+          "properties": {
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_GPIO_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_PWR_SYSTEM",
+                  "const": "HAL_CLK_ENABLE_PERIPH_PWR_SYSTEM"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "hash_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:HASH') == true"
+            }
+          ],
+          "title": "HAL HASH",
+          "type": "object",
+          "properties": {
+            "use_hal_hash_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL HASH",
+              "description": "Enable/Disable DMA code in HAL HASH (USE_HAL_HASH_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:HASH') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL HASH.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL HASH.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL HASH.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_HASH_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "hcd_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:HCD') == true"
+            }
+          ],
+          "title": "HAL HCD",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL HCD.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL HCD.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL HCD.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "use_hal_hcd_usb_double_buffer": {
+              "type": "boolean",
+              "description": "Enable USB double buffer.",
+              "default": false,
+              "title": "Use HAL HCD USB double buffer"
+            },
+            "use_hal_hcd_usb_ep_type_isoc": {
+              "type": "boolean",
+              "description": "Enable USB EP type ISOC.",
+              "default": false,
+              "title": "Use HAL HCD USB EP type ISOC"
+            },
+            "use_hal_hcd_max_channel_nb": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16,
+              "default": 16,
+              "title": "Maximum number of channels"
+            }
+          }
+        },
+        "i2c_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:I2C') == true"
+            }
+          ],
+          "title": "HAL I2C",
+          "type": "object",
+          "properties": {
+            "use_hal_i2c_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL I2C",
+              "description": "Enable/Disable DMA code in HAL I2C (USE_HAL_I2C_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:I2C') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL I2C.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL I2C.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL I2C.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_I2C_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "i3c_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:I3C') == true"
+            }
+          ],
+          "title": "HAL I3C",
+          "type": "object",
+          "properties": {
+            "use_hal_i3c_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL I3C",
+              "description": "Enable/Disable DMA code in HAL I3C (USE_HAL_I3C_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:I3C') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL I3C.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL I3C.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL I3C.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_I3C_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "i2s_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:I2S') == true"
+            }
+          ],
+          "title": "HAL I2S",
+          "type": "object",
+          "properties": {
+            "use_hal_i2s_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL I2S",
+              "description": "Enable/Disable DMA code in HAL I2S (USE_HAL_I2S_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:I2S') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL I2S.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL I2S.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL I2S.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "use_hal_i2s_ovr_udr_errors": {
+              "type": "boolean",
+              "description": "Enable retrieving overrun and underrun error in the HAL I2S.",
+              "default": false,
+              "title": "Use HAL I2S OVR UDR errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_I2S_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "icache_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:ICACHE') == true"
+            }
+          ],
+          "title": "HAL ICACHE",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL ICACHE.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL ICACHE.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL ICACHE.",
+              "default": false,
+              "title": "Get last errors"
+            }
+          }
+        },
+        "iwdg_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:IWDG') == true"
+            }
+          ],
+          "title": "HAL IWDG",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL IWDG.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL IWDG.",
+              "default": false,
+              "title": "User data"
+            },
+            "use_hal_iwdg_time_unit": {
+              "type": "string",
+              "description": "Time unit for IWDG driver.",
+              "oneOf": [
+                {
+                  "title": "HAL_IWDG_TIME_UNIT_US",
+                  "const": "HAL_IWDG_TIME_UNIT_US"
+                },
+                {
+                  "title": "HAL_IWDG_TIME_UNIT_MS",
+                  "const": "HAL_IWDG_TIME_UNIT_MS"
+                },
+                {
+                  "title": "HAL_IWDG_TIME_UNIT_S",
+                  "const": "HAL_IWDG_TIME_UNIT_S"
+                }
+              ],
+              "default": "HAL_IWDG_TIME_UNIT_MS",
+              "title": "Use HAL IWDG time unit"
+            },
+            "use_hal_iwdg_hardware_start": {
+              "type": "boolean",
+              "description": "Hardware start for IWDG driver.",
+              "oneOf": [
+                {
+                  "title": "IWDG driver starts in hardware mode",
+                  "const": true
+                },
+                {
+                  "title": "IWDG driver starts in software mode",
+                  "const": false
+                }
+              ],
+              "default": false,
+              "title": "Use HAL IWDG hardware start"
+            }
+          }
+        },
+        "lptim_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:LPTIM') == true"
+            }
+          ],
+          "title": "HAL LPTIM",
+          "type": "object",
+          "properties": {
+            "use_hal_lptim_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL LPTIM",
+              "description": "Enable/Disable DMA code in HAL LPTIM (USE_HAL_LPTIM_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:LPTIM') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL LPTIM.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL LPTIM.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL LPTIM.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_LPTIM_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "opamp_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:OPAMP') == true"
+            }
+          ],
+          "title": "HAL OPAMP",
+          "type": "object",
+          "properties": {
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL OPAMP.",
+              "default": false,
+              "title": "User data"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_OPAMP_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_opamp_calibrate_parallel": {
+              "type": "boolean",
+              "description": "Parallel calibration for OPAMP peripheral configuration.",
+              "default": false,
+              "title": "Use HAL OPAMP calibrate parallel"
+            }
+          }
+        },
+        "pcd_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:PCD') == true"
+            }
+          ],
+          "title": "HAL PCD",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL PCD.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL PCD.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL PCD.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "use_hal_pcd_usb_lpm": {
+              "type": "boolean",
+              "default": true,
+              "title": "Use HAL PCD USB LPM"
+            },
+            "use_hal_pcd_usb_bcd": {
+              "type": "boolean",
+              "default": true,
+              "title": "Use HAL PCD USB BCD"
+            },
+            "use_hal_pcd_usb_ep_type_isoc": {
+              "type": "boolean",
+              "default": true,
+              "title": "Use HAL PCD USB EP type ISOC"
+            },
+            "use_hal_pcd_usb_double_buffer": {
+              "type": "boolean",
+              "default": true,
+              "title": "Use HAL PCD USB double buffer"
+            },
+            "use_hal_pcd_max_endpoint_nb": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "default": 8,
+              "title": "Maximum number of endpoints"
+            }
+          }
+        },
+        "pka_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:PKA') == true"
+            }
+          ],
+          "title": "HAL PKA",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL PKA.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL PKA.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL PKA.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "use_hal_pka_rng_recovery": {
+              "type": "boolean",
+              "title": "Rng recovery",
+              "description": "Enable the RNG recovery in the HAL PKA.",
+              "default": true
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_PKA_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "rcc_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:RCC') == true"
+            }
+          ],
+          "title": "HAL RCC",
+          "type": "object",
+          "properties": {
+            "use_hal_rcc_reset_periph_clock_management": {
+              "type": "boolean",
+              "description": "Peripherals clock enable and source selection reset.",
+              "default": false,
+              "title": "Use HAL RCC reset peripheral clock management"
+            },
+            "use_hal_rcc_reset_rtc_domain": {
+              "type": "boolean",
+              "description": "Resources under backup domain reset.",
+              "default": false,
+              "title": "Use HAL RCC reset RTC domain"
+            }
+          }
+        },
+        "rng_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:RNG') == true"
+            }
+          ],
+          "title": "HAL RNG",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL RNG.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL RNG.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL RNG.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_RNG_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "smartcard_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:SMARTCARD') == true"
+            }
+          ],
+          "title": "HAL SMARTCARD",
+          "type": "object",
+          "properties": {
+            "use_hal_smartcard_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL SMARTCARD",
+              "description": "Enable/Disable DMA code in HAL SMARTCARD (USE_HAL_SMARTCARD_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:SMARTCARD') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL SMARTCARD.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL SMARTCARD.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL SMARTCARD.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_SMARTCARD_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_smartcard_fifo": {
+              "type": "boolean",
+              "title": "SMARTCARD FIFO",
+              "description": "Enable/Disable SMARTCARD FIFO Feature (USE_HAL_SMARTCARD_FIFO).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'USART_CORE_USE_HAL_SMARTCARD_FIFO') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'USART_CORE_USE_HAL_SMARTCARD_FIFO') == true",
+                  "message": "SMARTCARD FIFO is enabled in a SMARTCARD SW instance"
+                }
+              ],
+              "default": false
+            }
+          }
+        },
+        "smbus_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:SMBUS') == true"
+            }
+          ],
+          "title": "HAL SMBUS",
+          "type": "object",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL SMBUS.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL SMBUS.",
+              "default": false,
+              "title": "User data"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_SMBUS_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL SMBUS.",
+              "default": false,
+              "title": "Get last errors"
+            }
+          }
+        },
+        "spi_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:SPI') == true"
+            }
+          ],
+          "title": "HAL SPI",
+          "type": "object",
+          "properties": {
+            "use_hal_spi_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL SPI",
+              "description": "Enable/Disable DMA code in HAL SPI (USE_HAL_SPI_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:SPI') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL SPI.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL SPI.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL SPI.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_SPI_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_spi_crc": {
+              "type": "boolean",
+              "title": "CRC calculation in HAL SPI",
+              "description": "Status of CRC in SPI driver (USE_HAL_SPI_CRC).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'SPI_CORE_USE_HAL_SPI_CRC') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'SPI_CORE_USE_HAL_SPI_CRC') == true",
+                  "message": "CRC is enabled on one of the SPI instances"
+                }
+              ],
+              "default": false
+            }
+          }
+        },
+        "tim_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:TIM') == true"
+            }
+          ],
+          "title": "HAL TIM",
+          "type": "object",
+          "properties": {
+            "use_hal_tim_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL TIM",
+              "description": "Enable/Disable DMA code in HAL TIM (USE_HAL_TIM_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:TIM') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL TIM.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL TIM.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL TIM.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_TIM_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "uart_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "((!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:UART') == true) || (!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:IRDA') == true))"
+            }
+          ],
+          "title": "HAL UART",
+          "type": "object",
+          "properties": {
+            "use_hal_uart_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL UART",
+              "description": "Enable/Disable DMA code in HAL UART (USE_HAL_UART_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "(($get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:UART') == true) || ($get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:IRDA') == true))",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL UART.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL UART.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL UART.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_UART_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            }
+          }
+        },
+        "usart_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:USART') == true"
+            }
+          ],
+          "title": "HAL USART",
+          "type": "object",
+          "properties": {
+            "use_hal_usart_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL USART",
+              "description": "Enable/Disable DMA code in HAL USART (USE_HAL_USART_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:USART') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL USART.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL USART.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL USART.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_USART_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_usart_fifo": {
+              "type": "boolean",
+              "title": "USART FIFO",
+              "description": "Enable/Disable USART FIFO Feature (USE_HAL_USART_FIFO).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'USART_CORE_USE_HAL_USART_FIFO') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'USART_CORE_USE_HAL_USART_FIFO') == true",
+                  "message": "USART FIFO is enabled in a USART SW instance"
+                }
+              ],
+              "default": false
+            }
+          }
+        },
+        "wwdg_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:WWDG') == true"
+            }
+          ],
+          "type": "object",
+          "title": "HAL WWDG",
+          "properties": {
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL WWDG.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL WWDG.",
+              "default": false,
+              "title": "User data"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_WWDG_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_wwdg_time_unit": {
+              "type": "string",
+              "description": "Time unit for WWDG driver.",
+              "oneOf": [
+                {
+                  "title": "HAL_WWDG_TIME_UNIT_US",
+                  "const": "HAL_WWDG_TIME_UNIT_US"
+                },
+                {
+                  "title": "HAL_WWDG_TIME_UNIT_MS",
+                  "const": "HAL_WWDG_TIME_UNIT_MS"
+                },
+                {
+                  "title": "HAL_WWDG_TIME_UNIT_S",
+                  "const": "HAL_WWDG_TIME_UNIT_S"
+                }
+              ],
+              "default": "HAL_WWDG_TIME_UNIT_MS",
+              "title": "Use HAL WWDG time unit"
+            },
+            "use_hal_wwdg_hardware_start": {
+              "type": "boolean",
+              "description": "Hardware start for WWDG driver.",
+              "oneOf": [
+                {
+                  "title": "WWDG drivers starts in hardware mode",
+                  "const": true
+                },
+                {
+                  "title": "WWDG drivers starts in software mode",
+                  "const": false
+                }
+              ],
+              "default": false,
+              "title": "Use HAL WWDG hardware start"
+            }
+          }
+        },
+        "xspi_feature": {
+          "actions": [
+            {
+              "type": "include",
+              "condition": "!$used_components || $get('swproject.hasComponent', 'STMicroelectronics::Device:STM32CubeMX2 Config:XSPI') == true"
+            }
+          ],
+          "title": "HAL XSPI",
+          "type": "object",
+          "properties": {
+            "use_hal_xspi_dma": {
+              "type": "boolean",
+              "title": "DMA code in HAL XSPI",
+              "description": "Enable/Disable DMA code in HAL XSPI (USE_HAL_XSPI_DMA).",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('dma.isAnyDmaResourceAllocated', 'STMicroelectronics::Device:STM32CubeMX2 Config:XSPI') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                }
+              ],
+              "default": false
+            },
+            "use_register_callback": {
+              "type": "boolean",
+              "description": "Enable register callback in the HAL XSPI.",
+              "default": false,
+              "title": "Use register callback"
+            },
+            "user_data": {
+              "type": "boolean",
+              "description": "Enable the user data function in the HAL XSPI.",
+              "default": false,
+              "title": "User data"
+            },
+            "get_last_errors": {
+              "type": "boolean",
+              "description": "Enable the get last errors in the HAL XSPI.",
+              "default": false,
+              "title": "Get last errors"
+            },
+            "clk_enable_model": {
+              "type": "string",
+              "description": "Enable the gating of the peripheral clock in the HAL_XSPI_Init.",
+              "oneOf": [
+                {
+                  "title": "HAL_CLK_ENABLE_NO",
+                  "const": "HAL_CLK_ENABLE_NO"
+                },
+                {
+                  "title": "HAL_CLK_ENABLE_PERIPH_ONLY",
+                  "const": "HAL_CLK_ENABLE_PERIPH_ONLY"
+                }
+              ],
+              "default": "HAL_CLK_ENABLE_NO",
+              "title": "Clock enable model"
+            },
+            "use_hal_xspi_hyperbus": {
+              "type": "boolean",
+              "title": "Use HYPERBUS protocol",
+              "description": "Hyperbus for XSPI peripheral configuration, this parameter is automatically synchronized with XSPI (USE_HAL_XSPI_HYPERBUS).",
+              "default": false,
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$get('envVar.value', 'HAL_XSPI_CORE_HYPERBUS_IS_USED') == true",
+                  "attributes": {
+                    "const": true
+                  }
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('envVar.value', 'HAL_XSPI_CORE_HYPERBUS_IS_USED') == true",
+                  "message": "HYPERBUS protocol is enabled in a XSPI SW instance"
+                }
+              ]
+            }
+          }
+        },
+        "end_file": {
+          "title": "End of parameters",
+          "type": "boolean",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "true"
+            }
+          ],
+          "default": true
+        }
+      }
+    }
+  }
+}

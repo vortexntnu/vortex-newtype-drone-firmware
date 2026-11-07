@@ -1,0 +1,53 @@
+{{!
+ * @file Partial used to generate code for ICACHE:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{#if (eq fct 'start')}}
+{{! }}
+{{! Generate the ICACHE HAL or LL code to start ICACHE with selected error interrupt }}
+{{! > ICACHE fct='start' layer=@root.current_layer}}
+{{! }}
+{{!log "ICACHE fct='start': layer=" layer~}}
+{{assign 'icache_cxt' (helper_icache_get_start_context @root.SWProjectAPI @root.SWConfigurationAPI @root.peripheralsResourceManagerAPI)~}}
+{{~#each @root.icache_cxt.periphs}}
+
+  /*
+    ICACHE section
+  {{~#each fct_name_aliases}}
+
+    {{this}}_init
+  {{~/each}}
+
+  */
+  if ({{fct_name}}_init() == NULL)
+  {
+    return SYSTEM_STARTUP_ERROR;
+  }
+  {{~#if @root.object_cxt.system_cxt.system_configuration.icache_enable}}
+    {{~#if (eq layer 'HAL')}}
+
+
+  /* ICACHE automatically started at startup */
+  if (HAL_ICACHE_Start({{fct_name_gethandle}}_gethandle(), {{interruption}}) != HAL_OK)
+  {
+    return SYSTEM_STARTUP_ERROR;
+  }
+    {{~else}}
+
+
+{{#if (not (eq interruption ''))}}  LL_ICACHE_EnableIT({{instance}}, {{interruption}});{{/if}}
+  LL_ICACHE_Enable({{instance}});
+    {{~/if}}{{!layer~}}
+  {{~/if}}{{!icache_enable~}}
+{{~/each}}{{!icache_cxt.periphs}}
+{{else}}
+#warning "Function {{fct}} not present in partial ICACHE_partial.hbs"
+{{/if}}

@@ -1,0 +1,49 @@
+{{!
+/**
+  ******************************************************************************
+  * @file    SYSTEM_partial.hbs
+  * @brief   Partial to generate the code linked to SYSTEM configuration
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+~}}
+{{#if (eq fct 'system_check_isr_model')}}
+{{! Check the model applied for IRQ handler code generation                        ~}}
+{{!  > SYSTEM fct='system_check_isr_model'                                         ~}}
+{{! return the value of the flag 'isr_handler' inside a variable @root.isr_handler ~}}
+{{!                                                                                ~}}
+{{assign "jsonFilter" (JSONparse '{"cgroup": "STM32CubeMX2 Config", "csub": "System"}')~}}
+{{assign 'system_ctxt' (@root.SWConfigurationAPI.getSwInstancesConfiguration @root.jsonFilter)~}}
+{{!log 'SYSTEM_partial: system_ctxt=' (toJSON @root.system_ctxt)~}}
+{{assign 'isr_handler' @root.system_ctxt.[0].code_generation.isr_handler~}}
+{{log 'SYSTEM_partial: isr_handler=' @root.isr_handler~}}
+{{else if (eq fct 'system_check_ll_optim')}}
+{{! Check if user wants to optimize the LL code                        ~}}
+{{!  > SYSTEM fct='system_check_ll_optim'                                         ~}}
+{{! return the value of the flag 'optim_enable' inside a variable @root.optim_enable ~}}
+{{!                                                                                ~}}
+{{assign "jsonFilter" (JSONparse '{"cgroup": "STM32CubeMX2 Config", "csub": "System"}')~}}
+{{assign 'system_ctxt' (@root.SWConfigurationAPI.getSwInstancesConfiguration @root.jsonFilter)~}}
+{{!log 'SYSTEM_partial: system_ctxt=' (toJSON @root.system_ctxt)~}}
+{{assign 'optim_enable' @root.system_ctxt.[0].code_generation.optim_enable~}}
+{{log 'SYSTEM_partial: optim_enable=' @root.optim_enable~}}
+{{else if (eq fct 'gpio_pwr_activation')}}
+{{! Generate PWR clock activation for GPIOx pinx                                                ~}}
+{{!  > SYSTEM fct='gpio_pwr_activation' port=port pin=pin layer=layer called_by=called_by       ~}}
+{{!  e.g., > SYSTEM fct='gpio_pwr_activation' port=M pin=1 layer='HAL' called_by='gpio_partial' ~}}
+{{!                                                                                             ~}}
+{{! clock_activation != HAL_CLK_ENABLE_PERIPH_PWR_SYSTEM: pwr clock need to be configured inside application ~}}
+{{!log 'SYSTEM_partial.hbs (fct=gpio_pwr_activation): core_ctxt=' @root.core_ctxt 'port=' port 'pin=' pin~}}
+{{else}}
+#warning "Function {{fct}} not present in partial SYSTEM_partial.hbs"
+
+{{/if}}

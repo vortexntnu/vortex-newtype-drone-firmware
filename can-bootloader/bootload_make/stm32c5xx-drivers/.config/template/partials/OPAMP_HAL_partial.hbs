@@ -1,0 +1,128 @@
+{{!
+ * @file Partial used to generate code for OPAMP:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!--
+  Partial used for HAL OPAMP:
+  how to use
+  > OPAMP_HAL fct='xxxx' with xxxx:
+    * init
+    * deinit
+--}}
+{{!==================== partial function: init ====================~}}
+{{#if (eq fct 'init')}}
+
+{{!==================== Features basic (mandatory) ====================}}
+  /****************************************************************************/
+  /* Configuration of basic features (mandatory)                              */
+  /****************************************************************************/
+{{assign 'opamp_mode' basic.opamp_mode}}
+  hal_opamp_config_t opamp_config;
+  hal_opamp_config_input_connection_t config_input_connection;
+
+{{#with basic}}
+{{#if power_mode}}
+  opamp_config.power_mode          = HAL_OPAMP_POWER_MODE_{{power_mode}};
+{{/if}}
+  opamp_config.speed_mode          = HAL_OPAMP_SPEED_MODE_{{speed_mode}};
+{{#with config}}
+  opamp_config.configuration_mode  = HAL_OPAMP_MODE_{{@root.opamp_mode}};
+{{#if ../config_output_connection.output}}
+  opamp_config.opamp_output        = HAL_OPAMP_OUTPUT_CONNECTION_{{../config_output_connection.output}};
+{{/if}}
+  HAL_OPAMP_SetConfig(&h{{uppercase @root.current_resource}}, &opamp_config);
+{{/with}}{{!config}}
+{{#with config_input_connection}}
+  {{#if (eq inverting_input "INT")}}
+  config_input_connection.inverting_input = HAL_OPAMP_INVERTING_INPUT_INT;
+  {{~else}}
+  config_input_connection.inverting_input = HAL_OPAMP_INVERTING_INPUT_GPIO_{{inverting_input}};
+  {{/if~}}{{!(eq inverting_input)}}
+  {{#if (helper_opamp_is_number non_inverting_input)}}
+  config_input_connection.non_inverting_input = HAL_OPAMP_NON_INVERTING_INPUT_GPIO_{{non_inverting_input}};
+  {{~else}}
+  config_input_connection.non_inverting_input = HAL_OPAMP_NON_INVERTING_INPUT_{{helper_opamp_get_dac_input @root.current_resource @root.current_layer}};
+  {{/if~}}{{!(eq non_inverting_input)}}
+  HAL_OPAMP_SetConfigInputConnection(&h{{uppercase @root.current_resource}}, &config_input_connection);
+{{/with}}{{!with config_input_connection}}
+{{#with config}}
+{{#if (eq @root.opamp_mode "PGA")}}
+  HAL_OPAMP_SetGain(&h{{uppercase @root.current_resource}}, HAL_OPAMP_PGA_GAIN_{{helper_opamp_adjust_gain gain}});
+{{/if}}{{!opamp_mode PGA}}
+{{#if (not (eq external_mode EXT_NONE))}}
+  HAL_OPAMP_SetPGAExternalMode(&h{{uppercase @root.current_resource}}, HAL_OPAMP_PGA_{{external_mode}});
+{{/if}}{{!external_mode}}
+{{/with}}{{!config}}
+
+{{/with}}{{!basic~}}
+
+{{#with additional}}
+{{!==================== Features additional (optional) ====================}}
+{{#if (or user_trim_sel secondary_configuration_sel)}}
+  /****************************************************************************/
+  /* Configuration of additional features (optional)                          */
+  /****************************************************************************/
+{{/if}}
+
+{{!==================== User trimming ====================~}}
+{{#if (eq user_trim_sel true)}}
+{{#with config_trimming}}
+  hal_opamp_trimming_offset_pair_t trim_offset_config;
+  trim_offset_config.trim_offset_p = {{offset_pmos}};
+  trim_offset_config.trim_offset_n = {{offset_nmos}};
+  {{#if ../../basic.power_mode}}
+  HAL_OPAMP_SetConfigTrimming(&h{{uppercase @root.current_resource}}, &trim_offset_config, HAL_OPAMP_MODE_{{../../basic.power_mode}});
+  {{else}}
+  HAL_OPAMP_SetConfigTrimming(&h{{uppercase @root.current_resource}}, &trim_offset_config, HAL_OPAMP_POWER_MODE_NORMAL);
+  {{/if}}
+{{/with}}
+{{/if}}{{!(user_trim_sel true)}}
+
+{{!================ Secondary configuration ===============~}}
+{{assign 'opamp_mode_sec' secondary_configuration.opamp_secondary_mode~}}
+{{#if (eq secondary_configuration_sel true)}}
+{{#with secondary_configuration}}
+{{#with config_input_mux_secondary_connection}}
+  hal_opamp_config_input_connection_t secondary_input;
+  {{#if (eq inverting_input "INT")}}
+  secondary_input.inverting_input = HAL_OPAMP_INVERTING_INPUT_INT;
+  {{~else}}
+  secondary_input.inverting_input = HAL_OPAMP_INVERTING_INPUT_GPIO_{{inverting_input}};
+  {{/if~}}{{!(eq inverting_input)}}
+  {{#if (helper_opamp_is_number non_inverting_input)}}
+  secondary_input.non_inverting_input = HAL_OPAMP_NON_INVERTING_INPUT_GPIO_{{non_inverting_input}};
+  {{else}}
+  secondary_input.non_inverting_input = HAL_OPAMP_NON_INVERTING_INPUT_{{helper_opamp_get_dac_input @root.current_resource @root.current_layer}};
+  {{/if~}}{{!(eq non_inverting_input)}}
+  HAL_OPAMP_SetConfigInputMuxSecondaryConnection(&h{{uppercase @root.current_resource}}, &secondary_input);
+  {{#with timer_controlled_input_selection}}
+  HAL_OPAMP_SetMuxInputCtrl(&h{{uppercase @root.current_resource}}, HAL_OPAMP_MUX_INPUT_CTRL_{{helper_opamp_transform_trigger_name source}});
+  {{/with}}{{!with timer_controlled_input_selection}}
+{{/with}}{{!with config_input_mux_secondary_connection}}
+  HAL_OPAMP_SetConfigModeMuxSecondary(&h{{uppercase @root.current_resource}}, HAL_OPAMP_MODE_{{@root.opamp_mode_sec}});
+{{#if (eq @root.opamp_mode_sec "PGA")}}
+{{#with pga_secondary_config}}
+  HAL_OPAMP_SetPGAGainMuxSecondary(&h{{uppercase @root.current_resource}}, HAL_OPAMP_PGA_GAIN_{{helper_opamp_adjust_gain gain}});
+  HAL_OPAMP_SetMuxPGAGainCtrl(&h{{uppercase @root.current_resource}}, HAL_OPAMP_MUX_PGA_GAIN_CTRL_{{helper_opamp_transform_trigger_name timer_controlled_pga_selection.source}});
+{{#if (not (eq external_mode EXT_NONE))}}
+  HAL_OPAMP_SetPGAExternalMode(&h{{uppercase @root.current_resource}}, HAL_OPAMP_PGA_{{external_mode}});
+{{/if}}{{!external_mode}}
+{{/with}}{{!with pga_secondary_config~}}
+{{/if}}{{!opamp_mode_sec PGA}}
+{{/with}}{{!with secondary_configuration~}}
+{{/if~}}{{!(eq secondary_configuration_sel true)~}}
+{{/with}}{{!additional}}
+{{!==================== partial function: deinit ====================~}}
+{{else if (eq fct 'deinit')}}
+  (void)HAL_OPAMP_DeInit(&h{{@root.current_resource}});
+{{else}}
+#warning "step {{fct}} in partial OPAMP_HAL not managed"
+{{/if}}

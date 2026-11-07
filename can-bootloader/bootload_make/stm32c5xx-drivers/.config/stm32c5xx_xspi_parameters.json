@@ -1,0 +1,2354 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:XSPI",
+  "grammarVersion": "3.7",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/common_helpers.js",
+      "accessor": "com"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": "",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ]
+              }
+            },
+            "layer": {
+              "type": "string",
+              "title": "Software layer",
+              "oneOf": [
+                {
+                  "const": "HAL",
+                  "title": "HAL"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "disable",
+                  "condition": "$com.helper_common_display_object($resource)"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_XSPI_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "basic": {
+          "type": "object",
+          "title": "Main features",
+          "properties": {
+            "memory_config": {
+              "type": "object",
+              "title": "Memory",
+              "properties": {
+                "memory_type": {
+                  "type": "string",
+                  "title": "Type",
+                  "default": "MICRON",
+                  "oneOf": [
+                    {
+                      "title": "Micron",
+                      "const": "MICRON"
+                    },
+                    {
+                      "title": "Macronix",
+                      "const": "MACRONIX"
+                    },
+                    {
+                      "title": "AP Memory",
+                      "const": "APMEM"
+                    },
+                    {
+                      "title": "Macronix RAM",
+                      "const": "MACRONIX_RAM"
+                    },
+                    {
+                      "title": "Hyperbus",
+                      "const": "HYPERBUS",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.reduced_features != 1"
+                        }
+                      ]
+                    },
+                    {
+                      "title": "AP Memory 16-bit",
+                      "const": "APMEM_16BIT",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$resource.parentDescription.features.mem_16bit === 1"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "hyperbus_config": {
+                  "type": "object",
+                  "title": "Hyperbus",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "condition": "$basic.memory_config.memory_type == 'HYPERBUS'",
+                      "name": "HAL_XSPI_CORE_HYPERBUS_IS_USED",
+                      "value": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.memory_config.memory_type == 'HYPERBUS'"
+                    }
+                  ],
+                  "properties": {
+                    "rw_recovery_time_cycle": {
+                      "type": "integer",
+                      "title": "Recovery time",
+                      "description": "Number of cycles for the device recovery time.",
+                      "minimum": 0,
+                      "maximum": 255,
+                      "default": 0
+                    },
+                    "rw_recovery_time_cycle_converted": {
+                      "type": "string",
+                      "title": "Recovery time conversion",
+                      "readOnly": true,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($basic.memory_config.hyperbus_config.rw_recovery_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) >= 1",
+                          "computed": {
+                            "const": "$basic.memory_config.hyperbus_config.rw_recovery_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000) + ' µs'"
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "($basic.memory_config.hyperbus_config.rw_recovery_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) < 1",
+                          "computed": {
+                            "const": "$basic.memory_config.hyperbus_config.rw_recovery_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000000) + ' ns'"
+                          }
+                        }
+                      ],
+                      "default": "Not able to calculate"
+                    },
+                    "access_time_cycle": {
+                      "type": "integer",
+                      "title": "Access time",
+                      "description": "Number of cycles for the device access time.",
+                      "minimum": 0,
+                      "maximum": 255,
+                      "default": 0
+                    },
+                    "access_time_cycle_converted": {
+                      "type": "string",
+                      "title": "Access time conversion",
+                      "readOnly": true,
+                      "actions": [
+                        {
+                          "type": "set",
+                          "condition": "($basic.memory_config.hyperbus_config.access_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) >= 1",
+                          "computed": {
+                            "const": "$basic.memory_config.hyperbus_config.access_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000) + ' µs'"
+                          }
+                        },
+                        {
+                          "type": "set",
+                          "condition": "($basic.memory_config.hyperbus_config.access_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) < 1",
+                          "computed": {
+                            "const": "$basic.memory_config.hyperbus_config.access_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000000) + ' ns'"
+                          }
+                        }
+                      ],
+                      "default": "Not able to calculate"
+                    },
+                    "latency_mode": {
+                      "title": "Latency mode",
+                      "type": "string",
+                      "default": "VARIABLE",
+                      "oneOf": [
+                        {
+                          "title": "Variable",
+                          "const": "VARIABLE"
+                        },
+                        {
+                          "title": "Fixed",
+                          "const": "FIXED"
+                        }
+                      ]
+                    },
+                    "write_zero_latency": {
+                      "title": "Write access zero latency",
+                      "type": "boolean",
+                      "description": "Zero latency on write operation.",
+                      "default": false
+                    }
+                  }
+                },
+                "size_bit": {
+                  "type": "string",
+                  "title": "Size",
+                  "description": "Maximum size of the memory that you are using.",
+                  "default": "16BIT",
+                  "oneOf": [
+                    {
+                      "title": "16 bits (2 bytes)",
+                      "const": "16BIT"
+                    },
+                    {
+                      "title": "32 bits (4 bytes)",
+                      "const": "32BIT"
+                    },
+                    {
+                      "title": "64 bits (8 bytes)",
+                      "const": "64BIT"
+                    },
+                    {
+                      "title": "128 bits (16 bytes)",
+                      "const": "128BIT"
+                    },
+                    {
+                      "title": "256 bits (32 bytes)",
+                      "const": "256BIT"
+                    },
+                    {
+                      "title": "512 bits (64 bytes)",
+                      "const": "512BIT"
+                    },
+                    {
+                      "title": "1 kbit (128 bytes)",
+                      "const": "1KBIT"
+                    },
+                    {
+                      "title": "2 kbits (256 bytes)",
+                      "const": "2KBIT"
+                    },
+                    {
+                      "title": "4 kbits (512 bytes)",
+                      "const": "4KBIT"
+                    },
+                    {
+                      "title": "8 kbits (1 Kbyte)",
+                      "const": "8KBIT"
+                    },
+                    {
+                      "title": "16 kbits (2 Kbyte)",
+                      "const": "16KBIT"
+                    },
+                    {
+                      "title": "32 kbits (4 Kbytes)",
+                      "const": "32KBIT"
+                    },
+                    {
+                      "title": "64 kbits (8 Kbytes)",
+                      "const": "64KBIT"
+                    },
+                    {
+                      "title": "128 kbits (16 Kbytes)",
+                      "const": "128KBIT"
+                    },
+                    {
+                      "title": "256 kbits (32 Kbytes)",
+                      "const": "256KBIT"
+                    },
+                    {
+                      "title": "512 kbits (64 Kbytes)",
+                      "const": "512KBIT"
+                    },
+                    {
+                      "title": "1 Mbit (128 Kbytes)",
+                      "const": "1MBIT"
+                    },
+                    {
+                      "title": "2 Mbits (256 Kbytes)",
+                      "const": "2MBIT"
+                    },
+                    {
+                      "title": "4 Mbits (512 Kbytes)",
+                      "const": "4MBIT"
+                    },
+                    {
+                      "title": "8 Mbits (1 Mbyte)",
+                      "const": "8MBIT"
+                    },
+                    {
+                      "title": "16 Mbits (2 Mbytes)",
+                      "const": "16MBIT"
+                    },
+                    {
+                      "title": "32 Mbits (4 Mbytes)",
+                      "const": "32MBIT"
+                    },
+                    {
+                      "title": "64 Mbits (8 Mbytes)",
+                      "const": "64MBIT"
+                    },
+                    {
+                      "title": "128 Mbits (16 Mbytes)",
+                      "const": "128MBIT"
+                    },
+                    {
+                      "title": "256 Mbits (32 Mbytes)",
+                      "const": "256MBIT"
+                    },
+                    {
+                      "title": "512 Mbits (64 Mbytes)",
+                      "const": "512MBIT"
+                    },
+                    {
+                      "title": "1 Gbit (128 Mbytes))",
+                      "const": "1GBIT"
+                    },
+                    {
+                      "title": "2 Gbits (256 Mbytes)",
+                      "const": "2GBIT"
+                    },
+                    {
+                      "title": "4 Gbits (512 Mbytes)",
+                      "const": "4GBIT"
+                    },
+                    {
+                      "title": "8 Gbits (1 Gbyte)",
+                      "const": "8GBIT"
+                    },
+                    {
+                      "title": "16 Gbits (2 Gbytes)",
+                      "const": "16GBIT"
+                    },
+                    {
+                      "title": "32 Gbits (4 Gbytes)",
+                      "const": "32GBIT"
+                    }
+                  ]
+                },
+                "cs_boundary": {
+                  "type": "string",
+                  "title": "Chip select boundary",
+                  "description": "Granularity at which the chip select signal can be toggled.",
+                  "default": "NONE",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.features.reduced_features != 1 "
+                    }
+                  ],
+                  "oneOf": [
+                    {
+                      "title": "CS boundary disabled",
+                      "const": "NONE"
+                    },
+                    {
+                      "title": "16 bits (2 bytes)",
+                      "const": "16BIT"
+                    },
+                    {
+                      "title": "32 bits (4 bytes)",
+                      "const": "32BIT"
+                    },
+                    {
+                      "title": "64 bits (8 bytes)",
+                      "const": "64BIT"
+                    },
+                    {
+                      "title": "128 bits (16 bytes)",
+                      "const": "128BIT"
+                    },
+                    {
+                      "title": "256 bits (32 bytes)",
+                      "const": "256BIT"
+                    },
+                    {
+                      "title": "512 bits (64 bytes)",
+                      "const": "512BIT"
+                    },
+                    {
+                      "title": "1 kbit (128 bytes)",
+                      "const": "1KBIT"
+                    },
+                    {
+                      "title": "2 kbits (256 bytes)",
+                      "const": "2KBIT"
+                    },
+                    {
+                      "title": "4 kbits (512 bytes)",
+                      "const": "4KBIT"
+                    },
+                    {
+                      "title": "8 kbits (1 Kbyte)",
+                      "const": "8KBIT"
+                    },
+                    {
+                      "title": "16 kbits (2 Kbytes)",
+                      "const": "16KBIT"
+                    },
+                    {
+                      "title": "32 kbits (4 Kbytes)",
+                      "const": "32KBIT"
+                    },
+                    {
+                      "title": "64 kbits (8 Kbytes)",
+                      "const": "64KBIT"
+                    },
+                    {
+                      "title": "128 kbits (16 Kbytes)",
+                      "const": "128KBIT"
+                    },
+                    {
+                      "title": "256 kbits (32 Kbytes)",
+                      "const": "256KBIT"
+                    },
+                    {
+                      "title": "512 kbits (64 Kbytes)",
+                      "const": "512KBIT"
+                    },
+                    {
+                      "title": "1 Mbit (128 Kbytes)",
+                      "const": "1MBIT"
+                    },
+                    {
+                      "title": "2 Mbits (256 Kbytes)",
+                      "const": "2MBIT"
+                    },
+                    {
+                      "title": "4 Mbits (512 Kbytes)",
+                      "const": "4MBIT"
+                    },
+                    {
+                      "title": "8 Mbits (1 Mbyte)",
+                      "const": "8MBIT"
+                    },
+                    {
+                      "title": "16 Mbits (2 Mbytes)",
+                      "const": "16MBIT"
+                    },
+                    {
+                      "title": "32 Mbits (4 Mbytes)",
+                      "const": "32MBIT"
+                    },
+                    {
+                      "title": "64 Mbits (8 Mbytes)",
+                      "const": "64MBIT"
+                    },
+                    {
+                      "title": "128 Mbits (16 Mbytes)",
+                      "const": "128MBIT"
+                    },
+                    {
+                      "title": "256 Mbits (32 Mbytes)",
+                      "const": "256MBIT"
+                    },
+                    {
+                      "title": "512 Mbits (64 Mbytes)",
+                      "const": "512MBIT"
+                    },
+                    {
+                      "title": "1 Gbit (128 Mbytes)",
+                      "const": "1GBIT"
+                    },
+                    {
+                      "title": "2 Gbits (256 Mbytes)",
+                      "const": "2GBIT"
+                    },
+                    {
+                      "title": "4 Gbits (512 Mbytes)",
+                      "const": "4GBIT"
+                    },
+                    {
+                      "title": "8 Gbits (1 Gbyte)",
+                      "const": "8GBIT"
+                    },
+                    {
+                      "title": "16 Gbits (2 Gbytes)",
+                      "const": "16GBIT"
+                    }
+                  ]
+                },
+                "cs_high_time_cycle": {
+                  "type": "integer",
+                  "title": "Chip select high time",
+                  "description": "Minimum number of clock cycles during which the chip select must remain high between commands.",
+                  "minimum": 1,
+                  "maximum": 64,
+                  "default": 1
+                },
+                "cs_high_time_cycle_converted": {
+                  "type": "string",
+                  "title": "Chip select high time conversion",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "($basic.memory_config.cs_high_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) >= 1",
+                      "computed": {
+                        "const": "$basic.memory_config.cs_high_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000) + ' µs'"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "($basic.memory_config.cs_high_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) < 1",
+                      "computed": {
+                        "const": "$basic.memory_config.cs_high_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000000) + ' ns'"
+                      }
+                    }
+                  ],
+                  "default": "Not able to calculate"
+                },
+                "cs_refresh_time": {
+                  "type": "integer",
+                  "title": "Chip select refresh time",
+                  "description": "Refresh rate feature. Choose the number of clock cycles after which the chip select signal will be released periodically. Applicable for RAM only.",
+                  "minimum": 0,
+                  "maximum": 4294967295,
+                  "default": 0,
+                  "display_format": [
+                      "hex"
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.features.reduced_features != 1"
+                    }
+                  ]
+                },
+                "cs_refresh_time_converted": {
+                  "type": "string",
+                  "title": "Chip select refresh time conversion",
+                  "description": "This feature is applicable to RAM memory only.",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.features.reduced_features != 1"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "($basic.memory_config.cs_refresh_time * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) >= 1",
+                      "computed": {
+                        "const": "$basic.memory_config.cs_refresh_time * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000) + ' µs'"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "($basic.memory_config.cs_refresh_time * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) < 1",
+                      "computed": {
+                        "const": "$basic.memory_config.cs_refresh_time * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000000) + ' ns'"
+                      }
+                    }
+                  ],
+                  "default": "Not able to calculate"
+                },
+                "wrap_size_byte": {
+                  "type": "string",
+                  "title": "Wrap size",
+                  "description": "Wrap size if wrapped reads are supported by the memory.",
+                  "default": "NOT_SUPPORTED",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.parentDescription.features.reduced_features != 1"
+                    }
+                  ],
+                  "oneOf": [
+                    {
+                      "title": "Not supported",
+                      "const": "NOT_SUPPORTED"
+                    },
+                    {
+                      "title": "16 bytes",
+                      "const": "16BYTE"
+                    },
+                    {
+                      "title": "32 bytes",
+                      "const": "32BYTE"
+                    },
+                    {
+                      "title": "64 bytes",
+                      "const": "64BYTE"
+                    },
+                    {
+                      "title": "128 bytes",
+                      "const": "128BYTE"
+                    }
+                  ]
+                }
+              }
+            },
+            "timing_config": {
+              "type": "object",
+              "title": "Clock and sampling",
+              "properties": {
+                "clock_source": {
+                  "type": "string",
+                  "title": "Clock source",
+                  "description": "Clock source can be modified in clock tree.",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('clock.input', $resource.id)"
+                      }
+                    }
+                  ],
+                  "default": "Not able to determine"
+                },
+                "clock_source_frequency": {
+                  "type": "string",
+                  "title": "Clock source frequency",
+                  "description": "Input clock frequency can be modified in clock tree.",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "($get('clock.frequency',$resource.id)) < 1000000",
+                      "computed": {
+                        "const": "$get('clock.frequency',$resource.id) / 1000 + ' kHz'"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "($get('clock.frequency',$resource.id)) >= 1000000",
+                      "computed": {
+                        "const": "$get('clock.frequency',$resource.id) / 1000000 + ' MHz'"
+                      }
+                    }
+                  ],
+                  "default": "Not able to determine"
+                },
+                "clk_prescaler": {
+                  "type": "integer",
+                  "title": "Clock prescaler (value +1)",
+                  "description": "This prescaler divides the kernel clock source frequency to get the final frequency on XSPI bus. Choosing a prescaler value of N means dividing the clock by N+1.",
+                  "minimum": 0,
+                  "maximum": 255,
+                  "default": 1
+                },
+                "clock_memory_frequency": {
+                  "type": "string",
+                  "title": "Clock memory frequency",
+                  "description": "Clock frequency on XSPI bus. This is the frequency at which the memory will operate. It is equal to the input clock frequency divided by the clock prescaler.",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "($get('clock.frequency',$resource.id) / ($basic.timing_config.clk_prescaler + 1)) < 1000000",
+                      "computed": {
+                        "const": "$get('clock.frequency',$resource.id) / ($basic.timing_config.clk_prescaler + 1) / 1000 + ' kHz'"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "($get('clock.frequency',$resource.id) / ($basic.timing_config.clk_prescaler + 1)) >= 1000000",
+                      "computed": {
+                        "const": "$get('clock.frequency',$resource.id) / ($basic.timing_config.clk_prescaler + 1) / 1000000 + ' MHz'"
+                      }
+                    }
+                  ],
+                  "default": "Not able to calculate"
+                },
+                "shift": {
+                  "type": "boolean",
+                  "title": "Sample shifting",
+                  "description": "The sample of data is taken a full clock cycle after the data is driven by the external device, instead of half a clock cycle (default value). Applicable in SDR (single data rate) communication only.",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.timing_config.hold == true",
+                      "computed": {
+                        "const": false
+                      }
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "$basic.timing_config.hold == true"
+                    }
+                  ]
+                },
+                "hold": {
+                  "type": "boolean",
+                  "title": "Delay hold quarter cycle",
+                  "description": "Add a quarter delay on the outputs in DTR (double-transfer rate) communication to match hold requirement. Applicable in DTR communication only.",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($resource.parentDescription.features.en_phy_itf != 1) && ($resource.parentDescription.features.fine_calib_wid == undefined)"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "additional": {
+          "type": "object",
+          "title": "Advanced features",
+          "properties": {
+            "set_fifo_threshold": {
+              "type": "integer",
+              "title": "FIFO threshold",
+              "description": "Choose the number of bytes in the FIFO that causes the FIFO threshold flag to be set.",
+              "minimum": 1,
+              "maximum": 32,
+              "default": 4
+            },
+            "cssel": {
+              "type": "string",
+              "title": "NCS select",
+              "description": "Select if NCS is copied to NCS1 or NCS2.",
+              "oneOf": [
+                {
+                  "title": "NCS1",
+                  "const": "NCS1"
+                },
+                {
+                  "title": "NCS2",
+                  "const": "NCS2"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "(($resource.peripheralVersionNum != 5.2) && ($resource.peripheralVersionNum != 5.3) && ($resource.peripheralVersionNum != 3.0))"
+                }
+              ],
+              "default": "NCS1"
+            },
+            "clock_polarity": {
+              "type": "string",
+              "title": "Clock polarity",
+              "description": "Level of clock signal when clock is in IDLE state (when chip is not selected).",
+              "default": "LOW",
+              "oneOf": [
+                {
+                  "title": "Low",
+                  "const": "LOW"
+                },
+                {
+                  "title": "High",
+                  "const": "HIGH"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.peripheralVersionNum < 6.0"
+                }
+              ]
+            },
+            "acaloff": {
+              "title": "Automatic calibration",
+              "type": "boolean",
+              "default": true,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.parentDescription.features.en_phy_itf == 1"
+                }
+              ]
+            },
+            "delay_block_config": {
+              "type": "object",
+              "title": "Delay block",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($resource.parentDescription.features.en_phy_itf != 1) && ($resource.parentDescription.features.fine_calib_wid == undefined)"
+                }
+              ],
+              "properties": {
+                "dlyb_state": {
+                  "type": "string",
+                  "title": "Enable delay block",
+                  "description": "Delay block peripheral dedicated to your XSPI instance.",
+                  "default": "ON",
+                  "oneOf": [
+                    {
+                      "title": "Sampling clock delayed",
+                      "const": "ON",
+                      "description": "Sampling clock is delayed by the delay block."
+                    },
+                    {
+                      "title": "Delay block is bypassed",
+                      "const": "BYPASS"
+                    }
+                  ]
+                },
+                "auto_evaluate_delay": {
+                  "type": "boolean",
+                  "title": "Automatic evaluation of delay block output clock phase",
+                  "description": "Generates code to automatically evaluate and set the output clock phase value of the delay block peripheral.",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "error",
+                      "condition": "(($additional.delay_block_config.dlyb_state == 'BYPASS') && ($additional.delay_block_config.auto_evaluate_delay == true))",
+                      "message": "You must enable delay block to use this feature."
+                    }
+                  ]
+                },
+                "set_config_delay": {
+                  "type": "integer",
+                  "title": "Manual set of delay block output clock phase",
+                  "description": "If you already know the delay block output clock phase value, choose the value you want to set. Available only if  delay block is enable and automatic evaluation is disabled.",
+                  "minimum": 0,
+                  "default": 0,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$additional.delay_block_config.auto_evaluate_delay == true",
+                      "attributes": {
+                        "const": 0
+                      }
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "(($additional.delay_block_config.dlyb_state == 'BYPASS') || ($additional.delay_block_config.auto_evaluate_delay == true))"
+                    }
+                  ]
+                }
+              }
+            },
+            "hsic_configuration": {
+              "type": "object",
+              "title": "High speed interface and calibration (HSIC)",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "((($resource.parentDescription.features.en_phy_itf != 0) && ($resource.parentDescription.features.en_phy_itf != undefined)) || ($resource.parentDescription.features.fine_calib_wid != undefined))"
+                }
+              ],
+              "properties": {
+                "enable_hsic_config": {
+                  "type": "boolean",
+                  "title": "Manual",
+                  "default": false
+                },
+                "delay_value_type": {
+                  "type": "string",
+                  "title": "Calibration type",
+                  "description": "Select which calibration is concerned by the configuration. Manual HSIC configuration must be enabled to configure this parameter.",
+                  "oneOf": [
+                    {
+                      "title": "Full clock cycle",
+                      "description": "Delay value equivalent to full memory-clock cycle.",
+                      "const": "FULL_CYCLE"
+                    },
+                    {
+                      "title": "Feedback clock",
+                      "description": "Delay value for the feedback clock when reading without DQS.",
+                      "const": "FEEDBACK_CLK"
+                    },
+                    {
+                      "title": "Output data",
+                      "description": "Delay value for output data in DDR mode for write operations.",
+                      "const": "DATA_OUTPUT"
+                    },
+                    {
+                      "title": "DQS input",
+                      "description": "Delay value for DQS input when sampling data for read operations.",
+                      "const": "DQS_INPUT"
+                    }
+                  ],
+                  "default": "FULL_CYCLE",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false",
+                      "attributes": {
+                        "const": "FULL_CYCLE"
+                      }
+                    }
+                  ]
+                },
+                "fine_cal_unit": {
+                  "type": "integer",
+                  "title": "Fine calibration value",
+                  "description": "Fine calibration value of the delay. Manual HSIC configuration must be enabled to configure this parameter.",
+                  "minimum": 0,
+                  "maximum": 127,
+                  "default": 0,
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false",
+                      "attributes": {
+                        "const": 0
+                      }
+                    }
+                  ]
+                },
+                "coarse_cal_unit": {
+                  "type": "integer",
+                  "title": "Coarse calibration value",
+                  "description": "Coarse calibration value of the delay. Manual HSIC configuration must be enabled to configure this parameter.",
+                  "minimum": 0,
+                  "maximum": 31,
+                  "default": 0,
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false",
+                      "attributes": {
+                        "const": 0
+                      }
+                    }
+                  ]
+                },
+                "max_cal": {
+                  "type": "string",
+                  "title": "Outside range calibration",
+                  "description": "Memory-clock period is inside or outside the range of DLL master. Manual HSIC configuration must be enabled to configure this parameter.",
+                  "oneOf": [
+                    {
+                      "title": "Inside",
+                      "const": "NOT_REACHED"
+                    },
+                    {
+                      "title": "Outside",
+                      "const": "REACHED"
+                    }
+                  ],
+                  "default": "NOT_REACHED",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$additional.hsic_configuration.enable_hsic_config == false",
+                      "attributes": {
+                        "const": "NOT_REACHED"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "mode": {
+              "type": "boolean",
+              "title": "Dual memory mode",
+              "default": false,
+              "description": "Enable dual memory mode to manage two memories connected in parallel on the same XSPI interface."
+            },
+            "cs_release_time_cycle": {
+              "type": "integer",
+              "title": "Maximum bytes transfer",
+              "description": "Communication regulation feature. Choose the maximum number of bytes to transfer before the other XSPI request the access to the bus (chip select release time).",
+              "minimum": 0,
+              "maximum": 255,
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "(($resource.parentDescription.features.num_octo_ports > 1) || (($resource.peripheralVersionNum == 5.2) || ($resource.peripheralVersionNum == 5.3)))"
+                },
+                {
+                  "type": "disable",
+                  "condition": "($resource.peripheralVersionNum == 5.2) || ($resource.peripheralVersionNum == 5.3)"
+                }
+              ]
+            },
+            "cs_release_time_cycle_converted": {
+              "type": "string",
+              "title": "Maximum bytes transfer conversion",
+              "readOnly": true,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "(($resource.parentDescription.features.num_octo_ports > 1) || (($resource.peripheralVersionNum == 5.2) || ($resource.peripheralVersionNum == 5.3)))"
+                },
+                {
+                  "type": "set",
+                  "condition": "(8 * $additional.cs_release_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) >= 1",
+                  "computed": {
+                    "const": "8 * $additional.cs_release_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000) + ' µs'"
+                  }
+                },
+                {
+                  "type": "set",
+                  "condition": "(8 * $additional.cs_release_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000)) < 1",
+                  "computed": {
+                    "const": "8 * $additional.cs_release_time_cycle * ($basic.timing_config.clk_prescaler + 1) / ($get('clock.frequency',$resource.id) / 1000000000) + ' ns'"
+                  }
+                }
+              ],
+              "default": "Not able to calculate"
+            }
+          }
+        },
+        "security_privilege": {
+          "title": "Security and privilege",
+          "description": "Manage security and privileged access levels attributes.",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+          "properties": {
+            "security": {
+              "type": "string",
+              "title": "Security attribute",
+              "description": "Set the security attribute of the securable peripheral.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "SEC"
+                  },
+                  "condition": "$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "NSEC"
+                  },
+                  "condition": "!$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', $resource.id)",
+                  "message": "The security attribute of the peripheral is automatically set to secure when the peripheral is bound to a secure resource and to non-secure when it is not. Manual configuration is not allowed."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-sec-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Secure",
+                  "const": "SEC"
+                },
+                {
+                  "title": "Non-secure",
+                  "const": "NSEC"
+                }
+              ],
+              "default": "NSEC"
+            },
+            "privilege": {
+              "type": "string",
+              "title": "Privileged attribute",
+              "description": "Manage the privileged attribute of a securable RISC peripheral.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-priv-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Privileged",
+                  "const": "PRIV"
+                },
+                {
+                  "title": "Unprivileged",
+                  "const": "NPRIV"
+                }
+              ],
+              "default": "PRIV"
+            },
+            "lock": {
+              "type": "boolean",
+              "title": "Lock",
+              "description": "Optional. Lock security and privilege attributes to prevent changes.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-lock-attr",
+                "custom": "$resource.id"
+              },
+              "default": false
+            },
+            "illegal_access": {
+              "title": "Illegal access interrupt",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure-only')",
+                  "message": "Secure-only mode: Illegal access interrupt is forced to disabled."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-iac-peripheral",
+                "custom": "$resource.id"
+              },
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "properties": {
+            "gpio_message": {
+              "title": "GPIO",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "exclude",
+                  "condition": "$system.gpio"
+                }
+              ],
+              "properties": {
+                "pin_selection": {
+                  "title": "Pins selection",
+                  "type": "string",
+                  "default": "'Managed in XSPIM/OCTOSPIM panel'",
+                  "description": "Pins selection is managed in XSPIM/OCTOSPIM panel. A dedicated IO Manager is used to configure the GPIOs for this instance.",
+                  "readOnly": true,
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "attributes": {
+                        "const": "'Managed in XSPIM/OCTOSPIM panel'"
+                      }
+                    },
+                    {
+                      "type": "error",
+                      "condition": "$get('envVar.value', 'HAL_XSPIM_PROJECT_USE_HAL') != true",
+                      "message": "XSPIM/OCTOSPIM must be activated."
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "include",
+                      "name": "XSPIM_NEEDED",
+                      "value": true
+                    }
+                  ]
+                }
+              }
+            },
+            "gpio": {
+              "title": "GPIO",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($resource?.parentDescription?.features?.num_octo_ports != 2) && ($resource.features.num_octo_ports != 2)"
+                }
+              ],
+              "properties": {
+                "gpio_clk": {
+                  "type": "object",
+                  "title": "GPIO CLK",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "CLK",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'CLK') == true"
+                    }
+                  ]
+                },
+                "enable_gpio_nclk": {
+                  "title": "GPIO NCLK",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'NCLK')"
+                    }
+                  ]
+                },
+                "gpio_nclk": {
+                  "type": "object",
+                  "title": "GPIO NCLK",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "NCLK",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_nclk == true"
+                    }
+                  ]
+                },
+                "enable_gpio_dqs0": {
+                  "title": "GPIO DQS0",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'DQS0') == true"
+                    }
+                  ]
+                },
+                "gpio_dqs0": {
+                  "type": "object",
+                  "title": "GPIO DQS0",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "DQS0",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_dqs0 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_dqs": {
+                  "title": "GPIO DQS",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'DQS') == true"
+                    }
+                  ]
+                },
+                "gpio_dqs": {
+                  "type": "object",
+                  "title": "GPIO DQS",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "DQS",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_dqs == true"
+                    }
+                  ]
+                },
+                "enable_gpio_dqs1": {
+                  "title": "GPIO DQS1",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'DQS1') == true"
+                    }
+                  ]
+                },
+                "gpio_dqs1": {
+                  "type": "object",
+                  "title": "GPIO DQS1",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "DQS1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_dqs1 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_ncs": {
+                  "title": "GPIO NCS",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'NCS') == true"
+                    }
+                  ]
+                },
+                "gpio_ncs": {
+                  "type": "object",
+                  "title": "GPIO NCS",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "NCS",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_ncs == true"
+                    }
+                  ]
+                },
+                "enable_gpio_ncs1": {
+                  "title": "GPIO NCS1",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'NCS1') == true"
+                    }
+                  ]
+                },
+                "gpio_ncs1": {
+                  "type": "object",
+                  "title": "GPIO NCS1",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "NCS1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_ncs1 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_ncs2": {
+                  "title": "GPIO NCS2",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'NCS2') == true"
+                    }
+                  ]
+                },
+                "gpio_ncs2": {
+                  "type": "object",
+                  "title": "GPIO NCS2",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "NCS2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_ncs2 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io0": {
+                  "title": "GPIO IO0",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO0') == true"
+                    }
+                  ]
+                },
+                "gpio_io0": {
+                  "type": "object",
+                  "title": "GPIO IO0",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO0",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io0 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io1": {
+                  "title": "GPIO IO1",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO1') == true"
+                    }
+                  ]
+                },
+                "gpio_io1": {
+                  "type": "object",
+                  "title": "GPIO IO1",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io1 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io2": {
+                  "title": "GPIO IO2",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO2') == true"
+                    }
+                  ]
+                },
+                "gpio_io2": {
+                  "type": "object",
+                  "title": "GPIO IO2",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io2 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io3": {
+                  "title": "GPIO IO3",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO3') == true"
+                    }
+                  ]
+                },
+                "gpio_io3": {
+                  "type": "object",
+                  "title": "GPIO IO3",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO3",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io3 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io4": {
+                  "title": "GPIO IO4",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO4') == true"
+                    }
+                  ]
+                },
+                "gpio_io4": {
+                  "type": "object",
+                  "title": "GPIO IO4",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO4",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io4 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io5": {
+                  "title": "GPIO IO5",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO5') == true"
+                    }
+                  ]
+                },
+                "gpio_io5": {
+                  "type": "object",
+                  "title": "GPIO IO5",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO5",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io5 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io6": {
+                  "title": "GPIO IO6",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO6') == true"
+                    }
+                  ]
+                },
+                "gpio_io6": {
+                  "type": "object",
+                  "title": "GPIO IO6",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO6",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io6 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io7": {
+                  "title": "GPIO IO7",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO7') == true"
+                    }
+                  ]
+                },
+                "gpio_io7": {
+                  "type": "object",
+                  "title": "GPIO IO7",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO7",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io7 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io8": {
+                  "title": "GPIO IO8",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO8') == true"
+                    }
+                  ]
+                },
+                "gpio_io8": {
+                  "type": "object",
+                  "title": "GPIO IO8",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO8",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io8 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io9": {
+                  "title": "GPIO IO9",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO9') == true"
+                    }
+                  ]
+                },
+                "gpio_io9": {
+                  "type": "object",
+                  "title": "GPIO IO9",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO9",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io9 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io10": {
+                  "title": "GPIO IO10",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO10') == true"
+                    }
+                  ]
+                },
+                "gpio_io10": {
+                  "type": "object",
+                  "title": "GPIO IO10",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO10",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io10 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io11": {
+                  "title": "GPIO IO11",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO11') == true"
+                    }
+                  ]
+                },
+                "gpio_io11": {
+                  "type": "object",
+                  "title": "GPIO IO11",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO11",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io11 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io12": {
+                  "title": "GPIO IO12",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO12') == true"
+                    }
+                  ]
+                },
+                "gpio_io12": {
+                  "type": "object",
+                  "title": "GPIO IO12",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO12",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io12 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io13": {
+                  "title": "GPIO IO13",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO13') == true"
+                    }
+                  ]
+                },
+                "gpio_io13": {
+                  "type": "object",
+                  "title": "GPIO IO13",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO13",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io13 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io14": {
+                  "title": "GPIO IO14",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO14') == true"
+                    }
+                  ]
+                },
+                "gpio_io14": {
+                  "type": "object",
+                  "title": "GPIO IO14",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO14",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io14 == true"
+                    }
+                  ]
+                },
+                "enable_gpio_io15": {
+                  "title": "GPIO IO15",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, 'IO15') == true"
+                    }
+                  ]
+                },
+                "gpio_io15": {
+                  "type": "object",
+                  "title": "GPIO IO15",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IO15",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.enable_gpio_io15 == true"
+                    }
+                  ]
+                }
+              }
+            },
+            "dma": {
+              "type": "object",
+              "title": "DMA",
+              "properties": {
+                "enable_dma_tx": {
+                  "title": "DMA Tx",
+                  "type": "boolean",
+                  "default": false
+                },
+                "dma_config_tx": {
+                  "title": "DMA Tx",
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "TX",
+                      "constraints": {
+                        "direction": {
+                          "const": "MEMORY_TO_PERIPH"
+                        },
+                        "src_inc": {
+                          "const": "INCREMENTED"
+                        },
+                        "dest_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_data_width": {
+                          "const": "BYTE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_tx"
+                    }
+                  ]
+                },
+                "enable_dma_rx": {
+                  "title": "DMA Rx",
+                  "type": "boolean",
+                  "default": false
+                },
+                "dma_config_rx": {
+                  "type": "object",
+                  "title": "DMA Rx",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "RX",
+                      "constraints": {
+                        "direction": {
+                          "const": "PERIPH_TO_MEMORY"
+                        },
+                        "src_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_inc": {
+                          "const": "INCREMENTED"
+                        },
+                        "dest_data_width": {
+                          "const": "BYTE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_rx"
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "type": "object",
+              "title": "NVIC",
+              "properties": {
+                "enable_interruption": {
+                  "title": "Interrupt",
+                  "type": "boolean",
+                  "default": false
+                },
+                "irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "IRQ handler generation",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    }
+                  ]
+                },
+                "nvic_config": {
+                  "title": "NVIC",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

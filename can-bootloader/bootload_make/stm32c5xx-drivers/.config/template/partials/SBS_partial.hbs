@@ -1,0 +1,424 @@
+{{!
+  * @file Partial used to generate code for SBS:
+  * @license
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  *
+  * @detail
+  * The partial provides the following functions:
+  * - set_analog_io_switch_supply
+  * - fast_mode_plus_driving_capability
+  * - i2c_smbus_selection
+  * - enable_timer_connections
+  * - configure_compensation_cells
+  * - flash_eccnmi
+  * - set_hdp_obk
+  * - set_epoch_value
+  * - flash_bank_swap
+  * - ethernet_polarity
+  * - ethernet_interface
+~}}
+{{helper_globalize_API @root~}}
+{{#if (eq fct 'set_analog_io_switch_supply')}}
+  {{! ~}}
+  {{! Generate the set analog io switch supply function ~}}
+  {{! > SBS fct='set_analog_io_switch_supply'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{assign 'pwr' (helper_sbs_check_peripheral 'PWR')~}}
+  {{#if additional.analog_io_switch_supply}}
+    {{#if (and (not @root.pwr) (not (eq additional.analog_io_switch_supply 'NONE')))}}
+
+  /* Set the I/O analog switch supply */
+      {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_SetAnalogIOSwitchSupply(HAL_SBS_{{additional.analog_io_switch_supply}});
+      {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetAnalogIOSwitchSupply' (concat 'LL_SBS_' additional.analog_io_switch_supply)}}
+      {{/if}}
+    {{/if}}
+  {{/if}}
+{{else if (eq fct 'fast_mode_plus_driving_capability')}}
+  {{! ~}}
+  {{! Generate the enable fast mode plus driving capability function ~}}
+  {{! > SBS fct='fast_mode_plus_driving_capability'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{#if (helper_sbs_any_true additional.fast_mode_plus_driving_capability)}}
+    {{#with additional.fast_mode_plus_driving_capability}}
+      {{assign 'fm_pins' ''~}}
+      {{assign 'act' false~}}
+      {{#if fmp_on_pb6~}}
+        {{assign 'pin_data' (@root.pinoutAPI.getPinData "PB6")~}}
+        {{#unless (or (eq @root.pin_data.signals.0.instance 'I2C1') (eq @root.pin_data.signals.0.instance 'I2C2' (eq @root.pin_data.signals.0.instance 'I2C3')) (eq @root.pin_data.signals.0.instance 'I2C4'))~}}
+          {{assign 'fm_pins' (helper_sbs_concatenate_selections @root.fm_pins @root.layer '_SBS_DRIVE_PB6' )~}}
+          {{assign 'act' true~}}
+        {{/unless}}
+      {{/if}}
+      {{#if fmp_on_pb7~}}
+        {{assign 'pin_data' (@root.pinoutAPI.getPinData "PB7")~}}
+        {{#unless (or (eq @root.pin_data.signals.0.instance 'I2C1') (eq @root.pin_data.signals.0.instance 'I2C2' (eq @root.pin_data.signals.0.instance 'I2C3')) (eq @root.pin_data.signals.0.instance 'I2C4'))~}}
+          {{assign 'fm_pins' (helper_sbs_concatenate_selections @root.fm_pins @root.layer '_SBS_DRIVE_PB7' )~}}
+          {{assign 'act' true~}}
+        {{/unless}}
+      {{/if~}}
+      {{#if fmp_on_pb8~}}
+        {{assign 'pin_data' (@root.pinoutAPI.getPinData "PB8")~}}
+        {{#unless (or (eq @root.pin_data.signals.0.instance 'I2C1') (eq @root.pin_data.signals.0.instance 'I2C2' (eq @root.pin_data.signals.0.instance 'I2C3')) (eq @root.pin_data.signals.0.instance 'I2C4'))~}}
+          {{assign 'fm_pins' (helper_sbs_concatenate_selections @root.fm_pins @root.layer '_SBS_DRIVE_PB8' )~}}
+          {{assign 'act' true~}}
+        {{/unless}}
+      {{/if~}}
+      {{#if fmp_on_pb9~}}
+        {{assign 'pin_data' (@root.pinoutAPI.getPinData "PB9")~}}
+        {{#unless (or (eq @root.pin_data.signals.0.instance 'I2C1') (eq @root.pin_data.signals.0.instance 'I2C2' (eq @root.pin_data.signals.0.instance 'I2C3')) (eq @root.pin_data.signals.0.instance 'I2C4'))~}}
+          {{assign 'fm_pins' (helper_sbs_concatenate_selections @root.fm_pins @root.layer '_SBS_DRIVE_PB9' )~}}
+          {{assign 'act' true~}}
+        {{/unless}}
+      {{/if}}
+      {{#unless (eq @root.fm_pins '')}}
+
+  /* Enable the fast mode plus driving capability */
+  {{@root.layer}}_SBS_EnableFastModePlus({{@root.fm_pins}});
+      {{/unless}}
+    {{/with}}
+  {{/if~}}
+{{else if (eq fct 'i2c_smbus_selection')}}
+  {{! ~}}
+  {{! Generate the enable the smbus on the i2cx function ~}}
+  {{! > SBS fct='i2c_smbus_selection'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{#if (helper_sbs_any_true additional.i2c_smbus_selection)}}
+      {{assign 'smbus' (helper_sbs_check_i2C_smbus)~}}
+    {{#with additional.i2c_smbus_selection}}
+      {{assign 'i2c_smbus' ''~}}
+      {{assign 'act' false~}}
+      {{#if (and i2c1_smbus @root.smbus.I2C1)~}}
+      {{assign 'i2c_smbus' (helper_sbs_concatenate_selections @root.i2c_smbus @root.layer '_SBS_I2C1_SMBUS' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if (and i2c3_smbus @root.smbus.I2C3)~}}
+      {{assign 'i2c_smbus' (helper_sbs_concatenate_selections @root.i2c_smbus @root.layer '_SBS_I2C3_SMBUS' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if (and i2c4_smbus @root.smbus.I2C4)~}}
+      {{assign 'i2c_smbus' (helper_sbs_concatenate_selections @root.i2c_smbus @root.layer '_SBS_I2C4_SMBUS' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#unless (eq @root.i2c_smbus '')}}
+
+  /* Enable the smbus on the i2cx */
+  {{@root.layer}}_SBS_EnableI2CSMBUS({{@root.i2c_smbus}});
+      {{/unless}}
+    {{/with}}
+  {{/if~}}
+{{else if (eq fct 'enable_timer_connections')}}
+  {{! ~}}
+  {{! Generate the enable the TIM break inputs function ~}}
+  {{! > SBS fct='enable_timer_connections'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{#if (helper_sbs_any_true additional.timer_break_inputs_lockup)}}
+    {{#with additional.timer_break_inputs_lockup}}
+      {{assign 'timer_cnx' ''~}}
+      {{assign 'act' false~}}
+      {{#if lockup_output~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_LOCKUP_OUT' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if flash_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_FLASH_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if pvd_interrupt~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_PVD' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if sram_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_SRAM_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if sram1_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_SRAM1_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if sram2_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_SRAM2_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if sram3_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_SRAM3_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if sram4_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_SRAM4_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if dcache_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_DCACHE_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if dtcm_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_DTCM_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if itcm_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_ITCM_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if bkpram_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_BKPRAM_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if nvm_ecc_triple_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_NVM_ECC_TRIPLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if axiram6_fix_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_AXIRAM6FIX_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if axiram6_flex_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_AXIRAM6FLEX_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if axiram1_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_AXIRAM1_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if axiram7_ecc_double_error_flag~}}
+      {{assign 'timer_cnx' (helper_sbs_concatenate_selections @root.timer_cnx @root.layer '_SBS_AXIRAM7_ECC_DOUBLE_ERROR' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+
+  /* Enable the TIM break inputs */
+  {{@root.layer}}_SBS_EnableTIMBreakInputs({{@root.timer_cnx}});
+    {{/with}}
+  {{/if~}}
+{{else if (eq fct 'configure_compensation_cells')}}
+  {{! ~}}
+  {{! Generate the configuration of compensation cells functions ~}}
+  {{! > SBS fct='configure_compensation_cells'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{#if (helper_sbs_any_true additional.compensation_cell)}}
+    {{#with additional.compensation_cell}}
+      {{assign 'ccell' ''~}}
+      {{assign 'act' false~}}
+      {{#if vddio.vddio~}}
+      {{assign 'ccell' (helper_sbs_concatenate_selections @root.ccell @root.layer '_SBS_CCELL_VDDIO' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+      {{#if xspi1.xspi1~}}
+      {{assign 'ccell' (helper_sbs_concatenate_selections @root.ccell @root.layer '_SBS_CCELL_VDDXSPI1IO' )~}}
+      {{assign 'act' true~}}
+      {{/if~}}
+      {{#if xspi2.xspi2~}}
+      {{assign 'ccell' (helper_sbs_concatenate_selections @root.ccell @root.layer '_SBS_CCELL_VDDXSPI2IO' )~}}
+      {{assign 'act' true~}}
+      {{/if}}
+
+  /* Enable the I/O compensation cell */
+      {{#if (eq @root.layer 'HAL')}}
+  if (HAL_SBS_EnableCompensationCell({{@root.ccell}}) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+      {{else}}
+  uint32_t timeout = (50U * (SystemCoreClock / 1000U)) + 1U;
+  uint32_t comp_cell = {{@root.ccell}};
+  uint32_t comp_rdy;
+
+  LL_SBS_EnableCompensationCell({{@root.ccell}});
+
+  do
+  {
+{{! ~}}
+{{assign 'comp_rdy' ''~}}
+{{assign 'act' false~}}
+{{#if vddio.vddio}}
+{{assign 'comp_rdy' (helper_sbs_concatenate_selections @root.comp_rdy @root.layer '_SBS_IsActiveFlag_RDY1() << SBS_CCCSR_EN1_Pos' )~}}
+{{assign 'act' true~}}
+{{/if}}
+{{#if xspi1.xspi1}}
+{{assign 'comp_rdy' (helper_sbs_concatenate_selections @root.comp_rdy @root.layer '_SBS_IsActiveFlag_VDDXSPI1RDY() << SBS_CCCSR_VDDXSPI1EN_Pos' )~}}
+{{assign 'act' true~}}
+{{/if}}
+{{#if xspi2.xspi2}}
+{{assign 'comp_rdy' (helper_sbs_concatenate_selections @root.comp_rdy @root.layer '_SBS_IsActiveFlag_VDDXSPI2RDY() << SBS_CCCSR_VDDXSPI2EN_Pos' )~}}
+{{assign 'act' true~}}
+{{/if}}
+    comp_rdy = {{{@root.comp_rdy}}};
+
+    timeout--;
+
+  } while (((comp_rdy & comp_cell) != comp_cell) && (timeout != 0U));
+
+  if (timeout == 0U)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+      {{/if}}
+      {{#if vddio.vddio}}
+
+  /* Set the compensation cell code source */
+        {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_SetCompensationCellCodeSrc(HAL_SBS_CCELL_VDDIO, HAL_SBS_CCELL_CODE_{{uppercase vddio.code_selection_source}});
+        {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetCompensationCellCodeSrc' 'LL_SBS_CCELL_VDDIO' (concat 'LL_SBS_CCELL_CODE_' (uppercase vddio.code_selection_source))}}
+        {{/if}}
+        {{#if (eq vddio.code_selection_source 'custom')}}
+
+  /* Set the compensation cell code */
+          {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_SetConfigxMOSCompensationCellCode(HAL_SBS_CCELL_VDDIO, {{vddio.pmos}}, {{vddio.nmos}});
+          {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetxMOSVddIOCompensationCellCode' vddio.pmos vddio.nmos}}
+          {{/if}}
+        {{/if}}
+      {{/if}}
+      {{#if xspi1.xspi1}}
+
+  /* Set the compensation cell code source */
+          {{#if (eq @root.layer 'HAL')}}
+  {{@root.layer}}_SBS_SetCompensationCellCodeSrc({{@root.layer}}_SBS_CCELL_VDDXSPI1IO, {{@root.layer}}_SBS_CCELL_CODE_{{uppercase xspi1.code_selection_source}});
+          {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetCompensationCellCodeSrc' 'LL_SBS_CCELL_VDDXSPI1IO' (concat 'LL_SBS_CCELL_CODE_' (uppercase xspi1.code_selection_source))}}
+          {{/if}}
+        {{#if (eq xspi1.code_selection_source 'custom')}}
+
+  /* Set the compensation cell code */
+          {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_SetConfigxMOSCompensationCellCode(HAL_SBS_CCELL_VDDXSPI1IO, {{xspi1.pmos}}, {{xspi1.nmos}});
+          {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetxMOSVddXSPI1IOCompensationCellCode' xspi1.pmos xspi1.nmos}}
+          {{/if}}
+        {{/if}}
+      {{/if}}
+      {{#if xspi2.xspi2}}
+
+  /* Set the compensation cell code source */
+          {{#if (eq @root.layer 'HAL')}}
+  {{@root.layer}}_SBS_SetCompensationCellCodeSrc({{@root.layer}}_SBS_CCELL_VDDXSPI2IO, {{@root.layer}}_SBS_CCELL_CODE_{{uppercase xspi2.code_selection_source}});
+          {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetCompensationCellCodeSrc' 'LL_SBS_CCELL_VDDXSPI2IO' (concat 'LL_SBS_CCELL_CODE_' (uppercase xspi2.code_selection_source))}}
+          {{/if}}
+        {{#if (eq xspi2.code_selection_source 'custom')}}
+
+  /* Set the compensation cell code */
+          {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_SetConfigxMOSCompensationCellCode(HAL_SBS_CCELL_VDDXSPI2IO, {{xspi2.pmos}}, {{xspi2.nmos}});
+          {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetxMOSVddXSPI2IOCompensationCellCode' xspi2.pmos xspi2.nmos}}
+          {{/if}}
+        {{/if}}
+      {{/if}}
+    {{/with}}
+  {{/if}}
+{{else if (eq fct 'flash_eccnmi')}}
+  {{! ~}}
+  {{! Generate the disable of the NMI in case of double ECC error in FLASH Interface function ~}}
+  {{! > SBS fct='flash_eccnmi'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{#if (eq additional.flash_eccnmi false)}}
+
+  /* Disable the NMI in case of double ECC error in FLASH Interface */
+    {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_FLASH_DisableECCNMI();
+    {{else}}
+  LL_SBS_FLASH_DisableECCNMI();
+    {{/if}}
+  {{/if}}
+{{else if (eq fct 'set_epoch_value')}}
+  {{! ~}}
+  {{! Generate the select EPOCH security to be sent to SAES IP to encrypt/decrypt keys function ~}}
+  {{! > SBS fct='set_epoch_value'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{#if additional.epoch}}
+    {{#unless (eq additional.epoch 'none')}}
+
+  /* Select EPOCH security to be sent to SAES IP to encrypt/decrypt keys */
+      {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_SetEPOCHSelection(HAL_SBS_EPOCH_{{uppercase additional.epoch}});
+      {{else}}
+        {{#if (eq additional.epoch 'nsec')}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetEPOCHSelection' 'LL_SBS_EPOCH_SEL_NONSECURE'}}
+        {{else if (eq additional.epoch 'SEC')}}
+  LL_SBS_SetEPOCHSelection(LL_SBS_EPOCH_SEL_SECURE);
+        {{else}}
+  LL_SBS_SetEPOCHSelection(LL_SBS_EPOCH_SEL_CLR);
+        {{/if}}
+      {{/if}}
+    {{/unless}}
+  {{/if}}
+{{else if (eq fct 'set_ethernet_external_phy_interrupt_polarity')}}
+  {{! ~}}
+  {{! Generate the select ethernet polarity function ~}}
+  {{! > SBS fct='set_ethernet_external_phy_interrupt_polarity'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{#if additional.ethernet_external_phy_interrupt_polarity}}
+    {{#if (not (eq additional.ethernet_external_phy_interrupt_polarity 'NONE'))}}
+
+  /* Select the ethernet external PHY interrupt polarity */
+      {{#if (eq @root.layer 'HAL')}}
+  HAL_SBS_SetETHExternalPHYInterruptPolarity(ETH1, HAL_SBS_ETHPHY_IT_POL_ACTIVE_{{additional.ethernet_external_phy_interrupt_polarity}});
+      {{else}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetETHExternalPHYInterruptPolarity' 'LL_SBS_PERIPH_ETH1' (concat 'LL_SBS_ETHPHY_IT_POL_ACTIVE_' additional.ethernet_external_phy_interrupt_polarity)}}
+      {{/if}}
+    {{/if}}
+  {{/if}}
+{{else if (eq fct 'set_ethernet_phy_interface')}}
+  {{! ~}}
+  {{! Generate the select ethernet interface function ~}}
+  {{! > SBS fct='set_ethernet_phy_interface'~}}
+  {{! ~}}
+  {{assign 'layer' info.layer~}}
+  {{assign 'eth' (helper_sbs_check_peripheral 'ETH1')~}}
+  {{#if additional.ethernet_phy_interface}}
+    {{#if (and (not @root.eth) (not (eq additional.ethernet_phy_interface 'NONE')))}}
+
+  /* Select the ethernet PHY interface */
+      {{#if (eq @root.layer 'HAL')}}
+        {{#if (or (eq additional.ethernet_phy_interface 'GMII') (eq additional.ethernet_phy_interface 'MII'))}}
+  HAL_SBS_SetETHPHYInterface(ETH1, HAL_SBS_ETHPHY_ITF_GMII_MII);
+        {{else}}
+  HAL_SBS_SetETHPHYInterface(ETH1, HAL_SBS_ETHPHY_ITF_RMII);
+        {{/if}}
+      {{else}}
+        {{#if (or (eq additional.ethernet_phy_interface 'GMII') (eq additional.ethernet_phy_interface 'MII'))}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetETHPHYInterface' 'LL_SBS_PERIPH_ETH1' 'LL_SBS_ETHPHY_ITF_GMII_MII'}}
+        {{else}}
+  LL_SBS_SetETHPHYInterface(LL_SBS_PERIPH_ETH1, LL_SBS_ETHPHY_ITF_RMII);
+        {{/if}}
+      {{/if}}
+    {{/if}}
+  {{/if}}
+{{else if (eq fct 'set_exti_source')}}
+  {{! ~}}
+  {{! Generate the select EXTI source function ~}}
+  {{! > SBS fct='set_exti_source' port=port pin=pin~}}
+  {{! ~}}
+  {{assign 'port' port~}}
+  {{assign 'pin' pin~}}
+  {{helper_common_gen_ll_code 'LL_SBS_SetEXTISource' (concat 'LL_SBS_EXTI_GPIO_PORT' @root.port) (concat 'LL_SBS_EXTI_GPIO_LINE' @root.pin)}}
+{{else if (eq fct 'reset_exti_source')}}
+  {{! ~}}
+  {{! Generate the reset EXTI source function ~}}
+  {{! > SBS fct='reset_exti_source' port=port pin=pin~}}
+  {{! ~}}
+  {{assign 'port' port~}}
+  {{assign 'pin' pin~}}
+  LL_SBS_SetEXTISource(LL_SBS_EXTI_GPIO_PORT{{@root.port}}, LL_SBS_EXTI_GPIO_LINE{{@root.pin}});
+{{else}}
+#warning "SBS partial called but wrong step '{{fct}}'"
+{{/if}}

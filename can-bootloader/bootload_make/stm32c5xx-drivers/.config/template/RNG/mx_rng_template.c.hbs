@@ -1,0 +1,261 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_rng_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'RNG' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "RNG template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'hal_handle_exist' 0~}}
+{{#each @root.instances~}}
+{{assign 'rng_cxt' config~}}
+{{log "RNG template rng_cxt:" (toJSON @root.rng_cxt)~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.rng_cxt.info.layer~}}
+{{log "RNG template current_resource:" @root.current_resource~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if (eq @root.hal_handle_exist 0)}}
+static hal_rng_handle_t h{{@root.current_resource}};
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{/each}}
+{{assign 'used_components' (@root.SWProjectAPI.getUsedComponents 'asObject' cgroup="STM32 HAL")~}}
+{{assign 'AES_component' (helper_common_if_component_is_enabled @root.used_components 'AES')~}}
+{{assign 'hal_handle_exist' 0~}}
+{{~assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+{{assign 'rng_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'name' @root.rng_cxt.name~}}
+{{assign 'current_layer' @root.rng_cxt.info.layer~}}
+{{assign 'configs' @root.rng_cxt~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.rng_cxt}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_rng_handle_t *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='RNG'}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+  if (HAL_RNG_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  /* Code HAL_RNG_Config....*/
+{{#with basic }}
+{{#if (eq rng_standard 0) }}
+  HAL_RNG_SetCertifiedNISTConfig(&h{{@root.current_resource}});
+{{else if (eq rng_standard 1) }}
+  HAL_RNG_SetCandidateNISTConfig(&h{{@root.current_resource}});
+{{else if (eq rng_standard 2)}}
+  HAL_RNG_SetCandidateGermanBSIConfig(&h{{@root.current_resource}});
+{{else if (eq rng_standard 3)}}
+  hal_rng_config_t rng_config;
+
+  rng_config.config_1              = {{config_1}};
+  rng_config.config_2              = {{config_2}};
+  rng_config.config_3              = {{config_3}};
+  rng_config.clock_divider         = HAL_RNG_CLOCK_DIVIDER_BY_{{clock_divider}};
+  rng_config.standard              = HAL_RNG_{{standard}};
+  {{#if clock_error_detection}}
+  rng_config.clock_error_detection = HAL_RNG_CLOCK_ERROR_DETECTION_ENABLED;
+  {{else}}
+  rng_config.clock_error_detection = HAL_RNG_CLOCK_ERROR_DETECTION_DISABLED;
+  {{/if}}
+  rng_config.health_test           = {{health_test}};
+{{#with noise_source}}
+  rng_config.noise_src.osc_1_src   = {{#if (eq osc_1_src 1)}}HAL_RNG_OSCILLATOR_SOURCE_1 {{else if (eq osc_1_src 2)}} HAL_RNG_OSCILLATOR_SOURCE_2{{else if (eq osc_1_src 3)}} HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_2{{else if (eq osc_1_src 4)}} HAL_RNG_OSCILLATOR_SOURCE_3{{else if (eq osc_1_src 5)}} HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_3{{else if (eq osc_1_src 6)}}HAL_RNG_OSCILLATOR_SOURCE_2 | HAL_RNG_OSCILLATOR_SOURCE_3{{else}}HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_2 | HAL_RNG_OSCILLATOR_SOURCE_3{{/if}};
+  rng_config.noise_src.osc_2_src   = {{#if (eq osc_2_src 1)}}HAL_RNG_OSCILLATOR_SOURCE_1 {{else if (eq osc_2_src 2)}} HAL_RNG_OSCILLATOR_SOURCE_2{{else if (eq osc_2_src 3)}} HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_2{{else if (eq osc_2_src 4)}} HAL_RNG_OSCILLATOR_SOURCE_3{{else if (eq osc_2_src 5)}} HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_3{{else if (eq osc_2_src 6)}}HAL_RNG_OSCILLATOR_SOURCE_2 | HAL_RNG_OSCILLATOR_SOURCE_3{{else}}HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_2 | HAL_RNG_OSCILLATOR_SOURCE_3{{/if}};
+  rng_config.noise_src.osc_3_src   = {{#if (eq osc_3_src 1)}}HAL_RNG_OSCILLATOR_SOURCE_1 {{else if (eq osc_3_src 2)}} HAL_RNG_OSCILLATOR_SOURCE_2{{else if (eq osc_3_src 3)}} HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_2{{else if (eq osc_3_src 4)}} HAL_RNG_OSCILLATOR_SOURCE_3{{else if (eq osc_3_src 5)}} HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_3{{else if (eq osc_3_src 6)}}HAL_RNG_OSCILLATOR_SOURCE_2 | HAL_RNG_OSCILLATOR_SOURCE_3{{else}}HAL_RNG_OSCILLATOR_SOURCE_1 | HAL_RNG_OSCILLATOR_SOURCE_2 | HAL_RNG_OSCILLATOR_SOURCE_3{{/if}};
+{{/with}}
+  if (HAL_RNG_SetConfig(&h{{@root.current_resource}}, &rng_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}
+
+{{#with additional }}
+{{#if enable_auto_reset }}
+  HAL_RNG_EnableAutoReset(&h{{@root.current_resource}});
+
+{{/if~}}
+
+{{#if enable_clock_error_detection }}
+  HAL_RNG_EnableClockErrorDetection(&h{{@root.current_resource}});
+
+{{/if~}}
+{{/with}}
+{{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  /* Enable the interruption for RNG */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.irq_config.needs @root.current_resource system.nvic.irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.irq_config.needs}}
+{{/if}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  /* Disable the interuption for RNG */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.irq_config.needs}}
+{{/if}}
+  (void)HAL_RNG_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{#if (eq @root.AES_component 0)}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{/if~}}
+
+}
+
+{{else}}
+{{assign 'nvic_generate_handler' false~}}
+{{!
+    Generation of initialization function used in LL
+~}}
+RNG_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{~#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{/RCC}}
+{{#with basic }}
+{{#if (eq rng_standard 0) }}
+
+  LL_RNG_WRITE_REG({{@root.current_resource}}, CR, ((uint32_t)RNG_CERT_NIST_CR_VALUE | (uint32_t)RNG_CR_CONDRST));
+  LL_RNG_WRITE_REG({{@root.current_resource}}, NSCR, RNG_CERT_NIST_NSCR_VALUE);
+  LL_RNG_WRITE_REG({{@root.current_resource}}, HTCR[0], RNG_CERT_NIST_HTCR_VALUE);
+{{else if (eq rng_standard 1)}}
+
+  LL_RNG_WRITE_REG({{@root.current_resource}}, CR, ((uint32_t)RNG_CAND_NIST_CR_VALUE | (uint32_t)RNG_CR_CONDRST));
+  LL_RNG_WRITE_REG({{@root.current_resource}}, NSCR, RNG_CAND_NIST_NSCR_VALUE);
+  LL_RNG_WRITE_REG({{@root.current_resource}}, HTCR[0], RNG_CAND_NIST_HTCR_VALUE);
+{{else if (eq rng_standard 3)}}
+
+  uint32_t config = ({{config_1}} << RNG_CR_RNG_CONFIG1_Pos) | ({{config_2}} << RNG_CR_RNG_CONFIG2_Pos)
+                    | ({{config_3}} << RNG_CR_RNG_CONFIG3_Pos) | (LL_RNG_CLKDIV_BY_{{clock_divider}})
+                    | {{#if (eq clock_error_detection)}}LL_RNG_CED_ENABLE{{else}}LL_RNG_CED_DISABLE{{/if}}
+                    | {{#if (eq standard "CUSTOM")}}LL_RNG_CUSTOM_NIST{{else}}LL_RNG_NIST_COMPLIANT{{/if}} ;
+{{#with noise_source}}
+  uint32_t noise_source = ({{osc_1_src.value}} << RNG_NSCR_EN_OSC1_Pos)   \
+                  | ({{osc_2_src.value}} << RNG_NSCR_EN_OSC2_Pos) \
+                  | ({{osc_3_src.value}} << RNG_NSCR_EN_OSC3_Pos);
+{{/with}}
+  LL_RNG_SetConfig({{@root.current_resource}}, config);
+  LL_RNG_WRITE_REG({{@root.current_resource}}, NSCR, noise_source);
+  LL_RNG_SetHealthConfig({{@root.current_resource}}, {{health_test}});
+{{/if}}
+{{/with}}
+  LL_RNG_DisableCondReset({{@root.current_resource}});
+{{#with additional }}
+{{#if enable_auto_reset }}
+
+  LL_RNG_EnableArdis({{@root.current_resource}});
+{{/if}}
+{{/with}}
+{{#if (not Advanced.clock_error_detection)}}
+
+{{#with additional }}
+{{#if enable_clock_error_detection }}
+  LL_RNG_EnableClkErrorDetect({{@root.current_resource}});
+{{/if}}
+{{/with}}
+{{/if}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='RNG'}}
+{{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  /* Enable the interruption for RNG */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.irq_config.needs @root.current_resource system.nvic.irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.irq_config.needs}}
+{{/if}}
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+  LL_RNG_Disable({{@root.current_resource}});
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource='RNG'}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource='RNG'}}
+
+{{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  /* Disable the interuption for RNG */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.irq_config.needs}}
+{{/if}}
+}
+
+{{/if}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if (eq @root.hal_handle_exist 0)}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined )~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_rng_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{#with security_privilege}}
+
+{{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/******************************************************************************/
+/*                      Privileged attribute management                       */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_privilege(void)
+{{else}}
+/******************************************************************************/
+/*                Security and privileged attributes management               */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+{{/if}}
+{
+{{> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}
+
+  return SYSTEM_OK;
+}
+{{/with}}
+{{/with}}
+{{/each}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='RNG'}}
+{{/helper_common_beautifier}}

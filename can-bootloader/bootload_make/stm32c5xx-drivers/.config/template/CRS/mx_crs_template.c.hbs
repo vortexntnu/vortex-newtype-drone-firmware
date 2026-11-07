@@ -1,0 +1,275 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_crs_template.c.hbs
+  * @brief          : CRS Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'CRS' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "CRS template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+{{~assign 'crs_lut_table' (helper_crs_get_lut_table 'V1')~}}
+{{~helper_common_initialize_ll_code @root.optim_enable @root.crs_lut_table 'CRS'~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'hal_handle_exist' 0~}}
+{{#each @root.instances~}}
+{{assign 'crs_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.crs_cxt.info.layer~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if (eq @root.hal_handle_exist 0)}}
+static hal_crs_handle_t h{{@root.current_resource}};
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{/each}}
+{{assign 'hal_handle_exist' 0~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+{{assign 'crs_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.crs_cxt.info.layer~}}
+
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.crs_cxt}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if basic.init}}
+hal_crs_handle_t *{{@root.fct_name}}_init(void)
+{
+  if (HAL_CRS_Init(&h{{uppercase @root.current_resource}}, HAL_CRS1) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+  return &h{{uppercase @root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+  (void)HAL_CRS_DeInit(&h{{uppercase @root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+}
+
+{{else}}
+hal_crs_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_crs_config_t crs_config;
+
+  if (HAL_CRS_Init(&h{{uppercase @root.current_resource}}, HAL_CRS1) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+{{#with basic}}
+  crs_config.divider                = HAL_CRS_SYNC_DIV{{sync_signal.sync_divider}};
+  crs_config.source                 = HAL_CRS_SYNC_SOURCE_{{sync_signal.sync_source}};
+  crs_config.polarity               = HAL_CRS_SYNC_POLARITY_{{sync_signal.sync_polarity}};
+  crs_config.reload                 = 0x{{#if frequency_error_counter.counter_reload }}{{uppercase (dec2hex frequency_error_counter.counter_reload)}}{{else}}0{{/if}};
+  crs_config.frequency_error_limit  = 0x{{#if frequency_error_counter.frequency_error_limit }}{{uppercase (dec2hex frequency_error_counter.frequency_error_limit)}}{{else}}0{{/if}};
+  crs_config.auto_trimming          = {{#if trimming.auto_trimming}}HAL_CRS_AUTO_TRIMMING_ENABLE{{else}}HAL_CRS_AUTO_TRIMMING_DISABLE{{/if}};
+  crs_config.trimming               = 0x{{#if trimming.trimming_value }}{{uppercase (dec2hex trimming.trimming_value)}}{{else}}0{{/if}};
+
+  HAL_CRS_SetConfig(&h{{uppercase @root.current_resource}}, &crs_config);
+{{/with}}
+
+{{#with system}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Enable the interruption for {{@root.current_resource}} */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context irq_line.needs @root.current_resource irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=irq_line.needs}}
+{{/CORTEX}}
+{{/if}}
+{{/with}}
+{{/with}}
+  return &h{{uppercase @root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+  (void)HAL_CRS_DeInit(&h{{uppercase @root.current_resource}});
+
+{{#with system}}
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource}}
+{{#with nvic}}
+{{#if enable_interruption}}
+
+  /* Disable the interruption for {{@root.current_resource}} */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+{{/if}}
+{{/with}}
+{{/with}}
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+}
+{{/if}}
+{{#> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}{{/GPIO_HAL}}
+{{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+CRS_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+{{#with basic}}
+  /* CRS divider : Set the synchronization signal divider */
+  {{helper_common_gen_ll_code 'LL_CRS_SetSyncDivider' (concat 'LL_CRS_SYNC_DIV_' sync_signal.sync_divider)}}
+
+  /* CRS source size: Set the synchronization signal source */
+  {{helper_common_gen_ll_code 'LL_CRS_SetSyncSignalSource' (concat 'LL_CRS_SYNC_SOURCE_' sync_signal.sync_source)}}
+
+  /* CRS polarity: Set the polarity of the synchronization signal */
+  {{helper_common_gen_ll_code 'LL_CRS_SetSyncPolarity' (concat 'LL_CRS_SYNC_POLARITY_' sync_signal.sync_polarity)}}
+
+  /* CRS reload value: Set counter reload value */
+{{assign 'll_optim_counter_reload' (uppercase (dec2hex frequency_error_counter.counter_reload))~}}
+{{#if @root.ll_optim_counter_reload}}
+  {{helper_common_gen_ll_code 'LL_CRS_SetReloadCounter' (concat '0x' @root.ll_optim_counter_reload)}}
+{{else}}
+  {{helper_common_gen_ll_code 'LL_CRS_SetReloadCounter' '0x0'}}
+{{/if}}
+
+  /* CRS frequency error limit: Set frequency error limit value */
+{{assign 'll_optim_frequency_error_limit' (uppercase (dec2hex frequency_error_counter.frequency_error_limit))~}}
+{{#if @root.ll_optim_frequency_error_limit}}
+  {{helper_common_gen_ll_code 'LL_CRS_SetFreqErrorLimit' (concat '0x' @root.ll_optim_frequency_error_limit)}}
+{{else}}
+  {{helper_common_gen_ll_code 'LL_CRS_SetFreqErrorLimit' '0x0'}}
+{{/if}}
+
+  /* CRS trimming: {{#if trimming.auto_trimming}}Enable{{else}}Disable{{/if}} CRS hardware auto-trimming and set HSI144 trimming value */
+{{assign 'll_optim_trimming_value' (uppercase (dec2hex trimming.trimming_value))~}}
+{{#if trimming.auto_trimming}}
+{{assign 'll_optim_auto_trimming' 'LL_CRS_AUTO_TRIMMING_ENABLE'~}}
+{{else}}
+{{assign 'll_optim_auto_trimming' 'LL_CRS_AUTO_TRIMMING_DISABLE'~}}
+{{/if}}
+{{#if @root.ll_optim_trimming_value}}
+  {{helper_common_gen_ll_code 'LL_CRS_ConfigTrimming' (concat '0x' @root.ll_optim_trimming_value) @root.ll_optim_auto_trimming}}
+{{else}}
+  {{helper_common_gen_ll_code 'LL_CRS_ConfigTrimming' '0x0' @root.ll_optim_auto_trimming}}
+{{/if}}
+{{/with}}
+
+{{#with system}}
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource return_if_failed='0'}}
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Enable the interruption for {{@root.current_resource}} */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context irq_line.needs @root.current_resource irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=irq_line.needs}}
+{{/CORTEX}}
+{{/if}}
+{{/with}}
+{{/with}}
+
+  return CRS;
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{#with system}}
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource}}
+
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Disable the interruption for {{@root.current_resource}} */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+{{/if}}
+{{/with}}
+{{/with}}
+}
+{{/if}}
+
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if (eq @root.hal_handle_exist 0)}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_crs_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+
+{{#with security_privilege}}
+
+{{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/******************************************************************************/
+/*                      Privileged attribute management                       */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_privilege(void)
+{{else}}
+/******************************************************************************/
+/*                Security and privileged attributes management               */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+{{/if}}
+{
+{{> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}
+
+{{#if (eq @root.current_layer 'HAL')}}
+{{> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}
+{{else}}
+{{> GPIO_LL fct='gpio_config_security' resource=@root.current_resource}}
+{{/if}}
+
+  return SYSTEM_OK;
+}
+{{/with}}
+
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='CRS'}}
+{{/with}}
+{{/each}}
+{{/helper_common_beautifier}}

@@ -1,0 +1,158 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_opamp_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'OPAMP' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "OPAMP template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'opamp_cxt' config~}}
+  {{~log "OPAMP template opamp_cxt:" (toJSON @root.opamp_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.opamp_cxt.info.layer~}}
+  {{~log "OPAMP template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+static hal_opamp_handle_t h{{@root.current_resource}};
+  {{/if}}
+{{/each}}
+
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{#each @root.instances}}
+  {{~assign 'opamp_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'name' @root.opamp_cxt.name~}}
+  {{~assign 'current_layer' @root.opamp_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~log "OPAMP template instance:" (toJSON this)~}}
+{{! Initialize the context for LL code optimization ~}}
+{{assign 'lut_table'   (helper_opamp_get_lut_table 'OPAMPV1')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#with @root.opamp_cxt}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_opamp_handle_t *{{@root.fct_name}}_init(void)
+{
+  if (HAL_OPAMP_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource=@root.current_resource}}
+
+{{> OPAMP_HAL fct='init'}}
+{{#with system}}
+{{!==================== GPIO ====================}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+{{/with}}{{! system}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{> OPAMP_HAL fct='deinit'}}
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+
+{{#with system}}
+{{#if EnableInterruption}}
+  /* Disable the interruption for OPAMP */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+{{/if}}
+{{!==================== GPIO ====================}}
+{{#with gpio}}
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource}}
+{{/with}}{{! gpio ~}}
+{{/with}}{{! system ~}}
+}
+{{else}}{{! eq @root.current_layer 'LL' ~}}
+OPAMP_TypeDef *{{@root.fct_name}}_init(void){
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource=@root.current_resource}}
+{{> OPAMP_LL fct='init'}}
+
+{{#with system}}
+{{!==================== GPIO ====================}}
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource}}
+{{/with}}{{! system ~}}
+
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{> OPAMP_LL fct='deinit'}}
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+
+{{#with system}}
+{{#if EnableInterruption}}
+  /* Disable the interruption for OPAMP */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+{{/if}}
+{{!==================== GPIO ====================}}
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource}}
+{{/with}}{{! system ~}}
+}
+{{/if}}{{! eq @root.current_layer 'HAL' ~}}
+
+{{#if (eq @root.current_layer 'HAL')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_opamp_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{/if}}
+{{/with}}
+{{/each}}
+{{/helper_common_beautifier}}

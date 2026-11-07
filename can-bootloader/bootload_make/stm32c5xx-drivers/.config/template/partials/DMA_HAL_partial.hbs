@@ -1,0 +1,483 @@
+{{!
+ * @file Partial used to generate code for DMA:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{assign 'dma_usage' fct~}}
+{{assign 'dma_request_exist' "undefined"~}}
+{{#if (eq fct 'init')}}
+  {{! }}
+  {{! Generate the DMA code inside the PPPi init function}}
+  {{! > DMA_HAL fct='init' needs=dma_config_tx.needs}}
+  {{! }}
+  {{log "DMA_HAL fct='init': DMA Channel instance:" needs~}}
+  {{#each needs}}
+  {{assign 'selector'  selector~}}
+  {{assign 'instance'  owner~}}
+  {{assign 'dma_config' (@root.DmaAPI.getNeedById id)~}}
+  {{!log "DMA_HAL fct='init' dma_config:" @root.dma_config~}}
+  {{/each}}
+  {{assign 'dma_channel_instance' @root.dma_config.resourceId~}}
+  {{assign 'dma_config' @root.dma_config.configuration~}}
+
+{{else if (eq fct 'init_dma')}}
+
+  {{! }}
+  {{! Generate the DMA code inside the DMAi_CHy init function}}
+  {{! > DMA_HAL fct='init_dma' arg1=@root.current_resource arg2=@root.current_config}}
+  {{! }}
+  {{~assign 'dma_channel_instance' arg1~}}
+  {{~assign 'dma_config' arg2~}}
+{{else if (eq fct 'get_dma_handles')}}
+    {{! > DMA_HAL fct='get_dma_handles' resource='I2C1' strategy='HW'}}
+    {{!       strategy can be HW or SW depending of project options }}
+    {{!                if SW resource is equle to 'STM32 HAL Code Gen:I2C Init'}}
+    {{! }}
+    {{~log "DMA_HAL fct='get_dma_handles' resource:" resource " strategy:" strategy~}}
+    {{~assign 'a_dma_instances' 'undefined'~}}
+    {{#if (or (eq strategy undefined) (eq strategy 'HW'))}}
+      {{~assign 'get_allocated_resource_needs' (@root.DmaAPI.getAllocatedResourceNeedsByHwInstance resource)~}}
+      {{~log 'DMA_HAL (get_dma_handles): get_allocated_resource_needs (by HW)=' (toJSON @root.get_allocated_resource_needs)~}}
+    {{else}}
+      {{~assign 'get_allocated_resource_needs' (@root.DmaAPI.getAllocatedResourceNeedsByComponent resource)~}}
+      {{~log 'DMA_HAL (get_dma_handles): get_allocated_resource_needs (by SW)=' (toJSON @root.get_allocated_resource_needs)~}}
+    {{/if}}
+    {{#each @root.get_allocated_resource_needs}}
+      {{~assign 'sw_instance_config' (@root.SWConfigurationAPI.getSwInstanceConfiguration swInstanceId)~}}
+      {{!log "test_dma_partial sw_instance_config:" (toJSON @root.sw_instance_config)~}}
+      {{#if (eq @root.sw_instance_config.info.layer 'HAL')}}
+        {{~assign 'dma_config' (@root.DmaAPI.getNeedById needId)~}}
+        {{~assign 'a_dma_instances' (helper_dma_get_dma_handle @root.dma_config @root.a_dma_instances)~}}
+        {{#with @root.dma_config}}
+          {{#with configuration.basic}}
+{{#if (eq dma_mode 2)}}
+{{assign 'dma_node' (helper_dma_get_node request.id @root.dma_config.owner @root.dma_config.selector)~}}
+static hal_dma_node_t {{@root.dma_node~}};
+{{/if~}}
+          {{/with~}}
+        {{/with~}}
+        {{!log "test_dma_partial dma_config:" (toJSON @root.dma_config)~}}
+      {{/if}}
+    {{/each}}
+    {{~log "DMA_HAL fct='get_dma_handles' a_dma_instances:" @root.a_dma_instances~}}
+{{#if (not (eq @root.a_dma_instances 'undefined'))}}
+{{#each @root.a_dma_instances}}
+static hal_dma_handle_t h{{this}};
+{{/each}}
+{{/if}}
+{{! }}
+{{! Generate the DMA code inside the PPPi init function}}
+{{! > DMA_HAL fct='deinit' needs=dma_config_tx.needs}}
+{{! }}
+{{else if (eq fct 'deinit')}}
+{{#each needs}}
+{{assign 'dma_config' (@root.DmaAPI.getNeedById id)~}}
+{{!log "DMA_HAL fct='init' dma_config:" @root.dma_config~}}
+{{/each}}
+  /* De-initialize the DMA channel */
+  {{assign 'dma_channel_instance' @root.dma_config.resourceId~}}
+  HAL_DMA_DeInit(&h{{@root.dma_channel_instance}});
+
+{{#each @root.dma_config}}
+{{#if system.nvic.nvic_config}}
+  /* Disable the interruption for DMA */
+{{assign 'nvic_needs' (helper_common_concatenate_needs system.nvic.nvic_config.needs @root.nvic_needs)~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config.needs @root.dma_channel_instance system.irq_handler_generation)~}}
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.nvic_config.needs}}
+#warning "Partial HAL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}
+{{/each}}
+
+{{else if (eq fct 'config_security')}}
+{{!
+ Generate the DMA HAL code inside the DMAi_CHy
+ > DMA_HAL fct='dma_config_security' resource=@root.current_resource
+~}}
+  {{~assign 'dma_channel_instance' resource}}
+  {{assign 'dma_parent' (helper_dma_get_parent @root.dma_channel_instance)}}
+
+  /* Enable {{@root.dma_parent}} clock */
+  {{#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.dma_parent}}
+  {{/RCC}}
+
+  {{#with @root.dma_config.security_privilege}}
+  {{#if (eq security.channel_sec 'SEC')}}
+  /* Configure the DMA channel security access level attribute */
+  if (HAL_DMA_SetSecAttr(HAL_{{uppercase @root.dma_channel_instance}}, HAL_DMA_SEC)!= HAL_OK)
+  {
+      return SYSTEM_PERIPHERAL_ERROR;
+  }
+  {{/if}}
+
+  {{#with @root.dma_config.security_privilege.security.xfer_sec}}
+    {{#with @root.dma_config.basic}}
+    {{#if (eq dma_mode 0)}}
+      {{log "DMA_HAL security_items:" @root.dma_config.security_privilege.security.xfer_sec~}}
+      {{~assign "security_items" (helper_dma_get_security_items @root.current_layer @root.dma_config.security_privilege.security.xfer_sec)}}
+        {{log "DMA_HAL security_items:" @root.security_items}}
+   {{#unless (eq @root.security_items '')}}
+  /* Configure the DMA channel xfer security access levels attributes */
+  if (HAL_DMA_SetXferSecAttr(HAL_{{uppercase @root.dma_channel_instance}}, {{@root.security_items}}, HAL_DMA_SEC)!= HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+    {{/unless}}
+    {{/if}}
+    {{/with}}
+  {{/with}}
+
+  {{#if (eq privilege.channel_priv 'PRIV')}}
+  /* Configure the the DMA channel privileged access level attribute */
+  if (HAL_DMA_SetPrivAttr(HAL_{{uppercase @root.dma_channel_instance}}, HAL_DMA_PRIV)!= HAL_OK)
+  {
+      return SYSTEM_PERIPHERAL_ERROR;
+  }
+  {{/if}}
+
+  {{#if lock.channel_lock}}
+  /* Lock the security and privileged access levels attributes for DMA channel */
+  if (HAL_DMA_LockAttr(HAL_{{uppercase @root.dma_channel_instance}})!= HAL_OK)
+  {
+      return SYSTEM_PERIPHERAL_ERROR;
+  }
+  {{/if}}
+
+  {{#if iac_it}}
+  /* Enable DMA IAC interrupt */
+  HAL_RIF_IAC_EnableIT(HAL_RIF_IAC_GPDMA1);
+  {{/if}}
+
+  {{#if clock}}
+  /* Disable {{@root.dma_parent}} clock */
+  {{#> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.dma_parent}}
+  {{/RCC}}
+  {{/if}}
+
+  {{/with}}
+
+{{else if (eq fct 'dma_config_security')}}
+{{!
+ Generate the DMA HAL code inside the mx_pppi_config_security function
+ > DMA_HAL fct='dma_config_security' resource=@root.current_resource
+~}}
+  {{~assign 'needs' (@root.DmaAPI.getAllocatedResourceNeedsByHwInstance resource)~}}
+  {{log "DMA_HAL needs:" @root.needs~}}
+  {{#each @root.needs}}
+  {{assign 'dma_channel_instance' resourceId~}}
+  {{assign 'dma_parent' (helper_dma_get_parent @root.dma_channel_instance)}}
+  {{assign 'dma_config' (@root.DmaAPI.getNeedById needId)~}}
+  {{log "DMA_HAL dma_channel_instance:" @root.dma_channel_instance~}}
+  {{log "DMA_HAL dma_config:" @root.dma_config~}}
+
+  /* Enable {{@root.dma_parent}} clock */
+  {{#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.dma_parent}}
+  {{/RCC}}
+
+  {{#with @root.dma_config.configuration.security_privilege}}
+  {{#if (eq security.channel_sec 'SEC')}}
+  /* Configure the DMA channel security access level attribute */
+  if (HAL_DMA_SetSecAttr(HAL_{{uppercase @root.dma_channel_instance}}, HAL_DMA_SEC)!= HAL_OK)
+  {
+      return SYSTEM_PERIPHERAL_ERROR;
+  }
+  {{/if}}
+
+  {{#with security.xfer_sec}}
+    {{#with @root.dma_config.configuration.basic}}
+    {{#if (eq dma_mode 0)}}
+      {{~assign "security_items" (helper_dma_get_security_items @root.current_layer @root.dma_config.configuration.security_privilege.security.xfer_sec)}}
+  {{log "DMA_HAL security_items:" @root.security_items}}
+   {{#unless (eq @root.security_items '')}}
+  /* Configure the DMA channel xfer security access levels attributes */
+  if (HAL_DMA_SetXferSecAttr(HAL_{{uppercase @root.dma_channel_instance}}, {{@root.security_items}}, HAL_DMA_SEC)!= HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+    {{/unless}}
+    {{/if}}
+    {{/with}}
+  {{/with}}
+
+  {{#if (eq privilege.channel_priv 'PRIV')}}
+  /* Configure the the DMA channel privileged access level attribute */
+  if (HAL_DMA_SetPrivAttr(HAL_{{uppercase @root.dma_channel_instance}}, HAL_DMA_PRIV)!= HAL_OK)
+  {
+      return SYSTEM_PERIPHERAL_ERROR;
+  }
+  {{/if}}
+
+  {{#if lock.channel_lock}}
+  /* Lock the security and privileged access levels attributes for DMA channel */
+  if (HAL_DMA_LockAttr(HAL_{{uppercase @root.dma_channel_instance}})!= HAL_OK)
+  {
+      return SYSTEM_PERIPHERAL_ERROR;
+  }
+  {{/if}}
+
+  {{#if clock}}
+  /* Disable {{@root.dma_parent}} clock */
+  {{#> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.dma_parent}}
+  {{/RCC}}
+  {{/if}}
+
+  {{/with}}
+  {{/each}}
+{{else}}
+#warning "{{fct}} not present in partial DMA_HAL_partial.hbs"
+{{/if}}
+{{#if (or (eq fct 'init') (eq fct 'init_dma'))}}
+{{assign 'dma_parent' (helper_dma_get_parent @root.dma_channel_instance)}}
+  if (HAL_DMA_Init(&h{{@root.dma_channel_instance}}, HAL_{{uppercase @root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.dma_parent~}}
+
+{{#with @root.dma_config}}
+{{! DMA channel direct mode basic xfer : }}
+{{#with basic}}
+{{#if (eq @root.dma_usage 'init_dma')}}
+{{assign 'xfer_cfg' 'xfer_cfg'}}
+{{#if (eq dma_mode 0)}}
+  hal_dma_direct_xfer_config_t {{@root.xfer_cfg}};
+{{/if}}
+{{/if}}
+
+{{assign 'dma_transfer_mode' dma_mode~}}
+{{!-- {{#with Basic_xfer}} --}}
+{{#unless (eq dma_mode 1)}}
+{{#if (eq @root.dma_usage 'init')}}
+{{assign 'dma_node' (helper_dma_get_node request.id @root.instance @root.selector)~}}
+
+{{#if request}}
+  {{#if (eq @root.xfer_exist undefined)}}
+    {{assign 'xfer_cfg' (append 'xfer_cfg_' request.id)}}
+    {{assign 'xfer_exist' @root.xfer_cfg}}
+  hal_dma_direct_xfer_config_t {{@root.xfer_cfg}};
+  {{else}}
+    {{assign 'xfer_cfg' (append 'xfer_cfg_' request.id)}}
+    {{#if (not (eq @root.xfer_cfg @root.xfer_exist))}}
+    {{assign 'xfer_exist' @root.xfer_cfg}}
+  hal_dma_direct_xfer_config_t {{@root.xfer_cfg}};
+    {{/if}}
+  {{/if}}
+  {{assign 'req' (helper_dma_get_request @root.dma_channel_instance @root.current_layer request.id)~}}
+  {{@root.xfer_cfg}}.request         = {{@root.req}};
+{{else}}
+  hal_dma_direct_xfer_config_t {{@root.xfer_cfg}};
+{{@root.xfer_cfg}}.request         = HAL_DMA_REQUEST_SW;
+{{/if}}
+{{else}}
+  {{@root.xfer_cfg}}.request         = HAL_DMA_REQUEST_SW;
+{{/if}}
+  {{@root.xfer_cfg}}.direction       = HAL_DMA_DIRECTION_{{direction}};
+  {{@root.xfer_cfg}}.src_inc         = HAL_DMA_SRC_ADDR_{{src_inc}};
+  {{@root.xfer_cfg}}.dest_inc        = HAL_DMA_DEST_ADDR_{{dest_inc}};
+  {{@root.xfer_cfg}}.src_data_width  = HAL_DMA_SRC_DATA_WIDTH_{{src_data_width}};
+  {{@root.xfer_cfg}}.dest_data_width = HAL_DMA_DEST_DATA_WIDTH_{{dest_data_width}};
+  {{@root.xfer_cfg}}.priority        = HAL_DMA_PRIORITY_{{priority}};
+{{!-- {{/with}} --}}
+{{/unless}}
+
+{{#if (eq @root.dma_usage 'init_dma')}}
+{{#if (eq dma_mode 0)}}
+  if (HAL_DMA_SetConfigDirectXfer(&h{{@root.dma_channel_instance}}, &{{@root.xfer_cfg}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{else}}
+{{#if (eq dma_mode 2)}}
+  if (HAL_DMA_SetConfigPeriphLinkedListCircularXfer(&h{{@root.dma_channel_instance}}, &{{@root.dma_node}}, &{{@root.xfer_cfg}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if (or (eq node_fetch_port 0) (eq node_fetch_port 1))}}
+  if (HAL_DMA_SetLinkedListXferFetchNodePort(&h{{@root.dma_channel_instance}}, HAL_DMA_PORT{{node_fetch_port}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+
+{{else}}
+  if (HAL_DMA_SetConfigPeriphDirectXfer(&h{{@root.dma_channel_instance}}, &{{@root.xfer_cfg}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+
+{{/if}}
+{{/with}}
+{{! DMA channel linked list mode xfer : }}
+{{#if (eq @root.dma_transfer_mode 1)}}
+  /* Set DMA channel linked list xfer configuration */
+  hal_dma_linkedlist_xfer_config_t linkedlist_xfer_cfg;
+  linkedlist_xfer_cfg.priority        = HAL_DMA_PRIORITY_{{basic.priority}};
+{{#if (or (eq basic.linked_list_fetch_port 0) (eq basic.linked_list_fetch_port 1))}}
+  linkedlist_xfer_cfg.fetch_port      = HAL_DMA_PORT{{basic.linked_list_fetch_port}};
+{{/if}}
+  linkedlist_xfer_cfg.xfer_event_mode = HAL_DMA_LINKEDLIST_XFER_EVENT_Q;
+  if (HAL_DMA_SetConfigLinkedListXfer(&h{{@root.dma_channel_instance}}, &linkedlist_xfer_cfg) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+
+{{#if (or (eq @root.dma_transfer_mode 0) (eq @root.dma_transfer_mode 2))}}
+{{! DMA channel access port xfer : }}
+{{#with additional.access_ports_xfer}}
+{{#if configuration}}
+  /* Set DMA channel access ports xfer configuration */
+  {
+
+{{#if (eq @root.dma_transfer_mode 0)}}
+    if (HAL_DMA_SetConfigDirectXferPort(&h{{@root.dma_channel_instance}}, HAL_DMA_PORT{{dma_channel_source_port}}, HAL_DMA_PORT{{dma_channel_destination_port}}) != HAL_OK)
+{{else}}
+    if (HAL_DMA_FillNodePort( &{{@root.dma_node}}, HAL_DMA_PORT{{dma_channel_source_port}}, HAL_DMA_PORT{{dma_channel_destination_port}}) != HAL_OK)
+{{/if}}
+    {
+      return NULL;
+    }
+  }
+
+{{/if}}
+{{/with}}
+{{! DMA channel burst xfer : }}
+{{#with additional.burst_xfer}}
+{{#if configuration}}
+  /* Set DMA channel burst xfer configuration */
+  {
+{{#if (eq @root.dma_transfer_mode 0)}}
+    if (HAL_DMA_SetConfigDirectXferBurst(&h{{@root.dma_channel_instance}}, {{dma_channel_source_burst}}, {{dma_channel_destination_burst}}) != HAL_OK)
+{{else}}
+    if (HAL_DMA_FillNodeBurst(&{{@root.dma_node}}, {{dma_channel_source_burst}}, {{dma_channel_destination_burst}}) != HAL_OK)
+{{/if}}
+    {
+      return NULL;
+    }
+  }
+
+{{/if}}
+{{/with}}
+{{! DMA channel trigger xfer : }}
+{{#with additional.trigger_xfer}}
+{{#if configuration}}
+  {{assign 'trig' (helper_dma_get_trigger @root.dma_channel_instance @root.current_layer dma_channel_trigger_source.id)~}}
+  {{assign 'dma_default_trigger' 0~}}
+  /* Set DMA channel trigger xfer configuration */
+  {
+    hal_dma_trigger_config_t trigger_cfg;
+
+  {{#if (eq @root.trig undefined)}}
+    trigger_cfg.source    = {{@root.dma_default_trigger}};
+  {{else}}
+    trigger_cfg.source    = {{@root.trig}};
+  {{/if}}
+    trigger_cfg.polarity  = HAL_DMA_TRIGGER_POLARITY_{{dma_channel_trigger_polarity}};
+    trigger_cfg.mode      = HAL_DMA_TRIGGER_{{dma_channel_trigger_mode}};
+{{#if (eq @root.dma_transfer_mode 0)}}
+    if (HAL_DMA_SetConfigDirectXferTrigger(&h{{@root.dma_channel_instance}}, &trigger_cfg) != HAL_OK)
+{{else}}
+    if (HAL_DMA_FillNodeTrigger( &{{@root.dma_node}}, &trigger_cfg) != HAL_OK)
+{{/if}}
+    {
+      return NULL;
+    }
+  }
+
+{{/if}}
+{{/with}}
+{{! DMA channel data handling xfer : }}
+{{#with additional.data_handling_xfer}}
+{{#if configuration}}
+  /* Set DMA channel data handling xfer configuration */
+  {
+    hal_dma_data_handling_config_t data_handling_cfg;
+
+{{#if src_byte_exchange}}
+    data_handling_cfg.src_byte_exchange      = HAL_DMA_SRC_BYTE_{{src_byte_exchange}};
+{{/if}}
+{{#if dest_byte_exchange}}
+    data_handling_cfg.dest_byte_exchange     = HAL_DMA_DEST_BYTE_{{dest_byte_exchange}};
+{{/if}}
+{{#if dest_halfword_exchange}}
+    data_handling_cfg.dest_halfword_exchange = HAL_DMA_DEST_HALFWORD_{{dest_halfword_exchange}};
+{{/if}}
+{{#if dest_word_exchange}}
+    data_handling_cfg.dest_word_exchange     = HAL_DMA_DEST_WORD_{{dest_word_exchange}};
+{{/if}}
+{{#if trunc_padd}}
+    data_handling_cfg.trunc_padd             = HAL_DMA_DEST_DATA_TRUNC_{{trunc_padd}};
+{{/if}}
+{{#if pack}}
+    data_handling_cfg.pack                   = HAL_DMA_DEST_DATA_{{pack}};
+{{/if}}
+{{#if (eq @root.dma_transfer_mode 0)}}
+    if (HAL_DMA_SetConfigDirectXferDataHandling(&h{{@root.dma_channel_instance}}, &data_handling_cfg) != HAL_OK)
+{{else}}
+    if (HAL_DMA_FillNodeDataHandling(&{{@root.dma_node}}, &data_handling_cfg) != HAL_OK)
+{{/if}}
+    {
+      return NULL;
+    }
+  }
+
+{{/if}}
+{{/with}}
+{{! DMA channel repeated block xfer : }}
+{{#with additional.repeated_block_xfer}}
+{{#if configuration}}
+  /* Set DMA channel repeated block xfer configuration */
+  {
+    hal_dma_repeat_block_config_t repeat_block_cfg;
+
+    repeat_block_cfg.block_count            = {{block_count}};
+    repeat_block_cfg.burst_src_offset_byte  = {{burst_src_offset_byte}};
+    repeat_block_cfg.burst_dest_offset_byte = {{burst_dest_offset_byte}};
+    repeat_block_cfg.block_src_offset_byte  = {{block_src_offset_byte}};
+    repeat_block_cfg.block_dest_offset_byte = {{block_dest_offset_byte}};
+    repeat_block_cfg.burst_src_inc          = HAL_DMA_BURST_SRC_ADDR_{{burst_src_inc}};
+    repeat_block_cfg.burst_dest_inc         = HAL_DMA_BURST_DEST_ADDR_{{burst_dest_inc}};
+    repeat_block_cfg.block_src_inc          = HAL_DMA_BLOCK_SRC_ADDR_{{block_src_inc}};
+    repeat_block_cfg.block_dest_inc         = HAL_DMA_BLOCK_DEST_ADDR_{{block_dest_inc}};
+    repeat_block_cfg.xfer_event_mode        = HAL_DMA_DIRECT_XFER_EVENT_{{event_mode}};
+{{#if (eq @root.dma_transfer_mode 0)}}
+    if (HAL_DMA_SetConfigDirectXferRepeatBlock(&h{{@root.dma_channel_instance}}, &repeat_block_cfg) != HAL_OK)
+{{else}}
+    if (HAL_DMA_FillNodeRepeatBlock(&{{@root.dma_node}}, &repeat_block_cfg) != HAL_OK)
+{{/if}}
+    {
+      return NULL;
+    }
+  }
+
+{{/if}}
+{{/with}}
+{{/if}}
+
+{{#if (eq @root.dma_transfer_mode 2)}}
+{{assign 'node_counter' (add @root.node_counter 1)~}}
+{{/if}}
+
+{{! DMA channel NVIC configuration : }}
+{{#if system.nvic.nvic_config}}
+  /* Enable the interruption for {{@root.dma_channel_instance}} */
+{{assign 'nvic_needs' (helper_common_concatenate_needs system.nvic.nvic_config.needs @root.nvic_needs)~}}
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.nvic_config.needs @root.dma_channel_instance system.nvic.irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.nvic_config.needs}}
+#warning "Partial HAL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}
+
+{{/with}}
+{{/if}}

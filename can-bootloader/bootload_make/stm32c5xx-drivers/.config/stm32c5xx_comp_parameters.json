@@ -1,0 +1,933 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32 MX Config:COMP",
+  "grammarVersion": "3.8",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/comp_helpers.js",
+      "accessor": "common"
+    },
+    {
+      "path": ".config/template/helpers/common_helpers.js",
+      "accessor": "com"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ],
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": ""
+              }
+            },
+            "layer": {
+              "type": "string",
+              "title": "Software layer",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "LL",
+                  "const": "LL"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_COMP_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called",
+              "actions": [
+                {
+                  "type": "error",
+                  "condition": "($basic.multi_inst_mode == 'multi_inst_window_sec') && ($info.init_type != 'enabled')",
+                  "message": "Window mode: comparator window secondary instance must be in initialization mode ''Generated'' (called by comparator window main instance)."
+                }
+              ]
+            }
+          }
+        },
+        "basic": {
+          "type": "object",
+          "title": "Main features",
+          "properties": {
+            "multi_inst_mode": {
+              "title": "Multi instances mode",
+              "description": "Ability to combine 2 comparator instances (COMP1 and COMP2, COMP3 and COMP4, ...) for common operation. If an instance is set to mode independent, the other one must also be in mode independent. If an instance is set to mode window main/secondary, the other one must be in mode secondary/main.",
+              "type": "string",
+              "default": "multi_inst_independent",
+              "oneOf": [
+                {
+                  "title": "Independent",
+                  "description": "Comparator instance independent (versus other comparator instances). Default mode.",
+                  "const": "multi_inst_independent"
+                },
+                {
+                  "title": "Window main instance",
+                  "description": "Combine multiple COMP instances for voltage comparison to 2 thresholds. Main instance: Input plus of this comparator used as common input, input minus as upper threshold.",
+                  "const": "multi_inst_window_main"
+                },
+                {
+                  "title": "Window secondary instance",
+                  "description": "Combine multiple COMP instances for voltage comparison to 2 thresholds. Secondary instance: Input plus of the other comparator used as common input, input minus as lower threshold.",
+                  "const": "multi_inst_window_sec"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "COMP_CORE_USE_HAL_COMP_WINDOW_MODE",
+                  "computed_value": "($basic.multi_inst_mode == 'multi_inst_window_main') && ($info.layer === 'HAL')",
+                  "semaphore": true
+                }
+              ],
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.entityType == 'peripheralBlock'"
+                },
+                {
+                  "type": "error",
+                  "condition": "($basic.multi_inst_mode != 'multi_inst_independent') && ($get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_hysteresis')[0] == null)",
+                  "message": "Window mode requires both comparators to be bound, please perform bind in the other comparator instance."
+                },
+                {
+                  "type": "error",
+                  "condition": "($basic.multi_inst_mode != 'multi_inst_independent') && ($info.layer != $get('sw-config.sibling-blocks-parameter-values', $resource.id, 'layer')[0].value)",
+                  "message": "Window mode requires both comparators with the same software layer."
+                },
+                {
+                  "type": "error",
+                  "condition": "($basic.multi_inst_mode != 'multi_inst_independent') && ($get('sw-config.sibling-blocks-parameter-values', $resource.id, 'multi_inst_mode')[0].value == 'multi_inst_independent')",
+                  "message": "Multi instances mode mismatch: other linked comparator instance set in mode independent. Need to change either this instance (to independent mode) or the other instance mode."
+                },
+                {
+                  "type": "error",
+                  "condition": "($basic.multi_inst_mode != 'multi_inst_window_main') && ($get('sw-config.sibling-blocks-parameter-values', $resource.id, 'multi_inst_mode')[0].value == 'multi_inst_window_sec')",
+                  "message": "Multi instances mode mismatch: other linked comparator instance set in mode window secondary. Need to change either this instance (to window main mode) or the other instance mode."
+                },
+                {
+                  "type": "error",
+                  "condition": "($basic.multi_inst_mode != 'multi_inst_window_sec') && ($get('sw-config.sibling-blocks-parameter-values', $resource.id, 'multi_inst_mode')[0].value == 'multi_inst_window_main')",
+                  "message": "Multi instances mode mismatch: other linked comparator instance set in mode window main. Need to change either this instance (to window secondary mode) or the other instance mode."
+                }
+              ]
+            },
+            "multi_inst_info": {
+              "title": "Multi instances: linked comparator info",
+              "type": "object",
+              "properties": {
+                "multi_inst_other_inst_name": {
+                  "title": "Instance",
+                  "type": "string",
+                  "default": "COMPx",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.multi_inst_mode != 'multi_inst_independent'"
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "const": "'COMP' + $common.helper_comp_get_window_other_instance_nb($resource.id)"
+                      }
+                    },
+                    {
+                      "type": "error",
+                      "condition": "($get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_hysteresis')[0] != null) && ($get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_hysteresis')[0].block != $common.helper_comp_get_window_other_inst_id($resource.id))",
+                      "message": "Comparators common instance error: COMPxy not matching with instances COMPx and COMPy."
+                    }
+                  ]
+                },
+                "multi_inst_other_inst_is_bound": {
+                  "title": "Is bound",
+                  "description": "Window mode requires both comparators to be bound, please perform bind in the other linked comparator instance.",
+                  "type": "string",
+                  "default": "false",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.multi_inst_mode != 'multi_inst_independent'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_hysteresis')[0] == null ? 'False' : 'True'"
+                      }
+                    },
+                    {
+                      "type": "error",
+                      "condition": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_hysteresis')[0] == null",
+                      "message": "Window mode requires both comparators to be bound, please perform bind in the other comparator instance."
+                    },
+                    {
+                      "type": "error",
+                      "condition": "$info.layer != $get('sw-config.sibling-blocks-parameter-values', $resource.id, 'layer')[0].value",
+                      "message": "Window mode requires both comparators with the same software layer."
+                    }
+                  ]
+                },
+                "multi_inst_other_inst_mode": {
+                  "title": "Mode",
+                  "description": "Multi instances mode selected by the other comparator.",
+                  "type": "string",
+                  "default": "x",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.multi_inst_mode != 'multi_inst_independent'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'multi_inst_mode')[0].value"
+                      }
+                    }
+                  ]
+                }
+              },
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "false && ($basic.multi_inst_mode != 'multi_inst_independent') && ($resource.entityType == 'peripheralBlock')"
+                }
+              ]
+            },
+            "power_mode": {
+              "title": "Power mode",
+              "description": "Select tradeoff between comparator speed and power consumption.",
+              "type": "string",
+              "default": "HIGH_SPEED",
+              "oneOf": [
+                {
+                  "title": "High speed",
+                  "const": "HIGH_SPEED"
+                },
+                {
+                  "title": "Medium speed",
+                  "const": "MEDIUM_SPEED"
+                },
+                {
+                  "title": "Ultra-low power",
+                  "const": "ULTRA_LOW_POWER"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                  "computed": {
+                    "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'power_mode')[0].value"
+                  }
+                },
+                {
+                  "type": "info",
+                  "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                  "message": "Window mode: selected by the comparator window main instance."
+                }
+              ]
+            },
+            "input": {
+              "title": "Input",
+              "type": "object",
+              "properties": {
+                "input_plus": {
+                  "description": "Select the positive input for the COMP.",
+                  "title": "Plus",
+                  "type": "object",
+                  "objectType": "query",
+                  "query": {
+                    "parent": "$resource.name",
+                    "title": "{{source.replace(/COMP\\d+_INP(\\w+)/g, 'IO$1').replace('DAC1_INT', 'DAC1 channel 1').replace('DAC2_INT', 'DAC1 channel 2').replace(/opamp(\\d+)_int/g, 'OPAMP$1 output')}}",
+                    "entity": [
+                      "peripheral.interconnect.analog input plus",
+                      "peripheralBlock.interconnect.analog input plus"
+                    ],
+                    "where": "($entity.source != 'VSSA') && ($entity.source != 'GND') && (!($entity.source.startsWith('COMP')) || ($get('pinout.peripheralCanBeMapped', $resource.name, $entity.source.replace(/COMP\\d+_INP(\\w+)/g, 'INP$1')) == true))",
+                    "sharing": false
+                  },
+                  "select": "first",
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'"
+                    }
+                  ]
+                },
+                "input_plus_window_other_inst": {
+                  "title": "Plus",
+                  "description": "Input plus for the comparator window mode, selected by the other comparator instance.",
+                  "type": "string",
+                  "default": "x",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_plus')[0].value.source.replace(/COMP\\d+_INP(\\w+)/g, 'IO$1').replace('DAC1_INT', 'DAC1 channel 1').replace('DAC2_INT', 'DAC1 channel 2').replace(/opamp(\\d+)_int/g, 'OPAMP$1 output')"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'Plus (input COMP' + $common.helper_comp_get_window_other_instance_nb($resource.id) + ')'"
+                      }
+                    }
+                  ]
+                },
+                "input_minus": {
+                  "description": "Select the negative input for the COMP.",
+                  "title": "Minus",
+                  "type": "object",
+                  "objectType": "query",
+                  "query": {
+                    "parent": "$resource.name",
+                    "title": "{{source.replace(/COMP\\d+_INM(\\w+)/g, 'IO$1').replace('VBG', 'VrefInt').replace(/DAC(\\d+)_INT/g, 'DAC1 channel $1').replace(/dac(\\d+)_out(\\d+)/g, 'DAC$1 channel $2').replace('VSENS', 'Temperature sensor')}}",
+                    "entity": [
+                      "peripheral.interconnect.analog input minus",
+                      "peripheralBlock.interconnect.analog input minus"
+                    ],
+                    "where": "($entity.source != 'VSSA') && ($entity.source != 'GND') && (!($entity.source.startsWith('COMP')) || ($get('pinout.peripheralCanBeMapped', $resource.name, $entity.source.replace(/COMP\\d+_INM(\\w+)/g, 'INM$1')) == true))",
+                    "sharing": false
+                  },
+                  "select": "first",
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_main'",
+                      "attributes": {
+                        "title": "Window upper threshold"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_main'",
+                      "attributes": {
+                        "description": "Select the upper threshold for the comparator window mode (window comparator main instance input minus)."
+                      }
+                    }
+                  ]
+                },
+                "input_minus_window_upper_threshold_other_inst": {
+                  "title": "Window upper threshold",
+                  "description": "Upper threshold for the comparator window mode (window comparator secondary instance input minus).",
+                  "type": "string",
+                  "default": "x",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_minus')[0].value.source.replace(/COMP\\d+_INM(\\w+)/g, 'IO$1').replace('VBG', 'VrefInt').replace(/DAC(\\d+)_INT/g, 'DAC1 channel $1').replace(/dac(\\d+)_out(\\d+)/g, 'DAC$1 channel $2').replace('VSENS', 'Temperature sensor')"
+                      }
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'Window upper threshold (input COMP' + $common.helper_comp_get_window_other_instance_nb($resource.id) + ')'"
+                      }
+                    }
+                  ]
+                },
+                "input_minus_window_lower_threshold": {
+                  "description": "Select the lower threshold for the comparator window mode (window comparator secondary instance input minus).",
+                  "title": "Window lower threshold",
+                  "type": "object",
+                  "objectType": "query",
+                  "query": {
+                    "parent": "'COMP' + $common.helper_comp_get_window_other_instance_nb($resource.id)",
+                    "title": "{{source.replace(/COMP\\d+_INM(\\w+)/g, 'IO$1').replace('VBG', 'VrefInt').replace(/DAC(\\d+)_INT/g, 'DAC1 channel $1').replace(/dac(\\d+)_out(\\d+)/g, 'DAC$1 channel $2').replace('VSENS', 'Temperature sensor')}}",
+                    "entity": [
+                      "peripheral.interconnect.analog input minus",
+                      "peripheralBlock.interconnect.analog input minus"
+                    ],
+                    "where": "($entity.source != 'VSSA') && ($entity.source != 'GND') && (!($entity.source.startsWith('COMP')) || ($get('pinout.peripheralCanBeMapped', 'COMP' + $common.helper_comp_get_window_other_instance_nb($resource.id), $entity.source.replace(/COMP\\d+_INM(\\w+)/g, 'INM$1')) == true))",
+                    "sharing": false
+                  },
+                  "select": "first",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_main'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "'Window lower threshold (input COMP' + $common.helper_comp_get_window_other_instance_nb($resource.id) + ')'"
+                      }
+                    }
+                  ]
+                },
+                "input_minus_window_lower_threshold_other_inst": {
+                  "title": "Window lower threshold",
+                  "description": "Select the lower threshold for the comparator window mode (window comparator secondary instance input minus).",
+                  "type": "string",
+                  "default": "x",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_minus_window_lower_threshold')[0].value.source.replace(/COMP\\d+_INM(\\w+)/g, 'IO$1').replace('VBG', 'VrefInt').replace(/DAC(\\d+)_INT/g, 'DAC1 channel $1').replace(/dac(\\d+)_out(\\d+)/g, 'DAC$1 channel $2').replace('VSENS', 'Temperature sensor')"
+                      }
+                    }
+                  ]
+                },
+                "input_hysteresis": {
+                  "title": "Hysteresis",
+                  "description": "Set hysteresis applied to input plus, subtracted to input voltage value.",
+                  "type": "string",
+                  "default": "NONE",
+                  "oneOf": [
+                    {
+                      "title": "None",
+                      "const": "NONE"
+                    },
+                    {
+                      "title": "Low",
+                      "const": "LOW"
+                    },
+                    {
+                      "title": "Medium",
+                      "const": "MEDIUM"
+                    },
+                    {
+                      "title": "High",
+                      "const": "HIGH"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'input_hysteresis')[0].value"
+                      }
+                    },
+                    {
+                      "type": "info",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "message": "Window mode: selected by the comparator window main instance."
+                    }
+                  ]
+                }
+              }
+            },
+            "output": {
+              "title": "Output",
+              "type": "object",
+              "properties": {
+                "output_polarity": {
+                  "title": "Polarity",
+                  "description": "Select output logical level corresponding to input analog comparison state.",
+                  "type": "string",
+                  "default": "NONINVERTED",
+                  "oneOf": [
+                    {
+                      "title": "Not inverted",
+                      "const": "NONINVERTED"
+                    },
+                    {
+                      "title": "Inverted",
+                      "const": "INVERTED"
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'output_polarity')[0].value"
+                      }
+                    },
+                    {
+                      "type": "info",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "message": "Window mode: selected by the comparator window main instance."
+                    }
+                  ]
+                },
+                "output_trigger": {
+                  "title": "Trigger to system",
+                  "description": "Select COMP output trigger to system (wake up from system low power mode, CPU event, interrupt).",
+                  "type": "string",
+                  "default": "NONE",
+                  "oneOf": [
+                    {
+                      "title": "None",
+                      "const": "NONE"
+                    },
+                    {
+                      "title": "Through EXTI",
+                      "const": "EXTI",
+                      "description": "Refer to EXTI panel for trigger configuration (edge detection, interrupt)."
+                    }
+                  ],
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "COMP_CORE_USE_HAL_COMP_EXTI",
+                      "computed_value": "($basic.output.output_trigger == 'EXTI') && ($info.layer === 'HAL')",
+                      "semaphore": true
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "set",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'output_trigger')[0].value"
+                      }
+                    },
+                    {
+                      "type": "info",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "message": "Window mode: selected by the comparator window main instance."
+                    }
+                  ]
+                },
+                "window_output_mode": {
+                  "title": "Window output mode",
+                  "description": "Window comparators output combination.",
+                  "type": "string",
+                  "default": "INDEPT",
+                  "oneOf": [
+                    {
+                      "title": "Independent",
+                      "const": "INDEPT",
+                      "description": "Comparators window output default mode: both comparators output are independent, indicating each their own state.\nNote: To know signal state versus window thresholds, read each comparator output and perform a logical \"exclusive or\" operation."
+                    },
+                    {
+                      "title": "XOR",
+                      "const": "XOR",
+                      "description": "Comparators window output synthesized on a single comparator output: comparator no more indicating its own state, but window state (XOR: logical \"exclusive or\"). Logical high means monitored signal is within comparators window thresholds."
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($basic.multi_inst_mode == 'multi_inst_window_main') || ($basic.multi_inst_mode == 'multi_inst_window_sec')"                    },
+                    {
+                      "type": "set",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "computed": {
+                        "const": "$get('sw-config.sibling-blocks-parameter-values', $resource.id, 'window_output_mode')[0].value"
+                      }
+                    },
+                    {
+                      "type": "info",
+                      "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+                      "message": "Window mode: selected by the comparator window main instance."
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "actions": [
+            {
+              "type": "info",
+              "condition": "$basic.multi_inst_mode == 'multi_inst_window_sec'",
+              "message": "Window mode: parameters selected by the comparator window main instance."
+            }
+          ]
+        },
+        "additional": {
+          "type": "object",
+          "title": "Advanced features",
+          "description": "Enable output blanking to temporarily ignore the comparison during specific events.",
+          "properties": {
+            "output_blanking_state": {
+              "title": "Output blanking",
+              "type": "boolean",
+              "default": false
+            },
+            "output_blanking_src": {
+              "title": "Output blanking source",
+              "description": "Signal from another peripheral that triggers output blanking.",
+              "type": "object",
+              "objectType": "query",
+              "query": {
+                "parent": "$resource.name",
+                "title": "{{source.toUpperCase()}}",
+                "entity": [
+                  "peripheral.interconnect.internal input trigger",
+                  "peripheralBlock.interconnect.internal input trigger"
+                ],
+                "sharing": false
+              },
+              "select": "first",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.output_blanking_state"
+                },
+               {
+                  "type": "info",
+                  "condition": "true",
+                  "message": "The selected interconnect must be configured manually."
+                }
+              ]
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "properties": {
+            "gpio": {
+              "type": "object",
+              "title": "GPIO",
+              "properties": {
+                "comp_input_plus_gpio_inp1": {
+                  "title": "GPIO for comparator input plus",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "INP1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "(($basic.input.input_plus.source.includes('INP1')) && $get('pinout.peripheralCanBeMapped', $resource.name, 'INP1')) == true"
+                    }
+                  ]
+                },
+                "comp_input_plus_gpio_inp2": {
+                  "title": "GPIO for comparator input plus",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "INP2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "(($basic.input.input_plus.source.includes('INP2')) && $get('pinout.peripheralCanBeMapped', $resource.name, 'INP2')) == true"
+                    }
+                  ]
+                },
+                "comp_input_plus_gpio_inp3": {
+                  "title": "GPIO for comparator input plus",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "INP3",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "(($basic.input.input_plus.source.includes('INP3')) && $get('pinout.peripheralCanBeMapped', $resource.name, 'INP3')) == true"
+                    }
+                  ]
+                },
+                "comp_input_minus_gpio_inm1": {
+                  "title": "GPIO for comparator input minus",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "INM1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "((($basic.input.input_minus?.source.includes('INM1')) || ($basic.input.input_minus_window_lower_threshold_other_inst?.includes('IO1'))) && $get('pinout.peripheralCanBeMapped', $resource.name, 'INM1')) == true"
+                    }
+                  ]
+                },
+                "comp_input_minus_gpio_inm2": {
+                  "title": "GPIO for comparator input minus",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "INM2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "((($basic.input.input_minus?.source.includes('INM2')) || ($basic.input.input_minus_window_lower_threshold_other_inst?.includes('IO2'))) && $get('pinout.peripheralCanBeMapped', $resource.name, 'INM2')) == true"
+                    }
+                  ]
+                },
+                "comp_input_minus_gpio_inm3": {
+                  "title": "GPIO for comparator input minus",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "INM3",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        },
+                        "pull": {
+                          "const": "NO"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "((($basic.input.input_minus?.source.includes('INM3')) || ($basic.input.input_minus_window_lower_threshold_other_inst?.includes('IO3'))) && $get('pinout.peripheralCanBeMapped', $resource.name, 'INM3')) == true"
+                    }
+                  ]
+                },
+                "comp_output_gpio_status": {
+                  "title": "Comparator output to GPIO",
+                  "description": "Output connection to GPIO (digital mode), optional.",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$get('pinout.peripheralCanBeMapped', $resource.name, 'OUT')"
+                    }
+                  ]
+                },
+                "comp_output_gpio": {
+                  "title": "GPIO for comparator output",
+                  "type": "object",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "OUT",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.gpio.comp_output_gpio_status === true"
+                    }
+                  ]
+                }
+              }
+            },
+            "exti": {
+              "title": "EXTI line",
+              "description": "Comparator uses EXTI line for system wake up from system low power mode, CPU event and interrupt.",
+              "type": "object",
+              "objectType": "need.exti.lines",
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_EXTI_PROJECT_USE_HAL",
+                  "condition": "$info.layer === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "owner": "$resource.name",
+              "needs": [
+                {
+                  "selector": "*",
+                  "constraints": {
+                    "trigger_detection": {
+                      "default": "RISING_FALLING"
+                    },
+                    "enable_interruption": {
+                      "default": true
+                    }
+                  }
+                }
+              ],
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($basic.output.output_trigger == 'EXTI')"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

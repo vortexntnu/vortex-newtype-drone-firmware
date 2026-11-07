@@ -1,0 +1,139 @@
+{{!
+ * @file Partial used to generate code for OPAMP:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!--
+  Partial used for HAL OPAMP:
+  how to use
+  > OPAMP_LL fct='xxxx' with xxxx:
+    * init
+    * deinit
+--}}
+{{!==================== partial function: init ====================~}}
+{{#if (eq fct 'init')}}
+
+{{!==================== Features basic (mandatory) ====================}}
+  /****************************************************************************/
+  /* Configuration of basic features (mandatory)                              */
+  /****************************************************************************/
+{{assign 'opamp_mode' basic.opamp_mode}}
+{{#with basic}}
+{{#if (eq @root.opamp_mode "FOLLOWER")}}
+  LL_OPAMP_SetConfig({{@root.current_resource}}, (LL_OPAMP_MODE_FUNCTIONAL
+                              | LL_OPAMP_SPEED_MODE_{{speed_mode}}
+                              | LL_OPAMP_MODE_FOLLOWER
+    {{#if (helper_opamp_is_number config_input_connection.non_inverting_input)}}
+                              | LL_OPAMP_INPUT_NONINVERT_IO{{config_input_connection.non_inverting_input}}
+    {{else}}
+                              | LL_OPAMP_INPUT_NONINVERT_{{helper_opamp_get_dac_input @root.current_resource @root.current_layer}}
+    {{/if}}
+                              | LL_OPAMP_INPUT_INVERT_INT_FOLLOWER
+                              | LL_OPAMP_OUTPUT_CONNECT_{{config_output_connection.output}})
+                    );
+{{else if (eq @root.opamp_mode "PGA")}}
+  LL_OPAMP_SetConfig({{@root.current_resource}}, (LL_OPAMP_MODE_FUNCTIONAL
+                              | LL_OPAMP_SPEED_MODE_{{speed_mode}}
+                              | LL_OPAMP_MODE_PGA
+    {{#if (helper_opamp_is_number config_input_connection.non_inverting_input)}}
+                              | LL_OPAMP_INPUT_NONINVERT_IO{{config_input_connection.non_inverting_input}}
+    {{else}}
+                              | LL_OPAMP_INPUT_NONINVERT_{{helper_opamp_get_dac_input @root.current_resource @root.current_layer}}
+    {{/if}}
+                              | LL_OPAMP_INPUT_INVERT_INT_PGA
+                              | LL_OPAMP_OUTPUT_CONNECT_{{config_output_connection.output}})
+                    );
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetPGAGain' (concat 'LL_OPAMP_PGA_GAIN_' (helper_opamp_adjust_gain config.gain))}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetPGAExternalMode' (concat 'LL_OPAMP_PGA_' config.external_mode)}}
+
+{{else if (eq @root.opamp_mode "STANDALONE")}}
+  LL_OPAMP_SetConfig({{@root.current_resource}}, (LL_OPAMP_MODE_FUNCTIONAL
+                              | LL_OPAMP_SPEED_MODE_{{speed_mode}}
+                              | LL_OPAMP_MODE_STANDALONE
+    {{#if (helper_opamp_is_number config_input_connection.non_inverting_input)}}
+                              | LL_OPAMP_INPUT_NONINVERT_IO{{config_input_connection.non_inverting_input}}
+    {{else}}
+                              | LL_OPAMP_INPUT_NONINVERT_{{helper_opamp_get_dac_input @root.current_resource @root.current_layer}}
+    {{/if}}
+                              | LL_OPAMP_INPUT_INVERT_IO{{config_input_connection.inverting_input}}
+                              | LL_OPAMP_OUTPUT_CONNECT_{{config_output_connection.output}})
+                    );
+{{/if}}
+{{/with}}{{!basic}}
+{{#with additional}}
+{{!==================== Features additional (optional) ====================}}
+{{#if (or user_trim_sel secondary_configuration_sel)}}
+  /****************************************************************************/
+  /* Configuration of additional features (optional)                          */
+  /****************************************************************************/
+{{/if}}
+{{!==================== User trimming ====================~}}
+{{#if (eq user_trim_sel true)}}
+{{#with config_trimming}}
+  LL_OPAMP_SetTrimmingMode({{@root.current_resource}}, LL_OPAMP_TRIMMING_USER);
+  LL_OPAMP_SetOffsetTrimAllValue({{@root.current_resource}}, LL_OPAMP_POWER_MODE_NORMAL, {{offset_pmos}}, {{offset_nmos}});
+{{/with}}
+{{/if}}{{!(user_trim_sel true)}}
+{{assign 'opamp_mode_sec' secondary_configuration.opamp_secondary_mode~}}
+{{#if (eq secondary_configuration_sel true)}}
+{{#if (eq @root.opamp_mode_sec "FOLLOWER")}}
+{{#with secondary_configuration.config_input_mux_secondary_connection}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxInvertingSecondary' 'LL_OPAMP_INPUT_INVERT_INT_FOLLOWER'}}
+  {{#if (helper_opamp_is_number non_inverting_input)}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxNonInvertingSecondary' (concat 'LL_OPAMP_INPUT_NONINVERT_IO' non_inverting_input)}}
+  {{else}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxNonInvertingSecondary' (concat 'LL_OPAMP_INPUT_NONINVERT_' (helper_opamp_get_dac_input @root.current_resource @root.current_layer))}}
+  {{/if}}
+{{/with}}
+{{else if (eq @root.opamp_mode_sec "PGA")}}
+{{#with secondary_configuration.config_input_mux_secondary_connection}}
+  {{#if (eq inverting_input "INT")}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxInvertingSecondary' 'LL_OPAMP_INPUT_INVERT_INT_PGA'}}
+  {{else}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxInvertingSecondary' 'LL_OPAMP_INPUT_INVERT_IO1'}}
+  {{/if}}
+  {{#if (helper_opamp_is_number non_inverting_input)}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxNonInvertingSecondary' (concat 'LL_OPAMP_INPUT_NONINVERT_IO' non_inverting_input)}}
+  {{else}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxNonInvertingSecondary' (concat 'LL_OPAMP_INPUT_NONINVERT_' (helper_opamp_get_dac_input @root.current_resource @root.current_layer))}}
+  {{/if}}
+{{/with}}
+{{else if (eq @root.opamp_mode_sec "STANDALONE")}}
+{{#with secondary_configuration.config_input_mux_secondary_connection}}
+  {{#if (eq inverting_input "INT")}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxInvertingSecondary' 'LL_OPAMP_INPUT_INVERT_INT'}}
+  {{else}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxInvertingSecondary' (concat 'LL_OPAMP_INPUT_INVERT_IO' inverting_input)}}
+  {{/if}}
+  {{#if (helper_opamp_is_number non_inverting_input)}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxNonInvertingSecondary' (concat 'LL_OPAMP_INPUT_NONINVERT_IO' non_inverting_input)}}
+  {{else}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetInputMuxNonInvertingSecondary' (concat 'LL_OPAMP_INPUT_NONINVERT_' (helper_opamp_get_dac_input @root.current_resource @root.current_layer))}}
+  {{/if}}
+{{/with}}
+{{/if}}
+{{#with secondary_configuration.config_input_mux_secondary_connection.timer_controlled_input_selection}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetMuxInputCtrl' (concat 'LL_OPAMP_MUX_INPUT_CTRL_' (helper_opamp_transform_trigger_name source))}}
+{{/with}}
+{{#if (eq @root.opamp_mode_sec "PGA")}}
+{{#with secondary_configuration.pga_secondary_config}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetPGAGainMuxSecondary' (concat 'LL_OPAMP_PGA_GAIN_' (helper_opamp_adjust_gain gain))}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetMuxPGAGainCtrl' (concat 'LL_OPAMP_MUX_PGA_GAIN_CTRL_' (helper_opamp_transform_trigger_name timer_controlled_pga_selection.source))}}
+  {{helper_common_gen_ll_code 'LL_OPAMP_SetPGAExternalMode' (concat 'LL_OPAMP_PGA_' external_mode)}}
+{{/with}}
+{{/if}}
+{{/if}}{{!(eq secondary_configuration_sel true)}}
+{{/with}}{{!additional}}
+{{!==================== partial function: deinit ====================~}}
+{{else if (eq fct 'deinit')}}
+  LL_OPAMP_Disable({{@root.current_resource}});
+{{else}}
+#warning "step {{fct}} in partial OPAMP_HAL not managed"
+{{/if}}

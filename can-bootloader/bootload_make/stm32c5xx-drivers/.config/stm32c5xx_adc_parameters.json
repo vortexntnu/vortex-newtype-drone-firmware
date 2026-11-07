@@ -1,0 +1,3158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:ADC",
+  "grammarVersion": "3.8",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/adc_helpers.js",
+      "accessor": "common"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "variables": [
+        {
+          "on": "update-value",
+          "name": "HAL_USE_VDD_VALUE",
+          "condition": "true",
+          "semaphore": true
+        }
+      ],
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ],
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": ""
+              }
+            },
+            "layer": {
+              "type": "string",
+              "title": "Software layer",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "LL",
+                  "const": "LL"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_ADC_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "basic": {
+          "title": "Main features",
+          "type": "object",
+          "properties": {
+            "kernel_clock_source": {
+              "type": "string",
+              "title": "Kernel clock source",
+              "description": "ADC kernel clock source can be modified in clock tree.",
+              "actions": [
+                {
+                  "type": "set",
+                  "computed": {
+                    "const": "$get('clock.input', $resource.name)"
+                  }
+                }
+              ],
+              "default": ""
+            },
+            "kernel_clock_frequency": {
+              "type": "string",
+              "title": "Kernel clock frequency",
+              "description": "ADC kernel clock used to drive the ADC conversions: frequency impacts sampling time and conversion time. Clock source can be modified in clock tree.",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "($get('clock.frequency', $resource.name)) < 1000000",
+                  "computed": {
+                    "const": "$get('clock.frequency', $resource.name) / 1000 + ' kHz'"
+                  }
+                },
+                {
+                  "type": "set",
+                  "condition": "($get('clock.frequency', $resource.name)) >= 1000000",
+                  "computed": {
+                    "const": "$get('clock.frequency', $resource.name) / 1000000 + ' MHz'"
+                  }
+                }
+              ],
+              "default": "x",
+              "readOnly": true
+            },
+            "resolution": {
+              "title": "Resolution",
+              "type": "integer",
+              "description": "Sets the precision of the ADC conversion.",
+              "default": 12,
+              "unit": "Bit",
+              "oneOf": [
+                {
+                  "title": "6 bit",
+                  "const": 6
+                },
+                {
+                  "title": "8 bit",
+                  "const": 8
+                },
+                {
+                  "title": "10 bit",
+                  "const": 10
+                },
+                {
+                  "title": "12 bit",
+                  "const": 12
+                }
+              ]
+            },
+            "sampling_mode": {
+              "type": "string",
+              "title": "Sampling mode",
+              "description": "Select how the ADC samples the analog signal.",
+              "default": "NORMAL",
+              "oneOf": [
+                {
+                  "title": "Normal",
+                  "const": "NORMAL"
+                },
+                {
+                  "title": "Bulb",
+                  "const": "BULB",
+                  "description": "Sampling starts right after conversion end and stops on trigger.\nAvailable only for regular group conversions (not injected) and non-continuous mode."
+                },
+                {
+                  "title": "Trigger control",
+                  "const": "TRIGGER_CTRL",
+                  "description": "Sampling is controlled by trigger edges.\nAvailable only for regular group conversions (not injected) and non-continuous mode."
+                }
+              ]
+            },
+            "channels": {
+              "title": "Channels",
+              "rendering": "channel-tabs",
+              "type": "array",
+              "strictMaxItems": false,
+              "source": "$common.helper_adc_get_standard_channel_sources($resource, $get)",
+              "itemTitle": "source",
+              "itemVar": "channel",
+              "itemId": "source",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "use_channel": {
+                    "title": "Use channel",
+                    "type": "boolean",
+                    "description": "Automatically configures the GPIO pin when enabled.",
+                    "default": false,
+                    "actions": [
+                      {
+                        "type": "set",
+                        "condition": "!$channel.source.startsWith('ADC')",
+                        "computed": {
+                          "description": "'Channel ' + $channel.source + ' is internally connected'"
+                        }
+                      }
+                    ]
+                  },
+                  "sampling_time": {
+                    "type": "string",
+                    "description": "Defines how long the ADC samples the input signal before conversion.",
+                    "default": "289CYCLES",
+                    "oneOf": [
+                      {
+                        "title": "3 ADC clock cycles",
+                        "const": "3CYCLES"
+                      },
+                      {
+                        "title": "5 ADC clock cycles",
+                        "const": "5CYCLES"
+                      },
+                      {
+                        "title": "8 ADC clock cycles",
+                        "const": "8CYCLES"
+                      },
+                      {
+                        "title": "13 ADC clock cycles",
+                        "const": "13CYCLES"
+                      },
+                      {
+                        "title": "25 ADC clock cycles",
+                        "const": "25CYCLES"
+                      },
+                      {
+                        "title": "48 ADC clock cycles",
+                        "const": "48CYCLES"
+                      },
+                      {
+                        "title": "139 ADC clock cycles",
+                        "const": "139CYCLES"
+                      },
+                      {
+                        "title": "289 ADC clock cycles",
+                        "const": "289CYCLES"
+                      }
+                    ],
+                    "title": "Sampling time",
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_channel",
+                        "message": "Available when channel is enabled."
+
+                      }
+                    ]
+                  },
+                  "single_diff": {
+                    "type": "string",
+                    "default": "SINGLE_ENDED",
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_channel",
+                        "message": "Available when channel is enabled."
+                      }
+                    ],
+                    "oneOf": [
+                      {
+                        "title": "Single-ended",
+                        "const": "SINGLE_ENDED"
+                      }
+                    ],
+                    "title": "Input mode"
+                  },
+                  "labels": {
+                    "type": "array",
+                    "title": "Add a label",
+                    "description": "Labels allow to create aliases '<label>_CHANNEL'. These aliases can be used on application side.",
+                    "items": {
+                      "type": "string",
+                      "actions": [
+                        {
+                          "type": "error",
+                          "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                          "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                        }
+                      ],
+                      "minLength": 0,
+                      "maxLength": 32,
+                      "unique": "project",
+                      "default": ""
+                    },
+                    "actions": [
+                      {
+                        "type": "enable",
+                        "condition": "$item.use_channel",
+                        "message": "Available when channel is enabled."
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "group_panel": {
+              "type": "object",
+              "title": "Groups conversions",
+              "properties": {
+                "reg_config_t": {
+                  "type": "object",
+                  "title": "Regular",
+                  "properties": {
+                    "grp_reg_sel": {
+                      "type": "boolean",
+                      "default": true,
+                      "title": "Use group"
+                    },
+                    "trigger_src": {
+                      "title": "Trigger type",
+                      "description": "Conversion start trigger from software start or external peripheral (timer, EXTI line, ...).",
+                      "type": "boolean",
+                      "oneOf": [
+                        {
+                          "title": "Software start",
+                          "const": true
+                        },
+                        {
+                          "title": "External peripheral",
+                          "const": false
+                        }
+                      ],
+                      "default": true,
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.reg_config_t.grp_reg_sel == true",
+                          "message": "Available when regular group is selected."
+                        }
+                      ]
+                    },
+                    "trigger_src_query": {
+                      "type": "object",
+                      "objectType": "query",
+                      "query": {
+                        "entity": "peripheral.interconnect.external input trigger for regular channel",
+                        "parent": "$resource.entityType === 'peripheralBlock' ? 'ADC12' : $resource.name",
+                        "title": "{{source.toUpperCase()}}",
+                        "where": "$entity.ip_signal && !/^adc_rtrg_s\\[/i.test($entity.ip_signal)"
+                      },
+                      "title": "Trigger source",
+                      "actions": [
+                        {
+                          "type": "disable",
+                          "condition": "($basic.group_panel.reg_config_t.trigger_src == true) || ($basic.group_panel.reg_config_t.grp_reg_sel == false)",
+                          "message": "Available when external trigger is selected as trigger source and regular group is selected."
+                        },
+                        {
+                        "type": "info",
+                        "condition": "true",
+                        "message": "The selected interconnect must be configured manually."
+                        }
+                      ]
+                    },
+                    "trigger_edge": {
+                      "title": "Trigger edge",
+                      "type": "string",
+                      "default": "RISING",
+                      "oneOf": [
+                        {
+                          "title": "Rising",
+                          "const": "RISING"
+                        },
+                        {
+                          "title": "Falling",
+                          "const": "FALLING"
+                        },
+                        {
+                          "title": "Rising and falling",
+                          "const": "RISING_FALLING"
+                        }
+                      ],
+                      "actions": [
+                        {
+                          "type": "disable",
+                          "condition": "($basic.group_panel.reg_config_t.trigger_src == true) || ($basic.group_panel.reg_config_t.grp_reg_sel == false)",
+                          "message": "Available when external trigger is selected as trigger source and regular group is selected."
+                        }
+                      ]
+                    },
+                    "continuous": {
+                      "type": "string",
+                      "description": "Choose between single or continuous conversion mode. In continuous mode, conversion are restarted automatically after the end of the sequence.",
+                      "default": "SINGLE",
+                      "oneOf": [
+                        {
+                          "title": "Single",
+                          "const": "SINGLE"
+                        },
+                        {
+                          "title": "Continuous",
+                          "const": "CONTINUOUS",
+                           "actions": [
+                            {
+                              "type": "disable",
+                              "condition": "$basic.sampling_mode != 'NORMAL'",
+                              "message": "Available only in normal sampling mode."
+                            }
+                          ]
+                        }
+                      ],
+                      "title": "Continuous mode",
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.reg_config_t.grp_reg_sel == true",
+                          "message": "Available when regular group is selected."
+                        },
+                        {
+                          "type": "error",
+                          "condition": "($basic.group_panel.reg_config_t.grp_reg_sel == true) && ($basic.sampling_mode != 'NORMAL') && ($basic.group_panel.reg_config_t.continuous == 'CONTINUOUS')",
+                          "message": "Continuous mode is only available in sampling mode normal."
+                        }
+                      ]
+                    },
+                    "sequencer_discontinuous": {
+                      "title": "Sequencer discontinuous",
+                      "type": "string",
+                      "description": "Interrupt the conversion sequence after a specified number of ranks. Sequence resumes on next trigger.",
+                      "default": "DISABLE",
+                      "oneOf": [
+                        {
+                          "title": "Disabled",
+                          "const": "DISABLE"
+                        },
+                        {
+                          "title": "1 rank",
+                          "const": "1RANK"
+                        },
+                        {
+                          "title": "2 ranks",
+                          "const": "2RANKS"
+                        },
+                        {
+                          "title": "3 ranks",
+                          "const": "3RANKS"
+                        },
+                        {
+                          "title": "4 ranks",
+                          "const": "4RANKS"
+                        },
+                        {
+                          "title": "5 ranks",
+                          "const": "5RANKS"
+                        },
+                        {
+                          "title": "6 ranks",
+                          "const": "6RANKS"
+                        },
+                        {
+                          "title": "7 ranks",
+                          "const": "7RANKS"
+                        },
+                        {
+                          "title": "8 ranks",
+                          "const": "8RANKS"
+                        }
+                      ],
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.reg_config_t.grp_reg_sel == true",
+                          "message": "Available when regular group is selected."
+                        }
+                      ]
+                    },
+                    "overrun": {
+                      "type": "string",
+                      "description": "Define the behavior when new data arrives before the previous data is read: preserve the old data or overwrite it.",
+                      "default": "OVERWRITTEN",
+                      "oneOf": [
+                        {
+                          "title": "Data preserved",
+                          "const": "PRESERVED"
+                        },
+                        {
+                          "title": "Data overwritten",
+                          "const": "OVERWRITTEN"
+                        }
+                      ],
+                      "title": "Overrun",
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.reg_config_t.grp_reg_sel == true",
+                          "message": "Available when regular group is selected."
+                        }
+                      ]
+                    },
+                    "reg_sequencer": {
+                      "type": "array",
+                      "title": "Sequencer",
+                      "description": "Order channels conversion sequence in regular group.",
+                      "minItems": 0,
+                      "maxItems": 16,
+                      "strictMaxItems": true,
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.reg_config_t.grp_reg_sel == true",
+                          "message": "Available when regular group is selected."
+                        }
+                      ],
+                      "allowRanking": true,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "channel": {
+                            "title": "Channel",
+                            "description": "Channel to set into sequencer in the selected rank.",
+                            "type": "object",
+                            "objectType": "query",
+                            "query": {
+                              "entity": [
+                                "peripheralBlock.interconnect.analog input",
+                                "peripheral.interconnect.analog input"
+                              ],
+                              "parent": "$resource.name",
+                              "title": "{{source.toUpperCase()}}",
+                              "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                            },
+                            "select": "first"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "inj_config_t": {
+                  "type": "object",
+                  "title": "Injected",
+                  "properties": {
+                    "grp_inj_sel": {
+                      "type": "boolean",
+                      "default": false,
+                      "title": "Use group",
+                      "actions": [
+                        {
+                          "type": "error",
+                          "condition": "$basic.sampling_mode != 'NORMAL' && $basic.group_panel.inj_config_t.grp_inj_sel == true",
+                          "message": "Injected conversion mode cannot be enabled when bulb or trigger sampling mode is active."
+                        }
+                      ]
+                    },
+                    "trigger_src": {
+                      "title": "Trigger type",
+                      "description": "Conversion start trigger from software start or external peripheral (timer, EXTI line, ...).",
+                      "type": "string",
+                      "oneOf": [
+                        {
+                          "title": "Software start",
+                          "const": "SOFTWARE"
+                        },
+                        {
+                          "title": "External peripheral",
+                          "const": "EXTERNAL"
+                        },
+                        {
+                          "title": "Group regular",
+                          "const": "TRIG_FROM_GRP_REG"
+                        }
+                      ],
+                      "default": "SOFTWARE",
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.inj_config_t.grp_inj_sel == true" ,
+                          "message": "Available when injected group is selected."
+                        }
+                      ]
+                    },
+                    "trigger_src_query": {
+                      "type": "object",
+                      "objectType": "query",
+                      "query": {
+                        "entity": "peripheral.interconnect.external input trigger for injected channel",
+                        "parent": "$resource.entityType === 'peripheralBlock' ? 'ADC12' : $resource.name",
+                        "title": "{{source.toUpperCase()}}",
+                        "where": "$entity.ip_signal && !/^adc_itrg_s\\[/i.test($entity.ip_signal)"
+                      },
+                      "title": "Trigger source",
+                      "actions": [
+                        {
+                          "type": "disable",
+                          "condition": "($basic.group_panel.inj_config_t.grp_inj_sel == false) || ($basic.group_panel.inj_config_t.trigger_src != 'EXTERNAL')",
+                          "message": "Available when injected group is selected and trigger source is external."
+                        },
+                        {
+                          "type": "info",
+                          "condition": "true",
+                          "message": "The selected interconnect must be configured manually."
+                        }
+                      ]
+                    },
+                    "trigger_edge": {
+                      "type": "string",
+                      "default": "RISING",
+                      "oneOf": [
+                        {
+                          "title": "Rising",
+                          "const": "RISING"
+                        },
+                        {
+                          "title": "Falling",
+                          "const": "FALLING"
+                        },
+                        {
+                          "title": "Rising and falling",
+                          "const": "RISING_FALLING"
+                        }
+                      ],
+                      "title": "Trigger edge",
+                      "actions": [
+                        {
+                          "type": "disable",
+                          "condition": "($basic.group_panel.inj_config_t.grp_inj_sel == false) || ($basic.group_panel.inj_config_t.trigger_src != 'EXTERNAL')",
+                          "message": "Available when injected group is selected and trigger source is external."
+                        }
+                      ]
+                    },
+                    "sequencer_discontinuous": {
+                      "type": "string",
+                      "title": "Sequencer discontinuous",
+                      "description": "Interrupt the injected conversion sequence after the selected number of ranks.",
+                      "default": "DISABLE",
+                      "oneOf": [
+                        {
+                          "title": "Disabled",
+                          "const": "DISABLE"
+                        },
+                        {
+                          "title": "1 rank",
+                          "const": "1RANK"
+                        }
+                      ],
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.inj_config_t.grp_inj_sel == true",
+                          "message": "Available when injected group is selected."
+                        }
+                      ]
+                    },
+                    "inj_sequencer": {
+                      "type": "array",
+                      "title": "Injected sequencer",
+                      "description": "Order channels conversion sequence in injected group.",
+                      "minItems": 0,
+                      "maxItems": 4,
+                      "strictMaxItems": true,
+                      "actions": [
+                        {
+                          "type": "enable",
+                          "condition": "$basic.group_panel.inj_config_t.grp_inj_sel == true",
+                          "message": "Available when injected group is selected."
+                        }
+                      ],
+                      "allowRanking": true,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "channel": {
+                            "title": "Channel",
+                            "description": "Channel to set into sequencer in the selected rank.",
+                            "type": "object",
+                            "objectType": "query",
+                            "query": {
+                              "entity": [
+                                "peripheralBlock.interconnect.analog input",
+                                "peripheral.interconnect.analog input"
+                              ],
+                              "parent": "$resource.name",
+                              "title": "{{source.toUpperCase()}}",
+                              "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                            },
+                            "select": "first"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "additional": {
+          "title": "Advanced features",
+          "type": "object",
+          "properties": {
+            "postproc_sel": {
+              "type": "boolean",
+              "default": false,
+              "title": "Post-processing"
+            },
+            "postproc_panel": {
+              "title": "Post-processing",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.postproc_sel === true"
+                }
+              ],
+              "properties": {
+                "left_bit_shift": {
+                  "title": "Data shift left",
+                  "description": "Shift the ADC conversion result to the left by the selected number of bits. Applies to ADC groups regular and injected conversions.",
+                  "type": "string",
+                  "default": "NONE",
+                  "oneOf": [
+                    {
+                      "title": "Disable",
+                      "const": "NONE"
+                    },
+                    {
+                      "title": "1 bit",
+                      "const": "1_BIT"
+                    },
+                    {
+                      "title": "2 bits",
+                      "const": "2_BITS"
+                    },
+                    {
+                      "title": "3 bits",
+                      "const": "3_BITS"
+                    },
+                    {
+                      "title": "4 bits",
+                      "const": "4_BITS"
+                    },
+                    {
+                      "title": "5 bits",
+                      "const": "5_BITS"
+                    },
+                    {
+                      "title": "6 bits",
+                      "const": "6_BITS"
+                    },
+                    {
+                      "title": "7 bits",
+                      "const": "7_BITS"
+                    },
+                    {
+                      "title": "8 bits",
+                      "const": "8_BITS"
+                    },
+                    {
+                      "title": "9 bits",
+                      "const": "9_BITS"
+                    },
+                    {
+                      "title": "10 bits",
+                      "const": "10_BITS"
+                    },
+                    {
+                      "title": "11 bits",
+                      "const": "11_BITS"
+                    },
+                    {
+                      "title": "12 bits",
+                      "const": "12_BITS"
+                    },
+                    {
+                      "title": "13 bits",
+                      "const": "13_BITS"
+                    },
+                    {
+                      "title": "14 bits",
+                      "const": "14_BITS"
+                    },
+                    {
+                      "title": "15 bits",
+                      "const": "15_BITS"
+                    }
+                  ]
+                },
+                "gain_compensation_x1000": {
+                  "type": "integer",
+                  "title": "Gain compensation",
+                  "description": "ADC gain coefficient for raw conversion data, scaled by 1000 (use 982 to represent 0.982).",
+                  "maximum": 3999,
+                  "minimum": 0,
+                  "default": 1000
+                }
+              }
+            },
+            "lowpower_sel": {
+              "type": "boolean",
+              "default": false,
+              "title": "Low power"
+            },
+            "low_power_config_t": {
+              "type": "object",
+              "title": "Low power",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.lowpower_sel === true"
+                }
+              ],
+              "properties": {
+                "lp_auto_wait": {
+                  "description": " ADC starts a new conversion only after the previous conversion data is read.",
+                  "title": "Auto wait",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "awd_sel": {
+              "type": "boolean",
+              "default": false,
+              "title": "Analog watchdog"
+            },
+            "awd1_panel": {
+              "title": "Analog watchdog 1",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.awd_sel === true"
+                }
+              ],
+              "properties": {
+                "awd1_sel": {
+                  "description": "Enable ADC analog watchdog 1.",
+                  "type": "boolean",
+                  "default": true,
+                  "title": "Use AWD1"
+                },
+                "awd_channel_mode": {
+                  "type": "string",
+                  "description": "Select the analog watchdog channel monitoring mode, one channel or all channels.",
+                  "default": "SINGLE",
+                  "oneOf": [
+                    {
+                      "title": "Single",
+                      "const": "SINGLE"
+                    },
+                    {
+                      "title": "All",
+                      "const": "ALL"
+                    }
+                  ],
+                  "title": "Channel mode",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd1_panel.awd1_sel === true",
+                      "message": "Available when AWD1 is enabled."
+                    }
+                  ]
+                },
+                "adc_channel": {
+                  "type": "object",
+                  "objectType": "query",
+                  "description": "Select the ADC channel to be monitored by the analog watchdog.",
+                  "query": {
+                    "entity": [
+                      "peripheralBlock.interconnect.analog input",
+                      "peripheral.interconnect.analog input"
+                    ],
+                    "parent": "$resource.name",
+                    "title": "{{source.toUpperCase()}}",
+                    "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                    },
+                  "select": "first",
+                  "title": "Channel",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd1_panel.awd1_sel === true && $additional.awd1_panel.awd_channel_mode === 'SINGLE'",
+                      "message": "Available when AWD1 is enabled and channel mode is set to SINGLE."
+                    },
+                    {
+                      "type": "exclude",
+                      "condition": "$additional.awd1_panel.awd_channel_mode === 'MULTIPLE'"
+                    }
+                  ]
+                },
+                "awd1_sequencer": {
+                  "type": "array",
+                  "title": "Channels list",
+                  "description": "Select the ADC channels to be monitored by the analog watchdog.",
+                  "minItems": 0,
+                  "maxItems": 32,
+                  "strictMaxItems": true,
+                  "allowRanking": true,
+                  "actions": [
+                    {
+                      "type": "exclude",
+                      "condition": "$additional.awd1_panel.awd_channel_mode != 'MULTIPLE'"
+                    }
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "title": "Channel",
+                        "description": "Channel to set into sequencer in the selected rank.",
+                        "type": "object",
+                        "objectType": "query",
+                        "query": {
+                          "entity": [
+                            "peripheralBlock.interconnect.analog input",
+                            "peripheral.interconnect.analog input"
+                          ],
+                          "parent": "$resource.name",
+                          "title": "{{source.toUpperCase()}}",
+                           "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                          },
+                        "select": "first"
+                      }
+                    }
+                  }
+                },
+                "group": {
+                  "type": "string",
+                  "description": "Select the ADC group to be monitored by the analog watchdog.",
+                  "default": "ADC_GROUP_REGULAR_INJECTED",
+                  "oneOf": [
+                    {
+                      "title": "Regular",
+                      "const": "ADC_GROUP_REGULAR"
+                    },
+                    {
+                      "title": "Injected",
+                      "const": "ADC_GROUP_INJECTED"
+                    },
+                    {
+                      "title": "Regular and injected",
+                      "const": "ADC_GROUP_REGULAR_INJECTED"
+                    }
+                  ],
+                  "title": "Group",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd1_panel.awd1_sel === true",
+                      "message": "Available when AWD1 is enabled."
+                    }
+                  ]
+                },
+                "threshold_high": {
+                  "description": "Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).\n To compute digital value from physical value (voltage), use helper macro @ref HAL_ADC_CALC_VOLTAGE_TO_DATA().",
+                  "title": "Threshold high",
+                  "type": "integer",
+                  "default": 4194303,
+                  "maximum": 4194303,
+                  "minimum": -4194304,
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd1_panel.awd1_sel === true",
+                      "message": "Available when AWD1 is enabled."
+                    }
+                  ]
+                },
+                "threshold_low": {
+                  "title": "Threshold low",
+                  "type": "integer",
+                  "description": "Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).\n To compute digital value from physical value (voltage), use helper macro @ref HAL_ADC_CALC_VOLTAGE_TO_DATA().",
+                  "default": 0,
+                  "maximum": 4194303,
+                  "minimum": -4194304,
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd1_panel.awd1_sel === true",
+                      "message": "Available when AWD1 is enabled."
+                    }
+                  ]
+                },
+                "filtering": {
+                  "type": "string",
+                  "description": "Specify the number of consecutive out-of-window samples required to trigger the watchdog event.",
+                  "default": "ADC_AWD_FILTERING_NONE",
+                  "oneOf": [
+                    {
+                      "title": "No filtering",
+                      "const": "ADC_AWD_FILTERING_NONE"
+                    },
+                    {
+                      "title": "2 ",
+                      "const": "ADC_AWD_FILTERING_2SAMPLES"
+                    },
+                    {
+                      "title": "3",
+                      "const": "ADC_AWD_FILTERING_3SAMPLES"
+                    },
+                    {
+                      "title": "4",
+                      "const": "ADC_AWD_FILTERING_4SAMPLES"
+                    },
+                    {
+                      "title": "5",
+                      "const": "ADC_AWD_FILTERING_5SAMPLES"
+                    },
+                    {
+                      "title": "6",
+                      "const": "ADC_AWD_FILTERING_6SAMPLES"
+                    },
+                    {
+                      "title": "7",
+                      "const": "ADC_AWD_FILTERING_7SAMPLES"
+                    },
+                    {
+                      "title": "8",
+                      "const": "ADC_AWD_FILTERING_8SAMPLES"
+                    }
+                  ],
+                  "title": "Filtering",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd1_panel.awd1_sel === true",
+                      "message": "Available when AWD1 is enabled."
+                    }
+                  ]
+                }
+              }
+            },
+            "awd2_panel": {
+              "title": "Analog watchdog 2",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.awd_sel === true"
+                }
+              ],
+              "properties": {
+                "awd2_sel": {
+                  "description": "Enable ADC analog watchdog 2.",
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Use AWD2"
+                },
+                "awd_channel_mode": {
+                  "type": "string",
+                  "description": "Select the analog watchdog channel monitoring mode, one channel, a selection of channels or all channels.",
+                  "default": "SINGLE",
+                  "oneOf": [
+                    {
+                      "title": "Single",
+                      "const": "SINGLE"
+                    },
+                    {
+                      "title": "All",
+                      "const": "ALL"
+                    },
+                    {
+                      "title": "Multiple",
+                      "const": "MULTIPLE"
+                    }
+                  ],
+                  "title": "Channel mode",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd2_panel.awd2_sel === true",
+                      "message": "Available when AWD2 is enabled."
+                    }
+                  ]
+                },
+                "adc_channel": {
+                  "type": "object",
+                  "objectType": "query",
+                  "description": "Select the ADC channel to be monitored by the analog watchdog.",
+                  "query": {
+                    "entity": [
+                      "peripheralBlock.interconnect.analog input",
+                      "peripheral.interconnect.analog input"
+                    ],
+                    "parent": "$resource.name",
+                    "title": "{{source.toUpperCase()}}",
+                      "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                     },
+                  "select": "first",
+                  "title": "Channel",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "($additional.awd2_panel.awd2_sel === true) && ($additional.awd2_panel.awd_channel_mode === 'SINGLE')",
+                      "message": "Available when AWD2 is enabled and channel mode is set to SINGLE."
+                    },
+                    {
+                      "type": "exclude",
+                      "condition": "$additional.awd2_panel.awd_channel_mode === 'MULTIPLE'"
+                    }
+                  ]
+                },
+                "awd2_sequencer": {
+                  "type": "array",
+                  "title": "Channels list",
+                  "description": "Define the list of ADC channels to be monitored by the analog watchdog.",
+                  "minItems": 0,
+                  "maxItems": 32,
+                  "strictMaxItems": true,
+                  "allowRanking": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.awd2_panel.awd_channel_mode === 'MULTIPLE'"
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "($additional.awd2_panel.awd2_sel === false) || ($additional.awd2_panel.awd_channel_mode === 'ALL')",
+                      "message": "Available when AWD2 is enabled and channel mode is set to multiple."
+                    }
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "title": "Channel",
+                        "description": "Channel to set into sequencer in the selected rank.",
+                        "type": "object",
+                        "objectType": "query",
+                        "query": {
+                          "entity": [
+                            "peripheralBlock.interconnect.analog input",
+                            "peripheral.interconnect.analog input"
+                          ],
+                          "parent": "$resource.name",
+                          "title": "{{source.toUpperCase()}}",
+                          "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                         },
+                        "select": "first"
+                      }
+                    }
+                  }
+                },
+                "group": {
+                  "type": "string",
+                  "description": "Select the ADC group to be monitored by the analog watchdog. AWD2 and AWD3 monitor channels without distinction of group regular and injected: both sequencers trig the AWD.",
+                  "default": "ADC_GROUP_REGULAR_INJECTED",
+                  "oneOf": [
+                    {
+                      "title": "Regular and injected",
+                      "const": "ADC_GROUP_REGULAR_INJECTED"
+                    }
+                  ],
+                  "title": "Group",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "true || ($additional.awd2_panel.awd2_sel === false)",
+                      "message": "AWD2 and AWD3 monitor channels without distinction of group regular and injected."
+                    }
+                  ]
+                },
+                "threshold_high": {
+                  "type": "integer",
+                  "title": "High threshold",
+                  "description": "Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).\n To compute digital value from physical value (voltage), use helper macro @ref HAL_ADC_CALC_VOLTAGE_TO_DATA().",
+                  "default": 4194303,
+                  "maximum": 4194303,
+                  "minimum": -4194304,
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd2_panel.awd2_sel === true",
+                      "message": "Available when AWD2 is enabled."
+                    }
+                  ]
+                },
+                "threshold_low": {
+                  "type": "integer",
+                  "title": "Low threshold",
+                  "description": "Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).\n To compute digital value from physical value (voltage), use helper macro @ref HAL_ADC_CALC_VOLTAGE_TO_DATA().",
+                  "default": 0,
+                  "maximum": 4194303,
+                  "minimum": -4194304,
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd2_panel.awd2_sel === true",
+                      "message": "Available when AWD2 is enabled."
+                    }
+                  ]
+                },
+                "filtering": {
+                  "type": "string",
+                  "description": "Specify the number of consecutive out-of-window samples required to trigger the watchdog event.",
+                  "default": "ADC_AWD_FILTERING_NONE",
+                  "oneOf": [
+                    {
+                      "title": "No filtering",
+                      "const": "ADC_AWD_FILTERING_NONE"
+                    },
+                    {
+                      "title": "2 ",
+                      "const": "ADC_AWD_FILTERING_2SAMPLES"
+                    },
+                    {
+                      "title": "3",
+                      "const": "ADC_AWD_FILTERING_3SAMPLES"
+                    },
+                    {
+                      "title": "4",
+                      "const": "ADC_AWD_FILTERING_4SAMPLES"
+                    },
+                    {
+                      "title": "5",
+                      "const": "ADC_AWD_FILTERING_5SAMPLES"
+                    },
+                    {
+                      "title": "6",
+                      "const": "ADC_AWD_FILTERING_6SAMPLES"
+                    },
+                    {
+                      "title": "7",
+                      "const": "ADC_AWD_FILTERING_7SAMPLES"
+                    },
+                    {
+                      "title": "8",
+                      "const": "ADC_AWD_FILTERING_8SAMPLES"
+                    }
+                  ],
+                  "title": "Filtering",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd2_panel.awd2_sel === true",
+                      "message": "Available when AWD2 is enabled."
+                    },
+                    {
+                      "type": "include",
+                      "condition": "($resource.features.adc_adv_gen === 1) || ($resource.parentDescription.features.adc_adv_gen === 1)"
+                    }
+                  ]
+                }
+              }
+            },
+            "awd3_panel": {
+              "title": "Analog watchdog 3",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.awd_sel === true"
+                }
+              ],
+              "properties": {
+                "awd3_sel": {
+                  "description": "Enable ADC analog watchdog 3.",
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Use AWD3"
+                },
+                "awd_channel_mode": {
+                  "type": "string",
+                  "description": "Select the analog watchdog channel monitoring mode, one channel, a selection of channels or all channels.",
+                  "default": "SINGLE",
+                  "oneOf": [
+                    {
+                      "title": "Single",
+                      "const": "SINGLE"
+                    },
+                    {
+                      "title": "All",
+                      "const": "ALL"
+                    },
+                    {
+                      "title": "Multiple",
+                      "const": "MULTIPLE"
+                    }
+                  ],
+                  "title": "Channel mode",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd3_panel.awd3_sel === true"
+                    }
+                  ]
+                },
+                "adc_channel": {
+                  "type": "object",
+                  "objectType": "query",
+                  "description": "Select the ADC channel to be monitored by the analog watchdog.",
+                  "query": {
+                    "entity": [
+                      "peripheralBlock.interconnect.analog input",
+                      "peripheral.interconnect.analog input"
+                    ],
+                    "parent": "$resource.name",
+                    "title": "{{source.toUpperCase()}}",
+                    "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                  },
+                  "select": "first",
+                  "title": "Channel",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "($additional.awd3_panel.awd3_sel === true) && ($additional.awd3_panel.awd_channel_mode === 'SINGLE')",
+                      "message": "Available when AWD3 is enabled and channel mode is set to SINGLE."
+                    },
+                    {
+                      "type": "exclude",
+                      "condition": "$additional.awd3_panel.awd_channel_mode === 'MULTIPLE'"
+                    }
+                  ]
+                },
+                "awd3_sequencer": {
+                  "type": "array",
+                  "title": "Channels list",
+                  "description": "Define the list of ADC channels to be monitored by the analog watchdog.",
+                  "minItems": 0,
+                  "maxItems": 32,
+                  "strictMaxItems": true,
+                  "allowRanking": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.awd3_panel.awd_channel_mode === 'MULTIPLE'"
+                    },
+                    {
+                      "type": "disable",
+                      "condition": "($additional.awd3_panel.awd_channel_mode === 'ALL') || ($additional.awd3_panel.awd3_sel === false)",
+                      "message": "Available when AWD3 is enabled and channel mode is set to multiple."
+                    }
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "title": "Channel",
+                        "description": "Channel to set into sequencer in the selected rank.",
+                        "type": "object",
+                        "objectType": "query",
+                        "query": {
+                          "entity": [
+                            "peripheralBlock.interconnect.analog input",
+                            "peripheral.interconnect.analog input"
+                          ],
+                          "parent": "$resource.name",
+                          "title": "{{source.toUpperCase()}}",
+                           "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                          },
+                        "select": "first"
+                      }
+                    }
+                  }
+                },
+                "group": {
+                  "type": "string",
+                  "description": "Select the ADC group to be monitored by the analog watchdog. AWD2 and AWD3 monitor channels without distinction of group regular and injected: both sequencers trig the AWD.",
+                  "default": "ADC_GROUP_REGULAR_INJECTED",
+                  "oneOf": [
+                    {
+                      "title": "Regular and injected",
+                      "const": "ADC_GROUP_REGULAR_INJECTED"
+                    }
+                  ],
+                  "title": "Group",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "true || ($additional.awd3_panel.awd3_sel === false)",
+                      "message": "Available when AWD3 is enabled."
+                    }
+                  ]
+                },
+                "threshold_high": {
+                  "type": "integer",
+                  "title": "High threshold",
+                  "description": "Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).\n To compute digital value from physical value (voltage), use helper macro @ref HAL_ADC_CALC_VOLTAGE_TO_DATA().",
+                  "default": 4194303,
+                  "maximum": 4194303,
+                  "minimum": -4194304,
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd3_panel.awd3_sel === true",
+                      "message": "Available when AWD3 is enabled."
+                    }
+                  ]
+                },
+                "threshold_low": {
+                  "type": "integer",
+                  "title": "Low threshold",
+                  "description": "Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).\n To compute digital value from physical value (voltage), use helper macro @ref HAL_ADC_CALC_VOLTAGE_TO_DATA().",
+                  "default": 0,
+                  "maximum": 4194303,
+                  "minimum": -4194304,
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ],
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd3_panel.awd3_sel === true",
+                      "message": "Available when AWD3 is enabled."
+                    }
+                  ]
+                },
+                "filtering": {
+                  "type": "string",
+                  "description": "Specify the number of consecutive out-of-window samples required to trigger the watchdog event.",
+                  "default": "ADC_AWD_FILTERING_NONE",
+                  "oneOf": [
+                    {
+                      "title": "No filtering",
+                      "const": "ADC_AWD_FILTERING_NONE"
+                    },
+                    {
+                      "title": "2 ",
+                      "const": "ADC_AWD_FILTERING_2SAMPLES"
+                    },
+                    {
+                      "title": "3",
+                      "const": "ADC_AWD_FILTERING_3SAMPLES"
+                    },
+                    {
+                      "title": "4",
+                      "const": "ADC_AWD_FILTERING_4SAMPLES"
+                    },
+                    {
+                      "title": "5",
+                      "const": "ADC_AWD_FILTERING_5SAMPLES"
+                    },
+                    {
+                      "title": "6",
+                      "const": "ADC_AWD_FILTERING_6SAMPLES"
+                    },
+                    {
+                      "title": "7",
+                      "const": "ADC_AWD_FILTERING_7SAMPLES"
+                    },
+                    {
+                      "title": "8",
+                      "const": "ADC_AWD_FILTERING_8SAMPLES"
+                    }
+                  ],
+                  "title": "Filtering",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.awd3_panel.awd3_sel === true",
+                      "message": "Available when AWD3 is enabled."
+                    },
+                    {
+                      "type": "include",
+                      "condition": "($resource.features.adc_adv_gen === 1) || ($resource.parentDescription.features.adc_adv_gen === 1)"
+                    }
+                  ]
+                }
+              }
+            },
+            "ovs_sel": {
+              "type": "boolean",
+              "default": false,
+              "title": "Oversampling"
+            },
+            "ovs_panel": {
+              "title": "Oversampling",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.ovs_sel === true"
+                }
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string",
+                  "description": "Oversampling scope: ADC groups regular and/or injected.\nIf ADC group injected conversion insertion within regular sequence:\n- setting continued: when group injected is triggered, the oversampling on group regular is temporary stopped and continued afterwards.\n- setting resumed: when group injected is triggered, the oversampling on group regular is resumed from start (oversampler buffer reset). This device supports parallel injected oversampling, allowing to perform oversampling on groups regular and injected independently (different accumulators with their own settings ratio and shift), refer to panel 'Oversampling group injected'.",
+                  "default": "REG_CONTINUED",
+                  "oneOf": [
+                    {
+                      "title": "Disabled",
+                      "const": "DISABLE"
+                    },
+                    {
+                      "title": "Regular (continued)",
+                      "const": "REG_CONTINUED",
+                      "description": "ADC oversampling on conversions of ADC group regular. If ADC group injected conversion insertion within regular sequence: oversampling on group regular is temporary stopped and, after injected conversion, continued (oversampling accumulator maintained)."
+                    },
+                    {
+                      "title": "Regular (resumed)",
+                      "const": "REG_RESUMED",
+                      "description": "ADC oversampling on conversions of ADC group regular. If ADC group injected conversion insertion within regular sequence: after injected conversion, oversampling on group regular is resumed from start (oversampler accumulator reset)."
+                    },
+                    {
+                      "title": "Injected",
+                      "const": "INJ",
+                      "description": "ADC oversampling on conversions of ADC group injected, in sequential mode: oversampling conversions sequence sequential, switching data registers after each oversampling process (all ratio occurrences, shift)."
+                    },
+                    {
+                      "title": "Regular and injected",
+                      "const": "INJ_REG_RESUMED",
+                      "description": "ADC oversampling on conversions of ADC groups regular and injected. Combination of modes 'Regular (resumed)' and 'Injected': refer to description of these parameters."
+                    }
+                  ],
+                  "title": "Scope"
+                },
+                "discont": {
+                  "type": "string",
+                  "description": "Choose between continuous or discontinuous (triggered) oversampling mode (applied only on group regular oversampling).",
+                  "default": "CONT",
+                  "oneOf": [
+                    {
+                      "title": "Continuous",
+                      "const": "CONT"
+                    },
+                    {
+                      "title": "Discontinuous",
+                      "const": "DISCONT",
+                      "actions": [
+                        {
+                          "type": "disable",
+                          "condition": "$additional.ovs_panel.scope == 'INJ'",
+                          "message": "Injected oversampling in scope sequential (legacy) does not support triggered oversampling"
+                        }
+                      ]
+                    }
+                  ],
+                  "title": "Discontinuous mode",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$additional.ovs_panel.scope === 'DISABLE'",
+                      "message": "Conditionned to oversampling scope."
+                    }
+                  ]
+                },
+                "ratio": {
+                  "type": "integer",
+                  "description": "Sum of conversions data computed to oversampling conversions data (before potential shift).",
+                  "maximum": 1024,
+                  "minimum": 1,
+                  "default": 1,
+                  "title": "Ratio",
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$additional.ovs_panel.scope === 'DISABLE'",
+                      "message": "Available when oversampling is enabled and scope is disabled."
+                    }
+                  ]
+                },
+                "shift_keep_res": {
+                  "title": "Shift value to keep ADC resolution",
+                  "description": "Auto-adjust shift to keep resolution.",
+                  "type": "boolean",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "$additional.ovs_panel.scope === 'DISABLE'",
+                      "message": "Conditionned to oversampling scope."
+                    }
+                  ]
+                },
+                "shift": {
+                  "type": "integer",
+                  "title": "Shift value",
+                  "description": "Set right bit shift to perform a division by multiple of 2 of oversampling accumulated data.",
+                  "maximum": 10,
+                  "minimum": 1,
+                  "default": 1,
+                  "actions": [
+                    {
+                      "type": "disable",
+                      "condition": "($additional.ovs_panel.shift_keep_res === true) || ($additional.ovs_panel.scope === DISABLE)",
+                      "message": "Conditionned to oversampling scope or shift value computed automatically to keep ADC resolution."
+                    }
+                  ]
+                }
+              }
+            },
+            "offset_sel": {
+              "type": "boolean",
+              "default": false,
+              "title": "Offset"
+            },
+            "offset_1_panel": {
+              "title": "Offset 1",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.offset_sel === true"
+                }
+              ],
+              "properties": {
+                "offset_1_sel": {
+                  "type": "boolean",
+                  "default": true,
+                  "title": "Data offset 1"
+                },
+                "adc_channel": {
+                  "type": "object",
+                  "objectType": "query",
+                  "query": {
+                    "entity": [
+                      "peripheralBlock.interconnect.analog input",
+                      "peripheral.interconnect.analog input"
+                    ],
+                    "parent": "$resource.name",
+                    "title": "{{source.toUpperCase()}}",
+                    "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                  },
+                  "select": "first",
+                  "title": "Channel",
+                  "description": "Select the ADC channel to which the offset will be applied.",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_1_panel.offset_1_sel === true",
+                      "message": "Available when Offset 1 instance is enabled."
+                    }
+                  ]
+                },
+                "level": {
+                  "type": "integer",
+                  "description": "ADC offset level to be subtracted or added to the raw ADC converted data.\n Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).",
+                  "maximum": 4194303,
+                  "minimum": -4194303,
+                  "default": 4194303,
+                  "title": "Level",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_1_panel.offset_1_sel === true",
+                      "message": "Available when Offset 1 instance is enabled."
+                    }
+                  ],
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ]
+                },
+                "saturation_signed": {
+                  "title": "Signed saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_1_panel.offset_1_sel === true",
+                      "message": "Available when Offset 1 instance is enabled."
+                    }
+                  ]
+                },
+                "saturation_unsigned": {
+                  "title": "Unsigned saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_1_panel.offset_1_sel === true",
+                      "message": "Available when Offset 1 instance is enabled."
+                    }
+                  ]
+                }
+              }
+            },
+            "offset_2_panel": {
+              "title": "Offset 2",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.offset_sel === true"
+                }
+              ],
+              "properties": {
+                "offset_2_sel": {
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Data offset 2"
+                },
+                "adc_channel": {
+                  "type": "object",
+                  "objectType": "query",
+                  "description": "Select the ADC channel to which the offset will be applied.",
+                  "query": {
+                    "entity": [
+                      "peripheralBlock.interconnect.analog input",
+                      "peripheral.interconnect.analog input"
+                    ],
+                    "parent": "$resource.name",
+                    "title": "{{source.toUpperCase()}}",
+                    "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                  },
+                  "select": "first",
+                  "title": "Channel",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_2_panel.offset_2_sel === true",
+                      "message": "Available when Offset 2 instance is enabled."
+                    }
+                  ]
+                },
+                "level": {
+                  "type": "integer",
+                  "description": "ADC offset level to be subtracted or added to the raw ADC converted data.\n Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).",
+                  "maximum": 4194303,
+                  "minimum": -4194303,
+                  "default": 4194303,
+                  "title": "Level",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_2_panel.offset_2_sel === true",
+                      "message": "Available when Offset 2 instance is enabled."
+                    }
+                  ],
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ]
+                },
+                "saturation_signed": {
+                  "title": "Signed saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_2_panel.offset_2_sel === true",
+                      "message": "Available when Offset 2 instance is enabled."
+                    }
+                  ]
+                },
+                "saturation_unsigned": {
+                  "title": "Unsigned saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_2_panel.offset_2_sel === true",
+                      "message": "Available when Offset 2 instance is enabled."
+                    }
+                  ]
+                }
+              }
+            },
+            "offset_3_panel": {
+              "title": "Offset 3",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.offset_sel === true"
+                }
+              ],
+              "properties": {
+                "offset_3_sel": {
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Data offset 3"
+                },
+                "adc_channel": {
+                  "type": "object",
+                  "objectType": "query",
+                  "description": "Select the ADC channel to which the offset will be applied.",
+                  "query": {
+                    "entity": [
+                      "peripheralBlock.interconnect.analog input",
+                      "peripheral.interconnect.analog input"
+                    ],
+                    "parent": "$resource.name",
+                    "title": "{{source.toUpperCase()}}",
+                    "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                  },
+                  "select": "first",
+                  "title": "Channel",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_3_panel.offset_3_sel === true",
+                      "message": "Available when Offset 3 instance is enabled."
+                    }
+                  ]
+                },
+                "level": {
+                  "type": "integer",
+                  "description": "ADC offset level to be subtracted or added to the raw ADC converted data.\n Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).",
+                  "maximum": 4194303,
+                  "minimum": -4194303,
+                  "default": 4194303,
+                  "title": "Level",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_3_panel.offset_3_sel === true",
+                      "message": "Available when Offset 3 instance is enabled."
+                    }
+                  ],
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ]
+                },
+                "saturation_signed": {
+                  "title": "Signed saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_3_panel.offset_3_sel === true",
+                      "message": "Available when Offset 3 instance is enabled."
+                    }
+                  ]
+                },
+                "saturation_unsigned": {
+                  "title": "Unsigned saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_3_panel.offset_3_sel === true",
+                      "message": "Available when Offset 3 instance is enabled."
+                    }
+                  ]
+                }
+              }
+            },
+            "offset_4_panel": {
+              "title": "Offset 4",
+              "type": "object",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.offset_sel === true"
+                }
+              ],
+              "properties": {
+                "offset_4_sel": {
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Data offset 4"
+                },
+                "adc_channel": {
+                  "type": "object",
+                  "objectType": "query",
+                  "query": {
+                    "entity": [
+                      "peripheralBlock.interconnect.analog input",
+                      "peripheral.interconnect.analog input"
+                    ],
+                    "parent": "$resource.name",
+                    "title": "{{source.toUpperCase()}}",
+                    "where": "$common.helper_adc_is_standard_query_channel($entity, $resource, $get)"
+                  },
+                  "select": "first",
+                  "title": "Channel",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_4_panel.offset_4_sel === true",
+                      "message": "Available when Offset 4 instance is enabled."
+                    }
+                  ]
+                },
+                "level": {
+                  "type": "integer",
+                  "description": "ADC offset level to be subtracted or added to the raw ADC converted data.\n Value is signed and can exceed ADC resolution with post-processing computation (offset, oversampling, data shift, ...).",
+                  "maximum": 4194303,
+                  "minimum": -4194303,
+                  "default": 4194303,
+                  "title": "Level",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_4_panel.offset_4_sel === true",
+                      "message": "Available when Offset 4 instance is enabled."
+                    }
+                  ],
+                  "display_format": [
+                    "hex",
+                    "dec"
+                  ]
+                },
+                "saturation_signed": {
+                  "title": "Signed saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_4_panel.offset_4_sel === true",
+                      "message": "Available when Offset 4 instance is enabled."
+                    }
+                  ]
+                },
+                "saturation_unsigned": {
+                  "title": "Unsigned saturation",
+                  "type": "boolean",
+                  "default": false,
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.offset_4_panel.offset_4_sel === true",
+                      "message": "Available when Offset 4 instance is enabled."
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security_privilege": {
+          "title": "Security and privilege",
+          "description": "Manage security and privileged access levels attributes.",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+          "properties": {
+            "security": {
+              "type": "string",
+              "title": "Security attribute",
+              "description": "Set the security attribute of the securable peripheral.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "SEC"
+                  },
+                  "condition": "$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "NSEC"
+                  },
+                  "condition": "!$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', $resource.id)",
+                  "message": "The security attribute of the peripheral is automatically set to secure when the peripheral is bound to a secure resource and to non-secure when it is not. Manual configuration is not allowed."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-sec-attr",
+                "custom": "$resource.peripheralType"
+              },
+              "oneOf": [
+                {
+                  "title": "Secure",
+                  "const": "SEC"
+                },
+                {
+                  "title": "Non-secure",
+                  "const": "NSEC"
+                }
+              ],
+              "default": "NSEC"
+            },
+            "privilege": {
+              "type": "string",
+              "title": "Privileged attribute",
+              "description": "Manage the privileged attribute of a securable RISC peripheral.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-priv-attr",
+                "custom": "$resource.peripheralType"
+              },
+              "oneOf": [
+                {
+                  "title": "Privileged",
+                  "const": "PRIV"
+                },
+                {
+                  "title": "Unprivileged",
+                  "const": "NPRIV"
+                }
+              ],
+              "default": "PRIV"
+            },
+            "lock": {
+              "type": "boolean",
+              "title": "Lock",
+              "description": "Optional. Lock security and privilege attributes to prevent changes.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-lock-attr",
+                "custom": "$resource.peripheralType"
+              },
+              "default": false
+            },
+            "illegal_access": {
+              "title": "Illegal access interrupt",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure-only')",
+                  "message": "Secure-only mode: Illegal access interrupt is forced to disabled."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-iac-peripheral",
+                "custom": "$resource.peripheralType"
+              },
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "properties": {
+            "gpio": {
+              "type": "object",
+              "title": "GPIO",
+              "properties": {
+                "gpio_adc_ch0": {
+                  "type": "object",
+                  "title": "ADC_INP0",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN0",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN0', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN0') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN0'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch1": {
+                  "type": "object",
+                  "title": "ADC_INP1",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN1', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN1') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN1'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch2": {
+                  "type": "object",
+                  "title": "ADC_INP2",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "HAL_SBS_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PC4' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "LL_SBS_PROJECT_USE_LL",
+                      "condition": "$info.layer === 'LL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PC4' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "ADC1_CORE_USE_SBS",
+                      "condition": "$get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PC4' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN2', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN2') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN2'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch3": {
+                  "type": "object",
+                  "title": "ADC_INP3",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN3",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN3', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN3') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN3'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch4": {
+                  "type": "object",
+                  "title": "ADC_INP4",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN4",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN4', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN4') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN4'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch5": {
+                  "type": "object",
+                  "title": "ADC_INP5",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "HAL_SBS_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PC5' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "LL_SBS_PROJECT_USE_LL",
+                      "condition": "$info.layer === 'LL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PC5' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "ADC1_CORE_USE_SBS",
+                      "condition": "$get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PC5' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN5",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN5', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN5') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN5'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch6": {
+                  "type": "object",
+                  "title": "ADC_INP6",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "HAL_SBS_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PB0' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "LL_SBS_PROJECT_USE_LL",
+                      "condition": "$info.layer === 'LL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PB0' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "ADC1_CORE_USE_SBS",
+                      "condition": "$get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PB0' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN6",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN6', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN6') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN6'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch7": {
+                  "type": "object",
+                  "title": "ADC_INP7",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "HAL_SBS_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PB1' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    },
+                    {
+                     "on": "update-value",
+                     "name": "LL_SBS_PROJECT_USE_LL",
+                     "condition": "$info.layer === 'LL' && $get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PB1' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                     "semaphore": true
+                    },
+                    {
+                      "on": "update-value",
+                      "name": "ADC1_CORE_USE_SBS",
+                      "condition": "$get('sw-config.need-allocated-resource-description', $value.needs[0]).id === 'PB1' && $get('peripheral.hardwareIpDescription', 'SBS')?.features?.input_pin_remap === true",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN7",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN7', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN7') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN7'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch8": {
+                  "type": "object",
+                  "title": "ADC_INP8",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN8",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN8', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN8') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN8'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch9": {
+                  "type": "object",
+                  "title": "ADC_INP9",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN9",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN9', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN9') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN9'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch10": {
+                  "type": "object",
+                  "title": "ADC_INP10",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN10",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN10', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN10') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN10'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch11": {
+                  "type": "object",
+                  "title": "ADC_INP11",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN11",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN11', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN11') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN11'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch12": {
+                  "type": "object",
+                  "title": "ADC_INP12",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN12",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN12', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN12') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN12'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch13": {
+                  "type": "object",
+                  "title": "ADC_INP13",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN13",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN13', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN13') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN13'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch14": {
+                  "type": "object",
+                  "title": "ADC_INP14",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN14",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN14', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN14') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN14'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch15": {
+                  "type": "object",
+                  "title": "ADC_INP15",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN15",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN15', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN15') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN15'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch16": {
+                  "type": "object",
+                  "title": "ADC_INP16",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN16",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN16', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN16') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN16'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch17": {
+                  "type": "object",
+                  "title": "ADC_INP17",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN17",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN17', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN17') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN17'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch18": {
+                  "type": "object",
+                  "title": "ADC_INP18",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN18",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN18', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN18') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN18'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch19": {
+                  "type": "object",
+                  "title": "ADC_INP19",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN19",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN19', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN19') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN19'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch20": {
+                  "type": "object",
+                  "title": "ADC_INP20",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN20",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN20', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN20') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN20'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch21": {
+                  "type": "object",
+                  "title": "ADC_INP21",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN21",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN21', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN21') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN21'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch22": {
+                  "type": "object",
+                  "title": "ADC_INP22",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN22",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN22', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN22') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN22'"
+                      }
+                    }
+                  ]
+                },
+                "gpio_adc_ch23": {
+                  "type": "object",
+                  "title": "ADC_INP23",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "IN23",
+                      "constraints": {
+                        "mode": {
+                          "const": "ANALOG"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_adc_get_param_in_channel_config($basic.channels, $resource.name, 'IN23', 'use_channel') && $get('pinout.peripheralCanBeMapped', $resource.name, 'IN23') == true"
+                    },
+                    {
+                      "type": "set",
+                      "condition": "true",
+                      "computed": {
+                        "title": "$resource.name + '_IN23'"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "dma": {
+              "title": "DMA",
+              "type": "object",
+              "properties": {
+                "dma_enable": {
+                  "title": "DMA request",
+                  "type": "boolean",
+                  "default": false
+                },
+                "dma_config": {
+                  "title": "DMA request",
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.dma_enable"
+                    }
+                  ],
+                  "needs": [
+                    {
+                      "selector": "GLOBAL",
+                      "constraints": {
+                        "direction": {
+                          "const": "PERIPH_TO_MEMORY"
+                        },
+                        "src_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "src_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        },
+                        "dest_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "type": "object",
+              "title": "NVIC",
+              "properties": {
+                "enable_interruption": {
+                  "type": "boolean",
+                  "title": "Interrupt",
+                  "default": false
+                },
+                "irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "IRQ Handler generation",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "nvic_config": {
+                  "title": "NVIC",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.name",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

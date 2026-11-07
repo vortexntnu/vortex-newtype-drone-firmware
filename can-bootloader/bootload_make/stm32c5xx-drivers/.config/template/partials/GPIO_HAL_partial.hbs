@@ -1,0 +1,196 @@
+{{!
+  * @file GPIO HAL partials
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{#if (eq fct 'init_resource')}}
+  {{! ~}}
+  {{! Generate the GPIO init code in pppi_init function~}}
+  {{! > GPIO_HAL fct='init_resource' resource='USART1'~}}
+  {{! ~}}
+  {{log "GPIO_HAL_partial: needs:" needs~}}
+  {{! temporary helper in waiting for this one provided by tool~}}
+  {{~assign 'resource' resource~}}
+  {{~assign 'gpio_configs' (helper_gpio_get_allocated_resource_needs @root.pinoutAPI resource)~}}
+  {{#if (gt (length @root.gpio_configs.list_config_pins) 0)}}
+  /* ### {{@root.resource}} GPIO Configuration ########################### */
+  {{log "GPIO_HAL_partial(init_resource) gpio_configs (new helper):" @root.gpio_configs~}}
+  {{log "GPIO_HAL_partial(init_resource) list_config_pins (new helper):" @root.gpio_configs.list_config_pins~}}
+  {{assign 'found_signal' true~}}
+  /* GPIO Clocks activation */
+  {{#each @root.gpio_configs.list_port}}
+    {{~assign 'gpio_port' (append 'GPIO' this)~}}
+    {{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.gpio_port}}
+  {{/each}}
+
+  {{~assign 'found_exti' false}}
+  {{#each @root.gpio_configs.list_config_pins}}
+    {{#if @root.found_signal}}
+  hal_gpio_config_t  gpio_config;
+      {{~assign 'found_signal' false}}
+    {{/if}}
+
+  /**
+    {{#if (and (gt (length pin) 0) (gt (length signalName) 0))}}
+      {{~assign 'labels_found' false~}}
+      {{#each pin}}
+        {{~assign 'pin_master_label_check' (lookup ../aliases.master_label @index)~}}
+        {{#if (and (not @root.labels_found) @root.pin_master_label_check (gt (length @root.pin_master_label_check) 0))}}
+          {{~assign 'labels_found' true~}}
+        {{/if}}
+      {{/each}}
+      {{#if @root.labels_found}}
+    [GPIO Pin] ------> [Signal Name] ------> [Labels]
+      {{else}}
+    [GPIO Pin] ------> [Signal Name]
+      {{/if}}
+
+      {{#each pin}}
+        {{#if @root.labels_found}}
+       {{helper_gpio_add_pad_right (concat "P" ../port this) 4}}    ------>   {{lookup ../signalName @index}}   ------>  {{#if (lookup ../aliases.master_label @index)}}{{uppercase (lookup ../aliases.master_label @index)}}{{#each (lookup ../aliases.other_labels @index)}}, {{uppercase this}}{{/each}}{{/if}}
+        {{else}}
+       {{helper_gpio_add_pad_right (concat "P" ../port this) 4}}    ------>   {{lookup ../signalName @index}}
+        {{/if}}
+      {{/each}}
+    {{/if}}
+    **/
+  gpio_config.mode        = {{#if mode}}HAL_GPIO_MODE_{{mode}}{{else}}HAL_GPIO_MODE_ALTERNATE{{/if}};
+    {{#if output_type}}
+  gpio_config.output_type = HAL_GPIO_OUTPUT_{{output_type}};
+    {{/if}}
+    {{#if pull}}
+  gpio_config.pull        = HAL_GPIO_PULL_{{pull}};
+    {{/if}}
+    {{#if speed}}
+  gpio_config.speed       = HAL_GPIO_SPEED_FREQ_{{speed}};
+    {{/if}}
+    {{#if output_init_state}}
+  gpio_config.init_state  = HAL_GPIO_PIN_{{output_init_state}};
+    {{/if}}
+    {{#if (or (eq af 0) af)}}
+  gpio_config.alternate   = HAL_GPIO_AF_{{af}};
+    {{/if}}
+    {{~assign 'gpio_pins' ''~}}
+    {{~assign 'not_first_pin' false~}}
+    {{#each pin}}
+      {{#if @root.not_first_pin}}
+        {{~assign 'gpio_pins' (append @root.gpio_pins ' | ')~}}
+      {{/if}}
+      {{#if (lookup ../aliases.master_label @index)}}
+        {{~assign 'gpio_pin' (append (lookup ../aliases.master_label @index) '_PIN')~}}
+      {{else}}
+        {{~assign 'gpio_pin' (append 'HAL_GPIO_PIN_' this)~}}
+      {{/if}}
+      {{~assign 'gpio_pins' (append @root.gpio_pins @root.gpio_pin)~}}
+      {{~assign 'not_first_pin' true~}}
+    {{/each}}
+  {{#if (and (eq (length pin) 1) (lookup aliases.master_label 0))}}
+  HAL_GPIO_Init({{lookup aliases.master_label 0}}_PORT, {{lookup aliases.master_label 0}}_PIN, &gpio_config);
+  {{else}}
+  HAL_GPIO_Init(HAL_GPIO{{port}}, {{@root.gpio_pins}}, &gpio_config);
+  {{/if}}
+
+    {{#each exti_cfg}}
+      {{#if exti_enabled}}
+        {{~assign 'hal_gpio_port' port~}}
+        {{~assign 'hal_gpio_pin' pin~}}
+        {{#> EXTI fct='exti_gpio_init' layer=@root.current_layer needs=config.needs found_exti=@root.found_exti gpio_port=@root.hal_gpio_port gpio_pin=@root.hal_gpio_pin}}
+        {{/EXTI}}
+        {{! ~}}
+        {{assign 'found_exti' true~}}
+      {{/if}}
+    {{/each}}
+  {{/each}}
+  {{else}}
+  /* No GPIO configuration required for {{@root.resource}} */
+  {{/if}}
+{{else if (eq fct 'deinit_resource')}}
+  {{! }}
+  {{! Generate the GPIO deinit code in pppi_deinit function}}
+  {{! }}
+  {{! > GPIO_HAL fct='deinit_resource' resource='USART1'~}}
+  {{! ~}}
+  {{!log "GPIO_HAL_partial deinit_resource: gpio_configs"~}}
+  {{~assign 'resource' resource~}}
+  {{~assign 'gpio_configs' (helper_gpio_get_allocated_resource_needs @root.pinoutAPI resource)~}}
+  {{~assign 'groupedPinsByPort' 'undefined'~}}
+  {{#if (gt (length @root.gpio_configs.list_config_pins) 0)}}
+
+  {{~assign 'groupedPinsByPort' 'undefined'~}}
+  {{#each @root.gpio_configs.list_config_pins}}
+    {{~assign 'groupedPinsByPort' (helper_gpio_group_pins_by_port this @root.groupedPinsByPort 'HAL')~}}
+  {{/each}}
+
+  {{#each @root.groupedPinsByPort}}
+  /* De-initialize all GPIO{{port}} pins associated with {{@root.resource}} */
+  HAL_GPIO_DeInit({{port_param}}, {{#each pins}}{{this}}{{#unless @last}} | {{/unless}}{{/each}});
+
+  {{/each}}
+  {{#each @root.gpio_configs.list_config_pins}}
+    {{#each exti_cfg}}
+      {{#if exti_enabled}}
+        {{~assign 'hal_gpio_port' port~}}
+        {{~assign 'hal_gpio_pin' pin~}}
+        {{> EXTI fct='exti_gpio_deinit' layer=@root.current_layer needs=config.needs gpio_port=@root.hal_gpio_port gpio_pin=@root.hal_gpio_pin}}
+      {{/if}}
+    {{/each}}
+  {{/each}}
+  {{else}}
+  /* No GPIO de-initialization required for {{@root.resource}} */
+  {{/if}}
+{{else if (eq fct 'gpio_exti_get_variables')}}
+  {{! }}
+  {{! Generate the handle for EXTI inside mx_pppi.c file}}
+  {{! }}
+  {{! > GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+  {{! ~}}
+  {{log "GPIO_HAL_partial (gpio_exti_get_variables) gpio_exti_get_variables: resource" resource~}}
+  {{~assign 'gpio_configs' (helper_gpio_get_allocated_resource_needs @root.pinoutAPI resource)~}}
+  {{#each @root.gpio_configs.list_config_pins}}
+    {{#each exti_cfg}}
+      {{~log "GPIO_HAL_partial (gpio_exti_get_variables) gpio_exti_get_variables: exti_cfg" this~}}
+      {{#if exti_enabled}}
+        {{~assign 'list_exti' (JSONparse '[]')~}}
+        {{#each config.needs}}
+          {{~assign 'get_exti_cfg' (@root.ExtiAPI.getNeedById id)~}}
+          {{~log "GPIO_HAL_partial (gpio_exti_get_variables) get_exti_cfg: " @root.get_exti_cfg~}}
+          {{~assign 'list_exti' (helper_common_concatenate_elt_in_array @root.get_exti_cfg.resourceId @root.list_exti )}}
+          {{~log "GPIO_HAL_partial (gpio_exti_get_variables) list_exti: " @root.list_exti~}}
+        {{/each}}
+{{> EXTI fct='exti_gpio_variables' layer='HAL' exti_list=@root.list_exti}}
+      {{/if}}
+    {{/each}}
+  {{/each}}
+{{else if (eq fct 'gpio_exti_gethandle')}}
+  {{! ~}}
+  {{! Generate the HAL EXTI handle function definition and prototype in mx_ppp_template.c/.h.hbs~}}
+  {{! > GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='prototype'~}}
+  {{! > GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+  {{! ~}}
+  {{~assign 'type' type~}}
+  {{~assign 'current_resource' resource~}}
+  {{~assign 'gpio_configs' (helper_gpio_get_allocated_resource_needs @root.pinoutAPI resource)~}}
+  {{#each @root.gpio_configs.list_config_pins}}
+    {{#each exti_cfg}}
+      {{#if exti_enabled}}
+        {{~assign 'list_exti' (JSONparse '[]')~}}
+        {{#each config.needs}}
+          {{~assign 'get_exti_cfg' (@root.ExtiAPI.getNeedById id)~}}
+          {{~log "GPIO_HAL_partial (gpio_exti_gethandle) get_exti_cfg: " @root.get_exti_cfg~}}
+          {{~assign 'list_exti' (helper_common_concatenate_elt_in_array @root.get_exti_cfg.resourceId @root.list_exti)~}}
+          {{~log "GPIO_HAL_partial (gpio_exti_gethandle) list_exti: " @root.list_exti~}}
+        {{/each}}
+{{> EXTI fct='exti_gpio_gethandle' resource=@root.current_resource exti_list=@root.list_exti type=@root.type called_by_pppi_gpio=true~}}
+      {{/if}}
+    {{/each}}
+  {{/each}}
+{{else}}
+#warning "Step '{{fct}}' not present in partial GPIO_HAL_partial.hbs"
+{{/if}}

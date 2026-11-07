@@ -1,0 +1,319 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_usb_template.c.hbs
+  * @brief          : USB Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "strategy" (@root.SWProjectAPI.getSelectedGenerationStrategy)~}}
+{{~assign 'usb_irq_enable' false~}}
+{{~assign 'usb_irq_handler_needed' 0~}}
+{{log "strategy" @root.strategy~}}
+{{#if (eq @root.strategy "HW")}}
+  {{~assign "strategy" 'HW'~}}
+  {{~assign 'parent_resource' (get 'peripheral')~}}
+  {{~assign 'instances' (get 'context')~}}
+  {{~log "PCD template mapping_context:" (get '')~}}
+  {{#if (eq @root.parent_resource "USB_OTG_FS")}}
+   {{~assign "old_resource_name" 'OTG_FS'~}}
+  {{/if}}
+  {{#if (eq @root.parent_resource "USB_OTG_HS")}}
+   {{~assign "old_resource_name" 'OTG_HS'~}}
+  {{/if}}
+  {{#if (eq @root.parent_resource "USB_DRD_FS")}}
+   {{~assign "old_resource_name" 'USB'~}}
+  {{/if}}
+{{else}}
+#warning "To be implemented"
+{{/if}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.parent_resource}}.c
+  * @brief          : {{@root.parent_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.parent_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances~}}
+  {{~log "@root.instances:" this~}}
+  {{~assign 'sw_instance_ids' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+  {{~assign 'current_resource' (replace (replace this @root.parent_resource '') '.' '')~}}
+{{#each @root.sw_instance_ids}}
+  {{~assign 'usb_ctxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+  {{~log "USB template usb_ctxt:" (toJSON @root.usb_ctxt)~}}
+  {{~assign 'usb_mode' @root.usb_ctxt.info.usb_mode~}}
+static hal_{{lowercase @root.usb_mode}}_handle_t h{{@root.parent_resource}}_{{@root.usb_mode}};
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.old_resource_name~}}
+{{/each}}
+{{/each}}
+
+{{#each @root.instances~}}
+  {{~assign 'sw_instance_ids' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+  {{~assign 'current_resource' (replace (replace this @root.parent_resource '') '.' '')~}}
+  {{#each @root.sw_instance_ids}}
+    {{~assign 'usb_ctxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~assign 'hal_handle_exist' 0~}}
+    {{assign 'nvic_needs' 'undefined'~}}
+    {{~assign 'nvic_generate_handler' true~}}
+    {{~assign 'usb_mode' @root.usb_ctxt.info.usb_mode~}}
+    {{~assign 'mode' (lowercase @root.current_resource)~}}
+    {{~assign 'current_layer' @root.usb_ctxt.info.layer~}}
+    {{~assign 'fct_name' (helper_common_get_generated_function_name @root.parent_resource  'HAL' undefined @root.mode)~}}
+/******************************************************************************/
+/* Exported functions for {{@root.parent_resource}} {{@root.current_resource}} ({{@root.usb_mode}}) in HAL layer */
+/******************************************************************************/
+{{!
+    Generation of USB init function
+~}}
+{{#with @root.usb_ctxt}}
+{{!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}}
+{{#if (eq @root.usb_mode "PCD")}}{{!+++++++++++++++++++++++DEVICE INIT+++++++++++++++++++++++++++++++++++++++++++++++}}
+{{!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}}
+hal_{{lowercase @root.usb_mode}}_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_{{lowercase @root.usb_mode}}_config_t {{lowercase @root.usb_mode}}_config;
+
+{{!==================== Peripheral init ====================}}
+
+  /* Configure gh_{{lowercase @root.usb_mode}}_{{@root.parent_resource}} */
+  if (HAL_{{@root.usb_mode}}_Init(&h{{@root.parent_resource}}_{{@root.usb_mode}}, HAL_{{@root.usb_mode}}_{{uppercase (remove @root.parent_resource 'USB_')}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{!==================== Enable clock for PCD ====================}}
+
+  /* Peripheral USB clock enable */
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.parent_resource}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.parent_resource sw_resource='PCD'}}
+
+{{!==================== Config parameters ====================}}
+
+{{#with basic}}
+  {{~assign 'found_PCD_SetConfig' true}}
+  {{lowercase @root.usb_mode}}_config.phy_interface = HAL_{{@root.usb_mode}}_{{phy_interface}};
+  {{lowercase @root.usb_mode}}_config.{{lowercase @root.usb_mode}}_speed = HAL_{{@root.usb_mode}}_{{core_speed}};
+
+  {{#if sof_state}}
+  {{lowercase @root.usb_mode}}_config.sof_enable = HAL_{{@root.usb_mode}}_SOF_ENABLED;
+  {{else}}
+  {{lowercase @root.usb_mode}}_config.sof_enable = HAL_{{@root.usb_mode}}_SOF_DISABLED;
+  {{/if}}
+  {{/with}}
+  {{#with additional}}
+  {{#if bcd_state}}
+  {{lowercase @root.usb_mode}}_config.battery_charging_enable = HAL_{{@root.usb_mode}}_BCD_ENABLED;
+  {{else}}
+  {{lowercase @root.usb_mode}}_config.battery_charging_enable = HAL_{{@root.usb_mode}}_BCD_DISABLED;
+  {{/if}}
+  {{#if lpm_enable}}
+  {{lowercase @root.usb_mode}}_config.lpm_enable = HAL_{{@root.usb_mode}}_LPM_ENABLED;
+  {{else}}
+  {{lowercase @root.usb_mode}}_config.lpm_enable = HAL_{{@root.usb_mode}}_LPM_DISABLED;
+  {{/if}}
+  {{#if bulk_doublebuffer_enable}}
+  {{lowercase @root.usb_mode}}_config.bulk_doublebuffer_enable = HAL_{{@root.usb_mode}}_BULK_DB_ENABLED;
+  {{else}}
+  {{lowercase @root.usb_mode}}_config.bulk_doublebuffer_enable = HAL_{{@root.usb_mode}}_BULK_DB_DISABLED;
+  {{/if}}
+  {{/with}}
+
+  HAL_{{@root.usb_mode}}_SetConfig(&h{{@root.parent_resource}}_{{@root.usb_mode}}, &pcd_config);
+
+{{!==================== Configure PMA/FIFO ====================}}
+{{!==================== Configure PMA for DRD ====================}}
+{{#with basic}}
+  {{#each pma_settings}}
+    {{#if (eq direction 'IN')}}
+      {{!~assign 'nb' number }}
+      {{~assign 'endpoint_address' (dec2hex (add number 128))~}}
+    {{else}}
+      {{~assign 'endpoint_address' number~}}
+    {{/if}}
+    {{!~assign 'type' buffer_type }}
+    {{#if (eq buffer_type 'single')}}
+      {{~assign 'endpoint_buff' 'HAL_PCD_SNG_BUF'~}}
+      {{~assign 'pack_address' (helper_usb_ep_calc_address ../../basic.pma_settings @index 0 true)~}}
+    {{else}}
+      {{~assign 'endpoint_buff' 'HAL_PCD_DBL_BUF'~}}
+      {{~assign 'address' (helper_usb_ep_calc_address ../../basic.pma_settings @index 0 true)~}}
+      {{~assign 'address1' (helper_usb_ep_calc_address ../../basic.pma_settings @index 1 true)~}}
+      {{~assign 'pack_address' (helper_usb_pack_dbl_buffer_sizes @root.address @root.address1)~}}
+    {{/if}}
+  HAL_PCD_PMAConfig(&h{{@root.parent_resource}}_{{@root.usb_mode}}, 0x{{@root.endpoint_address}}, {{@root.endpoint_buff}}, 0x{{@root.pack_address}});
+  {{/each}}
+{{/with}}
+
+
+{{#with system}}
+{{!==================== GPIO ====================}}
+{{#with gpio}}
+{{> GPIO_HAL fct='init_resource' resource=@root.old_resource_name return_if_failed='NULL'}}
+{{/with}}{{! gpio}}
+{{/with}}{{! System }}
+
+{{!==================== NVIC for PCD ====================}}
+{{! Check if interrupts enabled!}}
+{{#if system.nvic.enable_interruption}}
+  {{~assign 'usb_irq_enable' true~}}
+{{! Check if interrupts generation is enabled or no!}}
+{{#if system.nvic.irq_handler_generation}}
+  {{~assign 'usb_irq_handler_needed' 1~}}
+{{/if}}
+{{#each system.nvic.nvic_config.needs}}
+{{assign 'nvic_cfg' (@root.NvicAPI.getNeedById id)~}}
+{{/each}}
+{{#with @root.nvic_cfg}}
+  /* Enable the interruption for PCD */
+  HAL_CORTEX_NVIC_SetPriority({{@root.parent_resource}}_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_{{priority}}, HAL_CORTEX_NVIC_SUB_PRIORITY_{{subpriority}});
+  HAL_CORTEX_NVIC_EnableIRQ({{@root.parent_resource}}_IRQn);
+{{/with}}{{! nvic_config }}
+{{/if}}{{! irq_handler_generation}}
+  return &h{{@root.parent_resource}}_{{@root.usb_mode}};
+}
+{{!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}}
+{{else}}{{!+++++++++++++++++++++++++++++++++++++++++++++++HOST INIT+++++++++++++++++++++++++++++++++++++++++++++++++++++++}}
+{{!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++}}
+hal_{{lowercase @root.usb_mode}}_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_{{lowercase @root.usb_mode}}_config_t {{lowercase @root.usb_mode}}_config;
+
+{{!==================== Peripheral init ====================}}
+  /* Configure h{{@root.parent_resource}}_{{@root.usb_mode}} */
+  if (HAL_{{@root.usb_mode}}_Init(&h{{@root.parent_resource}}_{{@root.usb_mode}}, HAL_{{@root.usb_mode}}_{{uppercase (remove @root.parent_resource 'USB_')}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{!==================== Enable PWR for USB ====================}}
+
+{{!==================== Enable clock for HCD ====================}}
+
+  /* Peripheral USB clock enable */
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.parent_resource}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.parent_resource sw_resource='HCD'}}
+
+{{!==================== Config parameters ====================}}
+
+{{#with basic}}
+{{~assign 'found_HCD_SetConfig' true}}
+  {{lowercase @root.usb_mode}}_config.phy_interface = HAL_{{@root.usb_mode}}_{{phy_interface}};
+  {{lowercase @root.usb_mode}}_config.{{lowercase @root.usb_mode}}_speed = HAL_{{@root.usb_mode}}_{{core_speed}};
+  {{/with}}
+
+  {{#with additional}}
+  {{/with}}
+
+  HAL_{{@root.usb_mode}}_SetConfig(&h{{@root.parent_resource}}_{{@root.usb_mode}}, &{{lowercase @root.usb_mode}}_config);
+
+{{#with system}}
+{{!==================== GPIO ====================}}
+{{#with gpio}}
+{{> GPIO_HAL fct='init_resource' resource=@root.old_resource_name return_if_failed='NULL'}}
+{{/with}}{{! gpio}}
+
+{{/with}}{{! System }}
+
+{{!==================== NVIC for HCD ====================}}
+{{! Check if interrupts enabled or no!}}
+{{#if system.nvic.enable_interruption}}
+  {{~assign 'usb_irq_enable' true~}}
+{{! Check if interrupts generation is enabled or no!}}
+{{#if system.nvic.irq_handler_generation}}
+  {{~assign 'usb_irq_handler_needed' 1~}}
+{{/if}}
+{{#each system.nvic.nvic_config.needs}}
+{{assign 'nvic_cfg' (@root.NvicAPI.getNeedById id)~}}
+{{/each}}
+{{#with @root.nvic_cfg}}
+  /* Enable the interruption for HCD */
+  HAL_CORTEX_NVIC_SetPriority({{@root.parent_resource}}_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_{{priority}}, HAL_CORTEX_NVIC_SUB_PRIORITY_{{subpriority}});
+  HAL_CORTEX_NVIC_EnableIRQ({{@root.parent_resource}}_IRQn);
+{{/with}}{{! nvic_config }}
+{{/if}}{{! enable_interruption}}
+  return &h{{@root.parent_resource}}_{{@root.usb_mode}};
+}
+{{/if}}
+{{!
+    Generation of USB deinit function
+~}}
+void {{@root.fct_name}}_deinit(void)
+{
+
+  /* Deinititialize h{{@root.parent_resource}}_{{@root.usb_mode}} */
+  HAL_{{@root.usb_mode}}_DeInit(&h{{@root.parent_resource}}_{{@root.usb_mode}});
+}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+
+/**
+  * @brief Get USB {{@root.usb_mode}} handle
+  * @param None
+  * @retval USB {{@root.usb_mode}} handle
+  */
+hal_{{lowercase @root.usb_mode}}_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.parent_resource}}_{{@root.usb_mode}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.old_resource_name type='implementation'}}
+
+{{/with}}{{! usb_ctxt }}
+  {{/each}}
+{{/each}}
+
+
+{{#if @root.usb_irq_enable}}
+  {{#if (eq @root.usb_irq_handler_needed 1)}}
+/******************************************************************************/
+/*                     Interruption and Exception Handlers                    */
+/******************************************************************************/
+void {{@root.parent_resource}}_IRQHandler(void)
+{
+    {{#each @root.instances~}}
+      {{~assign 'sw_instance_ids' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)}}
+      {{#each @root.sw_instance_ids}}
+        {{~assign 'usb_ctxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)}}
+        {{~assign 'usb_mode' @root.usb_ctxt.info.usb_mode}}
+        {{#with @root.usb_ctxt.system.nvic}}
+          {{#if irq_handler_generation}}
+  HAL_{{@root.usb_mode}}_IRQHandler(&h{{@root.parent_resource}}_{{@root.usb_mode}});
+          {{/if}}
+        {{/with}}
+      {{/each}}
+    {{/each}}
+}
+  {{else}}
+/******************************************************************************/
+/*           {{@root.parent_resource}} interrupt is managed directly in user code.           */
+/******************************************************************************/
+/*
+void {{@root.parent_resource}}_IRQHandler(void)
+{
+}
+*/
+  {{/if}}
+{{/if}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component=@root.old_resource_name}}
+
+{{/helper_common_beautifier}}

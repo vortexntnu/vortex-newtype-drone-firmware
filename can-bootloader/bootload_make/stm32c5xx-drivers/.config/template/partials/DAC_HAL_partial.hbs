@@ -1,0 +1,223 @@
+{{!
+ * @file Partial used to generate code for DAC:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!--
+  Partial used for HAL DAC:
+  how to use
+  > DAC_HAL fct='xxxx' with xxxx:
+    * init
+    * deinit
+--}}
+{{#if (eq fct 'init')}}
+  /****************************************************************************/
+  /* Initialization of DAC instance                                           */
+  /****************************************************************************/
+
+  hal_dac_config_t dac_config;
+  dac_config.high_frequency_mode = HAL_DAC_HIGH_FREQ_MODE_{{basic.high_frequency_mode.high_freq_mode~}};
+  if (HAL_DAC_SetConfig(&h{{uppercase @root.current_resource~}}, &dac_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{#if basic.dual.enable}}
+  /****************************************************************************/
+  /* Configuration of DAC channels (in dual DAC channel mode)                 */
+  /****************************************************************************/
+
+  hal_dac_dual_channel_config_t dual_channel_config;
+{{~#each channels~}}
+{{~#with basic}}
+{{~#if (eq @index 0)}}{{else}}
+{{/if~}}{{!(eq @index 0)}}
+  /* ========== Channel {{add @index 1}} ========== */
+{{#if trigger_enable}}
+  dual_channel_config.channel{{add @index 1}}_config.trigger           = HAL_DAC_TRIGGER_{{helper_dac_rename_trigger trigger.source}};
+{{else}}
+  dual_channel_config.channel{{add @index 1}}_config.trigger           = HAL_DAC_TRIGGER_NONE;
+{{/if}}
+{{#if output_buffer}}
+  dual_channel_config.channel{{add @index 1}}_config.output_buffer     = HAL_DAC_OUTPUT_BUFFER_ENABLED;
+{{else}}
+  dual_channel_config.channel{{add @index 1}}_config.output_buffer     = HAL_DAC_OUTPUT_BUFFER_DISABLED;
+{{/if}}
+{{#if (eq output_connection "EXTERNAL_INTERNAL")}}
+{{#if output_buffer}}
+  dual_channel_config.channel{{add @index 1}}_config.output_connection = HAL_DAC_OUTPUT_CONNECTION_INTERNAL;
+{{else}}
+  dual_channel_config.channel{{add @index 1}}_config.output_connection = HAL_DAC_OUTPUT_CONNECTION_EXTERNAL;
+{{/if}}
+{{else}}
+  dual_channel_config.channel{{add @index 1}}_config.output_connection = HAL_DAC_OUTPUT_CONNECTION_{{output_connection}};
+{{/if}}
+  dual_channel_config.channel{{add @index 1}}_config.data_sign_format  = HAL_DAC_SIGN_FORMAT_{{data_sign_format}};
+{{~/with}}
+{{/each}}{{!channels}}
+
+  dual_channel_config.alignment                         = HAL_DAC_DATA_ALIGN_{{basic.dual.alignment}};
+  if (HAL_DAC_SetConfigDualChannel(&h{{uppercase @root.current_resource}}, &dual_channel_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else}}
+{{~#each channels~}}
+{{~#if use_channel~}}
+{{~#with basic~}}
+{{~#if (eq @index 0)}}{{assign 'channel1_initialized' true}}
+  /****************************************************************************/
+  /* Configuration of DAC channel                                             */
+  /****************************************************************************/
+
+  hal_dac_channel_config_t dac_channel_config;
+{{else}}{{~#if @root.channel1_initialized}}
+{{else}}
+  /****************************************************************************/
+  /* Configuration of DAC channel                                             */
+  /****************************************************************************/
+
+  hal_dac_channel_config_t dac_channel_config;
+{{/if~}}{{!(eq channel1_initialized)}}
+{{~/if~}}{{!(eq @index 0)}}
+  /* ========== Channel {{add @index 1}} ========== */
+  dac_channel_config.alignment         = HAL_DAC_DATA_ALIGN_{{alignment}};
+{{#if trigger_enable}}
+  dac_channel_config.trigger           = HAL_DAC_TRIGGER_{{helper_dac_rename_trigger trigger.source}};
+{{else}}
+  dac_channel_config.trigger           = HAL_DAC_TRIGGER_NONE;
+{{/if~}}{{!trigger_enable}}
+{{~#if output_buffer}}
+  dac_channel_config.output_buffer     = HAL_DAC_OUTPUT_BUFFER_ENABLED;
+{{else}}
+  dac_channel_config.output_buffer     = HAL_DAC_OUTPUT_BUFFER_DISABLED;
+{{/if}}
+{{#if (eq output_connection "EXTERNAL_INTERNAL")}}
+{{#if output_buffer}}
+  dac_channel_config.output_connection = HAL_DAC_OUTPUT_CONNECTION_INTERNAL;
+{{else}}
+  dac_channel_config.output_connection = HAL_DAC_OUTPUT_CONNECTION_EXTERNAL;
+{{/if}}
+{{else}}
+  dac_channel_config.output_connection = HAL_DAC_OUTPUT_CONNECTION_{{output_connection}};
+{{/if}}
+  dac_channel_config.data_sign_format  = HAL_DAC_SIGN_FORMAT_{{data_sign_format}};
+{{/with}}
+  if (HAL_DAC_SetConfigChannel(&h{{uppercase @root.current_resource}}, HAL_DAC_CHANNEL_{{add @index 1}}, &dac_channel_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{~else}}{{~/if~}}{{!use_channel}}
+{{~/each~}}{{!channels}}
+{{~/if~}}{{!basic.dual_mode.dual_enable}}
+{{#each channels}}
+{{~#if use_channel}}
+{{#if (or (or (eq (eq additional.wave.type "DISABLED") false) additional.sample_and_hold.enable) additional.dma.double_data_mode)}}
+{{~#if (eq @index 0)}}{{assign 'channel1_add_feat_initialized' true}}
+
+  /****************************************************************************/
+  /* Configuration of DAC channel additional features (optional)              */
+  /****************************************************************************/
+{{else}}{{~#if @root.channel1_add_feat_initialized}}{{else}}
+
+  /****************************************************************************/
+  /* Configuration of DAC channel additional features (optional)              */
+  /****************************************************************************/
+{{/if~}}{{!(eq channel1_add_feat_initialized)}}
+{{~/if~}}{{!(eq @index 0)}}
+  /* ========== Channel {{add @index 1}} ========== */
+{{/if}}
+{{~#with additional}}
+{{~#with wave}}
+{{#if (eq type 'SAWTOOTH')}}
+{{#with sawtooth_config}}
+  /* Sawtooth wave generation configuration */
+  hal_dac_sawtooth_config_t dac_channel{{add @index 1}}_sawtooth_config;
+  dac_channel{{add @index 1}}_sawtooth_config.inc_trigger     = HAL_DAC_INC_TRIGGER_{{helper_dac_rename_trigger step_trigger.source}};
+  dac_channel{{add @index 1}}_sawtooth_config.rst_trigger     = HAL_DAC_RST_TRIGGER_{{helper_dac_rename_trigger reset_trigger.source}};
+  dac_channel{{add @index 1}}_sawtooth_config.direction       = HAL_DAC_SAWTOOTH_DIRECTION_{{direction}};
+  dac_channel{{add @index 1}}_sawtooth_config.reset_value     = {{helper_dac_format_sawtooth_reset_value reset}};
+  dac_channel{{add @index 1}}_sawtooth_config.increment_value = {{step}}U;
+  if (HAL_DAC_SetConfigChannelSawtoothWave(&h{{uppercase @root.current_resource}},
+                                           HAL_DAC_CHANNEL_{{add @index 1}},
+                                           &dac_channel{{add @index 1}}_sawtooth_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{~/with~}}{{!sawtooth_config}}
+{{else}}{{#if (eq type 'TRIANGLE')}}
+  /* Triangle wave generation configuration */
+  if (HAL_DAC_EnableChannelAddingTriangleWave(&h{{uppercase @root.current_resource}},
+                                              HAL_DAC_CHANNEL_{{add @index 1}},
+                                              HAL_DAC_WAVE_AMPLITUDE_{{triangle_amplitude}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else}}{{#if (eq type 'NOISE')}}
+  /* Noise (LFSR) wave generation configuration */
+  if (HAL_DAC_EnableChannelAddingNoiseWave(&h{{uppercase @root.current_resource}},
+                                           HAL_DAC_CHANNEL_{{add @index 1}},
+                                           HAL_DAC_WAVE_AMPLITUDE_{{noise_amplitude}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else}}{{~/if~}}{{!NOISE}}
+{{~/if~}}{{!TRIANGLE}}
+{{~/if~}}{{!SAWTOOTH}}
+{{~/with~}}{{!wave}}
+{{~#with sample_and_hold}}
+{{#if enable}}
+
+  /* Sample and Hold configuration */
+  hal_dac_channel_sample_and_hold_config_t dac_channel{{add @index 1}}_sample_and_hold_config;
+  dac_channel{{add @index 1}}_sample_and_hold_config.sample_time_cycle  = {{sample_cycles}}U;
+  dac_channel{{add @index 1}}_sample_and_hold_config.hold_time_cycle    = {{hold_cycles}}U;
+  dac_channel{{add @index 1}}_sample_and_hold_config.refresh_time_cycle = {{refresh_cycles}}U;
+  if (HAL_DAC_SetConfigChannelSampleAndHold(&h{{uppercase @root.current_resource}},
+                                            HAL_DAC_CHANNEL_{{add @index 1}},
+                                            &dac_channel{{add @index 1}}_sample_and_hold_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  if (HAL_DAC_EnableChannelSampleAndHold(&h{{uppercase @root.current_resource}},
+                                         HAL_DAC_CHANNEL_{{add @index 1}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if~}}{{!enable}}
+{{~/with~}}{{!SampleAndHold}}
+{{~#with dma}}
+{{#if double_data_mode}}
+
+  /* Enable DMA double data mode */
+  if (HAL_DAC_EnableChannelDMADoubleDataMode(&h{{uppercase @root.current_resource}}, HAL_DAC_CHANNEL_{{add @index 1}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if~}}{{!double_data_mode}}
+{{~/with~}}{{!dma}}
+{{~/with~}}{{!additional}}
+{{~/if~}}{{!use_channel}}
+{{~/each~}}{{!channels}}
+{{~#with additional}}
+{{#if am_enable}}
+
+  /* Enable Autonomous Mode */
+  if (HAL_DAC_AM_Enable(&h{{uppercase @root.current_resource~}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if~}}
+{{/with~}}{{!additional~}}
+{{else if (eq fct 'deinit')}}
+  (void)HAL_DAC_DeInit(&h{{uppercase @root.current_resource}});
+{{else}}
+#warning "step {{fct}} in partial DAC_HAL not managed"
+{{/if}}

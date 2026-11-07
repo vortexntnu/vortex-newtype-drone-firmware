@@ -1,0 +1,186 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_hash_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'HASH' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "HASH template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'hal_handle_exist' 0~}}
+{{#each @root.instances~}}
+  {{~assign 'hash_ctxt' config~}}
+  {{~log "HASH template hash_ctxt:" (toJSON @root.hash_ctxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.hash_ctxt.info.layer~}}
+{{#if (eq @root.current_layer 'HAL')~}}
+{{#if (eq @root.hal_handle_exist 0)~}}
+static hal_hash_handle_t h{{@root.current_resource}};
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{#if @root.hash_ctxt.basic.use_hmac_feature}}
+{{~assign 'key' (helper_hash_string_to_hex @root.hash_ctxt.basic.key_settings.hmac_key)~}}
+uint8_t input_key[{{@root.hash_ctxt.basic.key_settings.key_size}}] = { {{@root.key}} };
+{{/if}}{{~!basic.use_hmac_feature}}
+{{/each}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.current_resource}}
+
+{{assign 'hal_handle_exist' 0~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'hash_ctxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.hash_ctxt.info.layer~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.hash_ctxt}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_hash_handle_t *{{@root.fct_name}}_init(void)
+{
+{{#if (not basic.use_hmac_feature)}}
+  hal_hash_config_t config;
+{{else}}
+  hal_hash_hmac_config_t config;
+{{/if}}{{~!use_hmac_feature}}
+  if (HAL_HASH_Init(&h{{@root.current_resource}}, HAL_HASH) != HAL_OK)
+  {
+    return NULL;
+  }
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='HASH'}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{#with basic}}
+  config.data_swapping = HAL_HASH_DATA_SWAP_{{data_swapping}};
+  config.algorithm     = HAL_HASH_ALGO_{{algo}};
+{{#if use_hmac_feature}}
+  config.p_hmac_key         = input_key;
+  config.key_size_byte = {{key_settings.key_size}};
+{{/if}}{{~!use_hmac_feature~}}
+  {{assign 'found_SetConfig' true~}}
+{{#if (not use_hmac_feature)}}
+  if (HAL_HASH_SetConfig(&h{{@root.current_resource}}, &config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else}}
+  if (HAL_HASH_HMAC_SetConfig(&h{{@root.current_resource}}, &config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}{{~!use_hmac_feature}}
+{{/with~}}{{~!basic~}}
+
+{{#if system.dma.enable_dma}}
+  /* DMA Configuration ********************************************************/
+{{> DMA_HAL fct='init' needs=system.dma_config.needs}}
+  /* Link the DMA handle to the HASH handle */
+  if (HAL_HASH_SetInDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  /* Enable the interruption for HASH */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context system.nvic.irq_config.needs @root.current_resource system.nvic.irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=system.nvic.irq_config.needs}}
+{{/if}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  /* Disable the interuption for HASH */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=system.nvic.irq_config.needs}}
+{{/if}}
+
+  (void)HAL_HASH_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma}}
+{{> DMA_HAL fct='deinit' needs=dma_config.needs}}
+{{/if}}
+{{/with}}
+{{/with}}
+}
+
+{{/if~}}
+
+{{#if (eq @root.current_layer 'HAL')~}}
+{{#if (eq @root.hal_handle_exist 0)~}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_hash_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{#with security_privilege}}
+
+{{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/******************************************************************************/
+/*                      Privileged attribute management                       */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_privilege(void)
+{{else}}
+/******************************************************************************/
+/*                Security and privileged attributes management               */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+{{/if}}
+{
+{{> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}
+
+{{> DMA_HAL fct='dma_config_security' resource=@root.current_resource}}
+
+  return SYSTEM_OK;
+}
+{{/with}}
+{{/with}}
+{{/each}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='HASH'}}
+{{/helper_common_beautifier}}

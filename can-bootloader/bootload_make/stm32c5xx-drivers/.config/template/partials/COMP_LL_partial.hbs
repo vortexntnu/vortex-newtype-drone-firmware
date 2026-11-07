@@ -1,0 +1,81 @@
+{{!
+ * @file Partial used to generate code for COMP:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!--
+  Partial used for LL COMP:
+  how to use
+  > COMP_LL fct='xxxx' with xxxx:
+    * init
+    * deinit
+--}}
+{{!==================== partial function: init ====================~}}
+{{#if (eq fct 'init')}}
+{{#if (eq basic.multi_inst_mode "multi_inst_window_sec")}}
+  /* Window mode:
+     This comparator instance is selected as secondary instance (input plus not used for window comparators).
+     Configuration performed with parameters selected by comparator main instance:
+     COMP{{@root.comp_window_other_instance_nb}}
+  */
+  {{helper_common_gen_ll_code 'LL_COMP_SetPowerMode' (concat 'LL_COMP_POWER_MODE_' basic.power_mode)}}
+{{#if basic.input.input_minus_window_lower_threshold_other_inst}}
+  LL_COMP_SetInputMinus({{uppercase @root.current_resource}}, LL_COMP_INPUT_MINUS_{{helper_comp_transform_input_name basic.input.input_minus_window_lower_threshold_other_inst}});
+{{else}}
+  /* LL_COMP_SetInputMinus() cannot be set due to widow main instance not configured */
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_COMP_SetInputHysteresis' (concat 'LL_COMP_HYSTERESIS_' basic.input.input_hysteresis)}}
+  {{helper_common_gen_ll_code 'LL_COMP_SetOutputPolarity' (concat 'LL_COMP_OUTPUTPOL_' basic.output.output_polarity)}}
+
+{{#with additional~}}
+{{#if output_blanking_state}}
+  {{helper_common_gen_ll_code 'LL_COMP_SetOutputBlankingSource' (concat 'LL_COMP_BLANKINGSRC_' (helper_comp_transform_blk_src_name output_blanking_src.source))}}
+{{/if}}
+{{/with~}}{{!additional}}
+{{~else}}{{!multi_inst_window_sec}}
+{{#if (eq basic.multi_inst_mode "multi_inst_window_main")}}
+  /* Window mode:
+     This comparator instance is selected as main instance (input plus used for window comparators).
+     Configuration applied to this comparator instance and comparator secondary instance:
+     COMP{{@root.comp_window_other_instance_nb}}
+  */
+  /* Initialize other comparator */
+  mx_comp{{@root.comp_window_other_instance_nb}}_init();
+
+  LL_COMP_SetCommonWindowMode(LL_COMP_COMMON_INSTANCE({{uppercase @root.current_resource}}), {{concat 'LL_COMP_WINDOW_INPUT_PLUS_' (helper_comp_get_instance_nb_parity @root.current_resource)}});
+{{#if (eq basic.output.window_output_mode "XOR")}}
+  LL_COMP_SetCommonWindowOutput(LL_COMP_COMMON_INSTANCE({{uppercase @root.current_resource}}), LL_COMP_WINDOW_OUTPUT_XOR_BOTH);
+{{~else}}
+  LL_COMP_SetCommonWindowOutput(LL_COMP_COMMON_INSTANCE({{uppercase @root.current_resource}}), {{concat 'LL_COMP_WINDOW_OUTPUT_' basic.output.window_output_mode}});
+{{~/if}}{{!window_output_mode}}
+{{~else}}
+{{~#if (eq basic.multi_inst_mode "multi_inst_independent")}}
+  /* LL_COMP_SetCommonWindowMode(LL_COMP_COMMON_INSTANCE({{uppercase @root.current_resource}}), LL_COMP_WINDOW_DISABLE); */
+  /* LL_COMP_SetCommonWindowOutput(LL_COMP_COMMON_INSTANCE({{uppercase @root.current_resource}}), LL_COMP_WINDOW_OUTPUT_INDEPT); */
+{{~/if}}{{!multi_inst_independent}}
+{{~/if}}{{!multi_inst_window_main}}
+  {{helper_common_gen_ll_code 'LL_COMP_SetPowerMode' (concat 'LL_COMP_POWER_MODE_' basic.power_mode)}}
+  LL_COMP_ConfigInputs({{uppercase @root.current_resource}}, LL_COMP_INPUT_MINUS_{{helper_comp_transform_input_name basic.input.input_minus.source}}, LL_COMP_INPUT_PLUS_{{helper_comp_transform_input_name basic.input.input_plus.source}});
+  {{helper_common_gen_ll_code 'LL_COMP_SetInputHysteresis' (concat 'LL_COMP_HYSTERESIS_' basic.input.input_hysteresis)}}
+  {{helper_common_gen_ll_code 'LL_COMP_SetOutputPolarity' (concat 'LL_COMP_OUTPUTPOL_' basic.output.output_polarity)}}
+
+{{#with additional~}}
+{{#if output_blanking_state}}
+  {{helper_common_gen_ll_code 'LL_COMP_SetOutputBlankingSource' (concat 'LL_COMP_BLANKINGSRC_' (helper_comp_transform_blk_src_name output_blanking_src.source))}}
+{{/if}}
+{{/with~}}{{!additional}}
+{{/if}}{{!multi_inst_window_sec}}
+
+{{!==================== partial function: deinit ====================~}}
+{{else if (eq fct 'deinit')}}
+  LL_COMP_Disable({{@root.current_resource}});
+{{else}}
+#warning "step {{fct}} in partial COMP_LL not managed"
+{{/if}}

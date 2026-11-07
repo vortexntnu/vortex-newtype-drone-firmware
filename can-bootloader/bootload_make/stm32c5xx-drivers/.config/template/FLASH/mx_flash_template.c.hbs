@@ -1,0 +1,228 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_flash_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'FLASH' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "FLASH template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'flash_cxt' config~}}
+  {{~log "FLASH template flash_cxt:" (toJSON @root.flash_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.flash_cxt.info.layer~}}
+  {{~log "FLASH template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+static hal_flash_handle_t h{{@root.current_resource}};
+  {{/if}}
+{{/each}}{{! instances~}}
+{{helper_common_initialize_index~}}
+{{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{~assign 'nvic_context' 'undefined'~}}
+{{~assign 'complex_nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'flash_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.flash_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~log "FLASH template instance:" (toJSON this)~}}
+/******************************************************************************/
+/*     Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+  {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+  {{~assign 'current_index' (helper_common_inc_index @root.current_resource)}}
+{{!
+Generation of initialization function used in HAL
+~}}
+  {{#with @root.flash_cxt}}
+    {{#if (eq @root.current_layer 'HAL')}}
+hal_{{lowercase @root.current_resource}}_handle_t *{{@root.fct_name}}_init(void)
+{
+  if (HAL_FLASH_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+   return NULL;
+  }
+      {{~#with additional}}
+        {{~#if use_flash_programming}}
+
+
+  if (HAL_FLASH_SetProgrammingMode(&h{{@root.current_resource}}, HAL_FLASH_PROGRAM_{{programming_mode}}) != HAL_OK)
+  {
+    return NULL;
+  }
+        {{~/if}}
+        {{~#if enable_single_ecc_interrupt}}
+
+
+  HAL_FLASH_ITF_ECC_EnableIT(HAL_{{@root.current_resource}}, HAL_FLASH_ITF_IT_ECC_SINGLE);
+        {{/if}}
+      {{~/with}}{{! additional}}
+      {{~#with system.nvic}}
+        {{#if (and enable_interruption (eq enable_interruption true))}}
+  /* Enable the interuption for FLASH */
+{{~assign 'complex_nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.complex_nvic_context irq_config1.needs @root.current_resource irq_handler_generation)}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=irq_config1.needs}}
+        {{~/if}}
+        {{#if (and enable_interruption_nmi (eq enable_interruption_nmi true))}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nmi_config1.needs @root.current_resource irq_handler_generation_nmi)}}
+        {{/if}}
+      {{~/with}}
+
+
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+  HAL_FLASH_DeInit(&h{{@root.current_resource}});
+      {{~#with system.nvic}}
+        {{~#if (and enable_interruption (eq enable_interruption true))}}
+
+
+  /* Disable the interuption for FLASH */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=irq_config1.needs}}
+        {{~/if}}
+      {{~/with}}
+
+}
+
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_flash_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+    {{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+FLASH_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+      {{#with system.nvic}}
+        {{#if (and enable_interruption (eq enable_interruption true))}}
+
+  /* Enable the interuption for FLASH */
+{{~assign 'complex_nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.complex_nvic_context irq_config1.needs @root.current_resource false)}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=irq_config1.needs}}
+        {{/if}}
+        {{#if (and enable_interruption_nmi (eq enable_interruption_nmi true))}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nmi_config1.needs @root.current_resource false)}}
+        {{/if}}
+      {{/with}}
+      {{~#with additional}}
+        {{~#if enable_single_ecc_interrupt}}
+
+  LL_FLASH_EnableIT_ECCC({{@root.current_resource}});
+        {{~/if}}
+      {{~/with}}
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+      {{~#with additional}}
+        {{~#if enable_single_ecc_interrupt}}
+
+  LL_FLASH_DisableIT_ECCC({{@root.current_resource}});
+        {{~/if}}
+      {{~/with}}
+      {{~#with system.nvic}}
+        {{~#if (and enable_interruption (eq enable_interruption true))}}
+
+
+  /* Disable the interuption for FLASH */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=irq_config1.needs}}
+        {{~/if}}
+      {{~/with}}
+
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+}
+    {{/if}}{{!(eq @root.current_layer 'HAL')}}
+  {{/with}}
+{{/each}}{{! instances~}}
+{{~assign 'nvic_json' @root.flash_cxt.system.nvic}}
+{{~assign 'unitary_irq_handler' @root.nvic_json.use_unitary_irq_handlers}}
+{{~assign 'no_irq_apis' true}}
+{{~assign 'complex_irq_info_list' (helper_cortex_nvic_get_irqline_info_list @root.NvicAPI @root.complex_nvic_context 'FLASH')~}}
+{{#each @root.complex_irq_info_list}}
+  {{#if generate_handler}}
+/******************************************************************************/
+/*                     {{description}}                    */
+/******************************************************************************/
+void {{#if shared}}{{resource_hw}}{{else}}{{line}}{{/if}}_IRQHandler(void)
+{
+    {{~#if @root.unitary_irq_handler}}
+      {{~#each @root.nvic_json.unitary_apis}}
+        {{~#if use_unitary_irq_handler}}
+          {{~#if (eq _foreignKey 'HAL_FLASH_ITF_IRQHandler')}}
+
+
+  {{_foreignKey}}(HAL_{{@root.current_resource}});
+          {{~else}}
+
+
+  {{_foreignKey}}(&h{{@root.current_resource}});
+          {{~/if}}
+          {{~assign 'no_irq_apis' false}}
+        {{~/if}}
+      {{~/each}}
+    {{~/if}}
+    {{~#if @root.no_irq_apis}}
+
+  HAL_FLASH_IRQHandler(&h{{resource_hw}});
+      {{~#if @root.nvic_json.itf_irq_handler_generation}}
+
+
+  HAL_FLASH_ITF_IRQHandler(HAL_{{resource_hw}});
+      {{~/if}}
+    {{/if}}
+
+}
+
+  {{else}}
+/******************************************************************************/
+/*    {{description}} is managed directly in user code.   */
+/*
+void {{#if shared}}{{resource_hw}}{{else}}{{line}}{{/if}}_IRQHandler(void)
+{
+}
+  */
+/******************************************************************************/
+
+  {{/if}}
+{{/each}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='FLASH'}}
+
+{{/helper_common_beautifier}}

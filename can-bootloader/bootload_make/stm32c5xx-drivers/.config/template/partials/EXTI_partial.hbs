@@ -1,0 +1,580 @@
+{{!
+  * @file Partial used to generate code for EXTI:
+  * @license
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  * @detail
+  * The partial provides the following functions:
+  * - exti_gpio_variables: called in mx_gpio_template.c.hbs
+  * - exti_get_variables: called in mx_ppp_template.c.hbs (all ppp)
+  * - exti_gpio_init: called in mx_gpio_template.c.hbs
+  * - exti_get_init: called in mx_ppp_template.c.hbs (only linked to configurable exti line)
+  * - exti_gpio_deinit: called in mx_gpio_template.c.hbs
+  * - exti_get_deinit: called in mx_ppp_template.c.hbs (only linked to configurable exti line)
+  * - exti_gpio_gethandle: called in mx_gpio_template.c/h.hbs
+  * - exti_gethandle: called in mx_ppp_template.c.hbs (all ppp)
+  * - exti_gethandle_proto: called in mx_ppp_template.c.hbs (all ppp)
+  * - exti_gpio_generate_aliases: called in mx_gpio_template.h.hbs
+  * - exti_gpio_generate_get_handle_aliases: called in mx_gpio_template.h.hbs
+  * - exti_generate_get_handle_aliases:  called in mx_ppp_template.h.hbs
+~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+{{assign 'lut_table'   (helper_exti_get_lut_table 'EXTIV1')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table 'undefined'~}}
+{{assign 'gpio_port' gpio_port~}}
+{{assign 'gpio_pin' gpio_pin~}}
+{{#if (eq fct 'exti_gpio_variables')}}
+  {{! ~}}
+  {{! Generate the EXTI handle variable in mx_gpio_template.c.hbs~}}
+  {{! > EXTI fct='exti_gpio_variables' layer=@root.layer exti_list=@root.exti_object.list_exti~}}
+  {{! ~}}
+  {{log "EXTI_Partial (exti_gpio_variables): layer=" layer "exti_list=" exti_list~}}
+  {{#if (eq layer 'HAL')}}
+    {{#each exti_list}}
+static hal_exti_handle_t h{{this}};
+    {{/each}}
+  {{/if}}
+{{else if (eq fct 'exti_get_variables')}}
+  {{! ~}}
+  {{! Generate the EXTI handle variable other than requested by GPIO~}}
+  {{! > EXTI fct='exti_get_variables' layer=@root.layer needs=exti_config.needs~}}
+  {{! ~}}
+  {{#if (eq layer 'HAL')}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+static hal_exti_handle_t h{{@root.get_exti_cfg_config_object.resourceId}};
+  {{/each}}
+  {{/if}}
+{{else if (eq fct 'exti_gpio_init')}}
+  {{! ~}}
+  {{! Initialize EXTI in mx_gpio_template.c.hbs~}}
+  {{! > EXTI fct='exti_gpio_init' layer=@root.layer needs=exti_config.needs found_exti=@root.found_exti gpio_port=port gpio_pin=pin~}}
+  {{!       needs: only 1 need will be handled at one time (ex: [{ "id": "<uuid-#1>" }])~}}
+  {{!       found_exti: boolean to generate only 1 time the hal_exti_config_t parameter~}}
+  {{!~}}
+  {{! ~}}
+  {{#if (eq layer 'HAL')}}
+  {{~assign 'gpio_configs' 'undefined'~}}
+  {{assign 'layer' layer~}}
+  {{log "EXTI_Partial (exti_gpio_init): needs" needs~}}
+  {{#each needs~}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+  {{/each~}}
+  {{~assign 'found_exti' found_exti~}}
+  {{log "EXTI_Partial: get_exti_cfg_config_object" (toJSON @root.get_exti_cfg_config_object)~}}
+    {{#if (not @root.found_exti)}}
+  hal_exti_config_t exti_config;
+
+    {{/if}}
+    {{#with @root.get_exti_cfg_config_object.configuration.basic}}
+  /* Initialize the EXTI for line {{@root.gpio_pin}} */
+  HAL_EXTI_Init(&hEXTI{{@root.gpio_pin}}, HAL_EXTI_LINE_{{@root.gpio_pin}});
+
+  /* Set the trigger as {{trigger_detection}} for the GPIO{{@root.gpio_port}} */
+  exti_config.trigger   = HAL_EXTI_TRIGGER_{{trigger_detection}};
+  exti_config.gpio_port = HAL_EXTI_GPIO{{@root.gpio_port}};
+  HAL_EXTI_SetConfig(&hEXTI{{@root.gpio_pin}}, &exti_config);
+
+      {{#unless (eq mode 'NONE')}}
+  /* Enable the {{mode}} mode */
+  HAL_EXTI_Enable(&hEXTI{{@root.gpio_pin}}, HAL_EXTI_MODE_{{mode}});
+
+      {{/unless}}
+      {{#if interruption.enable_interruption}}
+  /* Set line {{@root.gpio_pin}} Interrupt priority */
+{{! The nvic_context must stay unchanged since it is used by another template~}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' interruption.irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.layer needs=interruption.nvic.needs}}
+
+      {{/if}}
+    {{/with}}
+  {{else}}
+    {{~assign 'rising_list' ''~}}
+    {{~assign 'falling_list' ''~}}
+    {{~assign 'interrupt_list' ''~}}
+    {{~assign 'event_list' ''~}}
+    {{~assign 'rising_not_falling_list' ''~}}
+    {{~assign 'falling_not_rising_list' ''~}}
+    {{~assign 'have_rising' false~}}
+    {{~assign 'have_falling' false~}}
+    {{~assign 'have_interrupt' false~}}
+    {{~assign 'have_event' false~}}
+    {{~assign 'not_first_r' false~}}
+    {{~assign 'not_first_f' false~}}
+    {{~assign 'not_first_i' false~}}
+    {{~assign 'not_first_e' false~}}
+    {{~assign 'not_first_rnf' false~}}
+    {{~assign 'not_first_fnr' false~}}
+    {{~assign 'have_src' false~}}
+    {{~assign 'interruption_config' ''~}}
+    {{#each config~}}
+      {{#if exti_enabled}}
+        {{~assign 'have_src' true~}}
+        {{~assign 'line_token' (concat 'LL_EXTI_LINE_' pin)~}}
+        {{#each config.needs}}
+          {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+          {{#with @root.get_exti_cfg_config_object.configuration.basic}}
+            {{#if (or (eq trigger_detection 'RISING') (eq trigger_detection 'RISING_FALLING'))}}
+              {{#if @root.not_first_r}}
+                {{~assign 'rising_list' (append @root.rising_list ' | ')~}}
+              {{/if}}
+              {{~assign 'rising_list' (append @root.rising_list @root.line_token)~}}
+              {{~assign 'have_rising' true~}}
+              {{~assign 'not_first_r' true~}}
+              {{#if (eq trigger_detection 'RISING')}}
+                {{#if @root.not_first_rnf}}
+                  {{~assign 'rising_not_falling_list' (append @root.rising_not_falling_list ' | ')~}}
+                {{/if}}
+                {{~assign 'rising_not_falling_list' (append @root.rising_not_falling_list @root.line_token)~}}
+                {{~assign 'not_first_rnf' true~}}
+              {{/if}}
+            {{/if}}
+            {{#if (or (eq trigger_detection 'FALLING') (eq trigger_detection 'RISING_FALLING'))}}
+              {{#if @root.not_first_f}}
+                {{~assign 'falling_list' (append @root.falling_list ' | ')~}}
+              {{/if}}
+              {{~assign 'falling_list' (append @root.falling_list @root.line_token)~}}
+              {{~assign 'have_falling' true~}}
+              {{~assign 'not_first_f' true~}}
+              {{#if (eq trigger_detection 'FALLING')}}
+                {{#if @root.not_first_fnr}}
+                  {{~assign 'falling_not_rising_list' (append @root.falling_not_rising_list ' | ')~}}
+                {{/if}}
+                {{~assign 'falling_not_rising_list' (append @root.falling_not_rising_list @root.line_token)~}}
+                {{~assign 'not_first_fnr' true~}}
+              {{/if}}
+            {{/if}}
+            {{#if (or (eq mode 'INTERRUPT') (eq mode 'INTERRUPT_EVENT'))}}
+              {{#if @root.not_first_i}}
+                {{~assign 'interrupt_list' (append @root.interrupt_list ' | ')~}}
+              {{/if}}
+              {{~assign 'interrupt_list' (append @root.interrupt_list @root.line_token)~}}
+              {{~assign 'have_interrupt' true~}}
+              {{~assign 'not_first_i' true~}}
+            {{/if}}
+            {{#if (or (eq mode 'EVENT') (eq mode 'INTERRUPT_EVENT'))}}
+              {{#if @root.not_first_e}}
+                {{~assign 'event_list' (append @root.event_list ' | ')~}}
+              {{/if}}
+              {{~assign 'event_list' (append @root.event_list @root.line_token)~}}
+              {{~assign 'have_event' true~}}
+              {{~assign 'not_first_e' true~}}
+            {{/if}}
+          {{/with}}
+        {{/each}}
+      {{/if}}
+    {{/each~}}
+    {{#if @root.have_rising}}
+  LL_EXTI_EnableRisingTrig_0_31({{@root.rising_list}});
+      {{#unless (eq @root.rising_not_falling_list '')}}
+  {{helper_common_gen_ll_code_add_subinst @root.rising_not_falling_list~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableFallingTrig_0_31'}}
+      {{/unless}}
+    {{/if}}
+    {{#if @root.have_falling}}
+  LL_EXTI_EnableFallingTrig_0_31({{@root.falling_list}});
+      {{#unless (eq @root.falling_not_rising_list '')}}
+  {{helper_common_gen_ll_code_add_subinst @root.falling_not_rising_list~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableRisingTrig_0_31'}}
+      {{/unless}}
+    {{/if}}
+    {{#if @root.have_interrupt}}
+  LL_EXTI_EnableIT_0_31({{@root.interrupt_list}});
+    {{/if}}
+    {{#if @root.have_event}}
+  LL_EXTI_EnableEvent_0_31({{@root.event_list}});
+    {{/if}}
+
+    {{#if @root.have_src}}
+  /* Compute the EXTI source register and configure the corresponding GPIO port */
+      {{#each config}}
+        {{#if exti_enabled}}
+  {{helper_common_gen_ll_code 'LL_EXTI_SetEXTISource' (concat 'LL_EXTI_GPIO_PORT' port) (concat 'LL_EXTI_GPIO_LINE' pin)}}
+        {{/if}}
+      {{/each}}
+
+    {{/if}}
+    {{#each config}}
+      {{#if exti_enabled}}
+        {{~assign 'pin' pin~}}
+        {{#each config.needs}}
+        {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+          {{#with @root.get_exti_cfg_config_object.configuration.basic}}
+            {{#if interruption.enable_interruption}}
+  /* Set line {{@root.pin}} Interrupt priority */
+  {{! The nvic_context must stay unchanged since it is used by another template~}}
+  {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' false)~}}
+  {{> CORTEX fct='init' layer='LL' needs=interruption.nvic.needs}}
+
+            {{/if}}
+          {{/with}}
+        {{/each}}
+      {{/if}}
+    {{/each}}
+  {{/if}}
+{{else if (eq fct 'exti_get_init')}}
+  {{! ~}}
+  {{! Initialize EXTI line which is not linked to a GPIO (ex MSI_PLL_UNLOCK in RCC)~}}
+  {{! > EXTI fct='exti_get_init' layer=@root.current_layer needs=PLLUnlockEXTI.needs found_exti=@root.found_exti~}}
+  {{!       needs: only 1 need will be handled at one time (ex: [{ "id": "<uuid-#1>" }])~}}
+  {{!       found_exti: boolean to generate only 1 time the hal_exti_config_t parameter~}}
+  {{!~}}
+  {{! ~}}
+  {{assign 'layer' layer~}}
+  {{log "EXTI_Partial (exti_init): needs" needs~}}
+  {{#each needs~}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+  {{/each~}}
+  {{~assign 'found_exti' found_exti~}}
+  {{assign 'exti_line' (helper_exti_extract_number @root.get_exti_cfg_config_object.resourceId)~}}
+  {{!log "EXTI_Partial: get_exti_cfg_config_object" @root.get_exti_cfg_config_object~}}
+  {{#if (eq @root.layer 'HAL')~}}
+    {{#with @root.get_exti_cfg_config_object.configuration.basic}}
+      {{#unless (eq trigger_detection undefined)}}
+        {{#if (not @root.found_exti)}}
+  hal_exti_config_t exti_config;
+
+        {{/if}}
+      {{/unless}}
+  /* Initialize the EXTI for line {{@root.exti_line}} */
+  HAL_EXTI_Init(&h{{@root.get_exti_cfg_config_object.resourceId}}, HAL_EXTI_LINE_{{@root.exti_line}});
+
+      {{#unless (eq trigger_detection undefined)}}
+  /* Set the trigger as {{trigger_detection}} */
+  exti_config.trigger = HAL_EXTI_TRIGGER_{{trigger_detection}};
+  HAL_EXTI_SetConfig(&h{{@root.get_exti_cfg_config_object.resourceId}}, &exti_config);
+
+      {{/unless}}
+      {{#unless (eq mode 'NONE')}}
+  /* Enable the {{mode}} mode */
+  HAL_EXTI_Enable(&h{{@root.get_exti_cfg_config_object.resourceId}}, HAL_EXTI_MODE_{{mode}});
+
+      {{/unless}}
+      {{#if interruption.enable_interruption}}
+  /* Set line {{@root.exti_line}} Interrupt priority */
+{{! The nvic_context must stay unchanged since it is used by another template~}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' interruption.irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.layer needs=interruption.nvic.needs}}
+
+      {{/if}}
+    {{/with}}
+  {{else}}
+    {{#with @root.get_exti_cfg_config_object.configuration.basic}}
+      {{~assign 'line' (concat 'LL_EXTI_LINE_' @root.exti_line)~}}
+      {{#unless (eq trigger_detection undefined)}}
+        {{#if (or (eq trigger_detection 'RISING') (eq trigger_detection 'RISING_FALLING'))}}
+          {{#if (lt @root.exti_line 32)}}
+  LL_EXTI_EnableRisingTrig_0_31({{@root.line}});
+          {{else if (lt @root.exti_line 64)}}
+  LL_EXTI_EnableRisingTrig_32_63({{@root.line}});
+          {{else}}
+  LL_EXTI_EnableRisingTrig_64_95({{@root.line}});
+          {{/if}}
+        {{else}}
+          {{#if (lt @root.exti_line 32)}}
+  {{helper_common_gen_ll_code_add_subinst @root.line~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableRisingTrig_0_31'}}
+          {{else if (lt @root.exti_line 64)}}
+  {{helper_common_gen_ll_code_add_subinst @root.line~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableRisingTrig_32_63'}}
+          {{else}}
+  {{helper_common_gen_ll_code_add_subinst @root.line~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableRisingTrig_64_95'}}
+          {{/if}}
+        {{/if}}
+        {{#if (or (eq trigger_detection 'FALLING') (eq trigger_detection 'RISING_FALLING'))}}
+          {{#if (lt @root.exti_line 32)}}
+  LL_EXTI_EnableFallingTrig_0_31({{@root.line}});
+          {{else if (lt @root.exti_line 64)}}
+  LL_EXTI_EnableFallingTrig_32_63({{@root.line}});
+          {{else}}
+  LL_EXTI_EnableFallingTrig_64_95({{@root.line}});
+          {{/if}}
+        {{else}}
+          {{#if (lt @root.exti_line 32)}}
+  {{helper_common_gen_ll_code_add_subinst @root.line~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableFallingTrig_0_31'}}
+          {{else if (lt @root.exti_line 64)}}
+  {{helper_common_gen_ll_code_add_subinst @root.line~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableFallingTrig_32_63'}}
+          {{else}}
+  {{helper_common_gen_ll_code_add_subinst @root.line~}}
+  {{helper_common_gen_ll_code_subinst 'LL_EXTI_DisableFallingTrig_64_95'}}
+          {{/if}}
+        {{/if}}
+      {{/unless}}
+      {{#if (or (eq mode 'INTERRUPT') (eq mode 'INTERRUPT_EVENT'))}}
+        {{#if (lt @root.exti_line 32)}}
+  LL_EXTI_EnableIT_0_31({{@root.line}});
+        {{else if (lt @root.exti_line 64)}}
+  LL_EXTI_EnableIT_32_63({{@root.line}});
+        {{else}}
+  LL_EXTI_EnableIT_64_95({{@root.line}});
+        {{/if}}
+      {{/if}}
+      {{#if (or (eq mode 'EVENT') (eq mode 'INTERRUPT_EVENT'))}}
+        {{#if (lt @root.exti_line 32)}}
+  LL_EXTI_EnableEvent_0_31({{@root.line}});
+        {{else if (lt @root.exti_line 64)}}
+  LL_EXTI_EnableEvent_32_63({{@root.line}});
+        {{else}}
+  LL_EXTI_EnableEvent_64_95({{@root.line}});
+        {{/if}}
+      {{/if}}
+      {{#if interruption.enable_interruption}}
+  /* Set line {{@root.exti_line}} Interrupt priority */
+{{! The nvic_context must stay unchanged since it is used by another template~}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' false)~}}
+{{> CORTEX fct='init' layer=@root.layer needs=interruption.nvic.needs}}
+
+      {{/if}}
+    {{/with}}
+  {{/if}}
+{{else if (eq fct 'exti_gpio_deinit')}}
+  {{! ~}}
+  {{! De-Initialize EXTI in mx_gpio_template.c.hbs~}}
+  {{! > EXTI fct='exti_gpio_deinit' layer=@root.layer needs=exti_config.needs gpio_port=port gpio_pin=pin~}}
+  {{! ~}}
+  {{assign 'layer' layer~}}
+  {{assign 'gpio_configs' 'undefined'~}}
+  {{log "EXTI_Partial (exti_gpio_deinit): needs" needs~}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.SWConfigurationAPI.getResourceNeedConfiguration 'need.exti.lines' id)~}}
+  {{/each}}
+  {{!log "EXTI_Partial (exti_gpio_deinit): get_exti_cfg_config_object" (toJSON @root.get_exti_cfg_config_object)~}}
+  {{#with @root.get_exti_cfg_config_object.basic}}
+    {{#if (eq @root.layer 'HAL')}}
+  /* De-initialize the EXTI for GPIO{{@root.gpio_port}} line{{@root.gpio_pin}} */
+  HAL_EXTI_DeInit(&hEXTI{{@root.gpio_pin}});
+    {{#if interruption.enable_interruption}}
+
+  /* set line {{@root.gpio_pin}} Interrupt priority */
+{{! The nvic_context must stay unchanged since it is used by another template~}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' interruption.irq_handler_generation)~}}
+{{> CORTEX fct='deinit' layer=@root.layer needs=interruption.nvic.needs}}
+    {{/if}}
+    {{else}}
+  LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_{{@root.gpio_pin}});
+  LL_EXTI_DisableEvent_0_31(LL_EXTI_LINE_{{@root.gpio_pin}});
+  LL_EXTI_DisableRisingTrig_0_31(LL_EXTI_LINE_{{@root.gpio_pin}});
+  LL_EXTI_DisableFallingTrig_0_31(LL_EXTI_LINE_{{@root.gpio_pin}});
+  LL_EXTI_ClearRisingFlag_0_31(LL_EXTI_LINE_{{@root.gpio_pin}});
+  LL_EXTI_ClearFallingFlag_0_31(LL_EXTI_LINE_{{@root.gpio_pin}});
+      {{#if (lt @root.gpio_pin 16)}}
+
+  /* Reset the EXTI source */
+  LL_EXTI_SetEXTISource(LL_EXTI_GPIO_PORTA, LL_EXTI_GPIO_LINE{{@root.gpio_pin}});
+      {{/if}}
+    {{#if interruption.enable_interruption}}
+
+  /* set line {{@root.gpio_pin}} Interrupt priority */
+{{! The nvic_context must stay unchanged since it is used by another template~}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' false)~}}
+{{> CORTEX fct='deinit' layer=@root.layer needs=interruption.nvic.needs}}
+    {{/if}}
+    {{/if}}
+  {{/with}}
+{{else if (eq fct 'exti_get_deinit')}}
+  {{! ~}}
+  {{! De-Initialize EXTI in mx_ppp_template.c.hbs~}}
+  {{! > EXTI fct='exti_get_deinit' layer=@root.layer needs=exti_config.needs~}}
+  {{! ~}}
+  {{assign 'layer' layer~}}
+  {{log "EXTI_Partial (exti_deinit): needs" needs~}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+  {{/each}}
+  {{!log "EXTI_Partial (exti_deinit): get_exti_cfg_config_object" (toJSON @root.get_exti_cfg_config_object)~}}
+  {{assign 'exti_line' (helper_exti_extract_number @root.get_exti_cfg_config_object.resourceId)~}}
+  {{#with @root.get_exti_cfg_config_object.configuration.basic}}
+    {{#if (eq @root.layer 'HAL')}}
+  /* De-initialize the EXTI for line{{@root.exti_line}} */
+  HAL_EXTI_DeInit(&h{{@root.get_exti_cfg_config_object.resourceId}});
+    {{#if interruption.enable_interruption}}
+
+  /* Set line {{@root.exti_line}} Interrupt priority */
+{{! The nvic_context must stay unchanged since it is used by another template~}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' interruption.irq_handler_generation)~}}
+{{> CORTEX fct='deinit' layer=@root.layer needs=interruption.nvic.needs}}
+
+    {{/if}}
+    {{else}}
+      {{#if (lt @root.exti_line 32)}}
+  LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_DisableEvent_0_31(LL_EXTI_LINE_{{@root.exti_line}});
+        {{#unless (eq trigger_detection undefined)}}
+  LL_EXTI_DisableRisingTrig_0_31(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_DisableFallingTrig_0_31(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_ClearRisingFlag_0_31(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_ClearFallingFlag_0_31(LL_EXTI_LINE_{{@root.exti_line}});
+        {{/unless}}
+      {{else if (lt @root.exti_line 64)}}
+  LL_EXTI_DisableIT_32_63(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_DisableEvent_32_63(LL_EXTI_LINE_{{@root.exti_line}});
+        {{#unless (eq trigger_detection undefined)}}
+  LL_EXTI_DisableRisingTrig_32_63(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_DisableFallingTrig_32_63(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_ClearRisingFlag_32_63(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_ClearFallingFlag_32_63(LL_EXTI_LINE_{{@root.exti_line}});
+        {{/unless}}
+      {{else}}
+  LL_EXTI_DisableIT_64_95(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_DisableEvent_64_95(LL_EXTI_LINE_{{@root.exti_line}});
+        {{#unless (eq trigger_detection undefined)}}
+  LL_EXTI_DisableRisingTrig_64_95(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_DisableFallingTrig_64_95(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_ClearRisingFlag_64_95(LL_EXTI_LINE_{{@root.exti_line}});
+  LL_EXTI_ClearFallingFlag_64_95(LL_EXTI_LINE_{{@root.exti_line}});
+        {{/unless}}
+      {{/if}}
+    {{#if interruption.enable_interruption}}
+
+  /* Set line {{@root.exti_line}} Interrupt priority */
+{{! The nvic_context must stay unchanged since it is used by another template~}}
+{{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context interruption.nvic.needs 'EXTI' false)~}}
+{{> CORTEX fct='deinit' layer=@root.layer needs=interruption.nvic.needs}}
+
+    {{/if}}
+    {{/if}}
+  {{/with}}
+{{else if (eq fct 'exti_gpio_gethandle')}}
+  {{! ~}}
+  {{! Generate the HAL EXTI handle function definition in mx_gpio_template.c/h.hbs~}}
+  {{! > EXTI fct='exti_gpio_gethandle' resource=@root.current_resource exti_list=@root.exti_object.list_ext type='prototype' called_by_pppi_gpio=false~}}
+  {{! > EXTI fct='exti_gpio_gethandle' resource=@root.current_resource exti_list=@root.exti_object.list_ext type='implementation' called_by_pppi_gpio=false~}}
+  {{! ~}}
+  {{~assign 'called_by_pppi_gpio' called_by_pppi_gpio~}}
+  {{~assign 'type' type~}}
+  {{~assign 'resource' resource~}}
+  {{#each exti_list}}
+    {{#if (eq @root.type 'implementation')}}
+hal_exti_handle_t *mx_{{lowercase @root.resource}}_{{#if @root.called_by_pppi_gpio}}gpio_{{/if}}{{lowercase this}}_gethandle(void)
+{
+  return &h{{this}};
+}
+
+    {{else}}
+/**
+  * @brief  Get the {{this}} object.
+  * @retval Pointer on the {{this}} Handle
+  */
+hal_exti_handle_t *mx_{{lowercase @root.resource}}_{{#if @root.called_by_pppi_gpio}}gpio_{{/if}}{{lowercase this}}_gethandle(void);
+
+    {{/if}}
+  {{/each}}
+{{else if (eq fct 'exti_gethandle')}}
+  {{! ~}}
+  {{! Generate the HAL EXTI handle function definition in mx_ppp_template.c.hbs~}}
+  {{! > EXTI fct='exti_gethandle' needs=exti_config.needs~}}
+  {{! ~}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+hal_exti_handle_t *mx_{{lowercase @root.get_exti_cfg_config_object.owner}}_{{lowercase @root.get_exti_cfg_config_object.resourceId}}_gethandle(void)
+{
+  return &h{{@root.get_exti_cfg_config_object.resourceId}};
+}
+
+  {{/each}}
+{{else if (eq fct 'exti_gethandle_proto')}}
+  {{! ~}}
+  {{! Generate the EXTI HAL handle prototype function in mx_ppp_template.h.hbs~}}
+  {{! > EXTI fct='exti_gethandle_proto' needs=exti_config.needs~}}
+  {{! ~}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+hal_exti_handle_t *mx_{{lowercase @root.get_exti_cfg_config_object.owner}}_{{lowercase @root.get_exti_cfg_config_object.resourceId}}_gethandle(void);
+  {{/each}}
+{{else if (eq fct 'exti_gpio_generate_aliases')}}
+  {{! ~}}
+  {{! Alias to EXTI trigger define in mx_gpio_template.h.hbs~}}
+  {{! > EXTI fct='exti_gpio_generate_aliases' layer=@root.layer needs=exti_config.needs}}
+  {{!       needs: only 1 need will be handled at one time (ex: [{ "id": "<uuid-#1>" }])~}}
+  {{!~}}
+  {{! ~}}
+  {{assign 'layer' layer~}}
+  {{assign 'define' '#define'~}}
+  {{!log "EXTI_Partial (exti_gpio_generate_aliases): needs" needs~}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+  {{/each}}
+  {{~assign 'exti_line' (helper_exti_extract_number @root.get_exti_cfg_config_object.resourceId)~}}
+  {{assign 'trigger' @root.get_exti_cfg_config_object.configuration.basic.trigger_detection~}}
+  {{assign 'labels' @root.get_exti_cfg_config_object.configuration.labels~}}
+  {{#if (gt (length @root.labels) 0)~}}
+/* EXTI aliases */
+    {{#each @root.labels~}}
+{{@root.define}} {{helper_exti_add_pad_right (concat (uppercase this) "_EXTI_LINE") 47}} {{@root.layer}}_EXTI_LINE_{{@root.exti_line}}
+{{@root.define}} {{helper_exti_add_pad_right (concat (uppercase this) "_EXTI_TRIGGER") 47}} {{@root.layer}}_EXTI_TRIGGER_{{@root.trigger}}
+
+    {{/each}}
+  {{/if}}
+{{else if (eq fct 'exti_gpio_generate_get_handle_aliases')}}
+  {{! ~}}
+  {{! Alias to EXTI trigger define in mx_gpio_template.h.hbs~}}
+  {{! > EXTI fct='exti_gpio_generate_get_handle_aliases' needs=exti_config.needs}}
+  {{!       needs: only 1 need will be handled at one time (ex: [{ "id": "<uuid-#1>" }])~}}
+  {{!~}}
+  {{! ~}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+  {{/each}}
+  {{~assign 'exti_line' @root.get_exti_cfg_config_object.resourceId~}}
+  {{~assign 'owner' @root.get_exti_cfg_config_object.owner~}}
+  {{assign 'labels' @root.get_exti_cfg_config_object.configuration.labels~}}
+  {{#if (gt (length @root.labels) 0)~}}
+/* *********************************************************** */
+/*        GPIO: aliases for get EXTI object functions */
+/* *********************************************************** */
+
+/**
+  * @brief  Get the EXTI handle for {{uppercase @root.exti_line}} used for {{uppercase @root.owner}}
+  *         Name of the User label:
+              {{#each @root.labels}}
+  *                   {{lowercase this}}
+              {{/each}}
+  * @retval hal_exti_handle_t Pointer on the handle on the EXTI instance
+  */
+    {{#each @root.labels~}}
+{{@root.define}} {{lowercase this}}_exti_gethandle mx_gpio_{{lowercase @root.exti_line}}_gethandle
+    {{/each}}
+  {{/if}}
+{{else if (eq fct 'exti_generate_get_handle_aliases')}}
+  {{! ~}}
+  {{! Alias to EXTI trigger define in mx_ppp_template.h.hbs~}}
+  {{! > EXTI fct='exti_generate_get_handle_aliases' needs=exti_config.needs}}
+  {{!       needs: only 1 need will be handled at one time (ex: [{ "id": "<uuid-#1>" }])~}}
+  {{!~}}
+  {{! ~}}
+  {{#each needs}}
+    {{~assign 'get_exti_cfg_config_object' (@root.ExtiAPI.getNeedById id)~}}
+  {{/each}}
+  {{~assign 'exti_line' @root.get_exti_cfg_config_object.resourceId~}}
+  {{~assign 'owner' @root.get_exti_cfg_config_object.owner~}}
+  {{assign 'labels' @root.get_exti_cfg_config_object.configuration.labels~}}
+  {{#if (gt (length @root.labels) 0)~}}
+/* *********************************************************** */
+/*        {{uppercase @root.owner}}: aliases for get EXTI object functions */
+/* *********************************************************** */
+
+/**
+  * @brief  Get the EXTI handle for {{uppercase @root.exti_line}} used for {{uppercase @root.owner}}
+  *         Name of the User label:
+              {{#each @root.labels}}
+  *                   {{lowercase this}}
+              {{/each}}
+  * @retval hal_exti_handle_t Pointer on the handle on the EXTI instance
+  */
+    {{#each @root.labels~}}
+{{@root.define}} {{lowercase this}}_exti_gethandle mx_{{lowercase @root.owner}}_{{lowercase @root.exti_line}}_gethandle
+    {{/each}}
+  {{/if}}
+{{else}}
+#warning "EXTI partial called but wrong step '{{fct}}'"
+{{/if}}

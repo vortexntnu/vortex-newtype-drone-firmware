@@ -1,0 +1,183 @@
+{{!--
+  ******************************************************************************
+  * @file    stm32_ll_template.h.hbs
+  * @brief   This file contains all the functions prototypes for the LL
+  *          module driver, whatever the STM32 family.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+~--}}
+{{#helper_common_beautifier}}
+/**
+  ******************************************************************************
+  * @file    stm32_ll.h
+  * @brief   This file contains all the functions prototypes for the LL
+  *          module driver, whatever the STM32 family.
+{{> LICENSE}}
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef STM32_LL_H
+#define STM32_LL_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Includes ------------------------------------------------------------------*/
+{{assign 'used_components' (@root.SWProjectAPI.getUsedComponents 'asObject' cgroup="STM32 LL")~}}
+{{log "stm32_ll template used_components:" (toJSON @root.used_components)~}}
+{{assign 'ADC_component' (helper_common_if_component_is_enabled @root.used_components 'ADC')~}}
+{{assign 'BUS_component' (helper_common_if_component_is_enabled @root.used_components 'BUS')~}}
+{{assign 'COMP_component' (helper_common_if_component_is_enabled @root.used_components 'COMP')~}}
+{{assign 'CORDIC_component' (helper_common_if_component_is_enabled @root.used_components 'CORDIC')~}}
+{{assign 'CRC_component' (helper_common_if_component_is_enabled @root.used_components 'CRC')~}}
+{{assign 'CRS_component' (helper_common_if_component_is_enabled @root.used_components 'CRS')~}}
+{{assign 'DAC_component' (helper_common_if_component_is_enabled @root.used_components 'DAC')~}}
+{{assign 'DBGMCU_component' (helper_common_if_component_is_enabled @root.used_components 'DBGMCU')~}}
+{{assign 'DMA_component' (helper_common_if_component_is_enabled @root.used_components 'DMA')~}}
+{{assign 'EXTI_component' (helper_common_if_component_is_enabled @root.used_components 'EXTI')~}}
+{{assign 'FLASH_component' (helper_common_if_component_is_enabled @root.used_components 'FLASH')~}}
+{{assign 'GPIO_component' (helper_common_if_component_is_enabled @root.used_components 'GPIO')~}}
+{{assign 'I2C_component' (helper_common_if_component_is_enabled @root.used_components 'I2C')~}}
+{{assign 'I3C_component' (helper_common_if_component_is_enabled @root.used_components 'I3C')~}}
+{{assign 'ICACHE_component' (helper_common_if_component_is_enabled @root.used_components 'ICACHE')~}}
+{{assign 'IWDG_component' (helper_common_if_component_is_enabled @root.used_components 'IWDG')~}}
+{{assign 'LPTIM_component' (helper_common_if_component_is_enabled @root.used_components 'LPTIM')~}}
+{{assign 'LPUART_component' (helper_common_if_component_is_enabled @root.used_components 'LPUART')~}}
+{{assign 'OPAMP_component' (helper_common_if_component_is_enabled @root.used_components 'OPAMP')~}}
+{{assign 'PKA_component' (helper_common_if_component_is_enabled @root.used_components 'PKA')~}}
+{{assign 'PWR_component' (helper_common_if_component_is_enabled @root.used_components 'PWR')~}}
+{{assign 'RAMCFG_component' (helper_common_if_component_is_enabled @root.used_components 'RAMCFG')~}}
+{{assign 'RCC_component' (helper_common_if_component_is_enabled @root.used_components 'RCC')~}}
+{{assign 'RNG_component' (helper_common_if_component_is_enabled @root.used_components 'RNG')~}}
+{{assign 'RTC_component' (helper_common_if_component_is_enabled @root.used_components 'RTC')~}}
+{{assign 'SBS_component' (helper_common_if_component_is_enabled @root.used_components 'SBS')~}}
+{{assign 'SPI_component' (helper_common_if_component_is_enabled @root.used_components 'SPI')~}}
+{{assign 'SYSTEM_component' (helper_common_if_component_is_enabled @root.used_components 'SYSTEM')~}}
+{{assign 'TAMP_component' (helper_common_if_component_is_enabled @root.used_components 'TAMP')~}}
+{{assign 'TIM_component' (helper_common_if_component_is_enabled @root.used_components 'TIM')~}}
+{{assign 'USART_component' (helper_common_if_component_is_enabled @root.used_components 'USART')~}}
+{{assign 'UTILS_component' (helper_common_if_component_is_enabled @root.used_components 'UTILS')~}}
+{{assign 'WWDG_component' (helper_common_if_component_is_enabled @root.used_components 'WWDG')~}}
+{{#if @root.ADC_component}}
+#include "stm32c5xx_ll_adc.h"
+{{/if}}
+{{#if @root.BUS_component}}
+#include "stm32c5xx_ll_bus.h"
+{{/if}}
+{{#if @root.COMP_component}}
+#include "stm32c5xx_ll_comp.h"
+{{/if}}
+{{#if @root.CORDIC_component}}
+#include "stm32c5xx_ll_cordic.h"
+{{/if}}
+{{#if @root.CRC_component}}
+#include "stm32c5xx_ll_crc.h"
+{{/if}}
+{{#if @root.CRS_component}}
+#include "stm32c5xx_ll_crs.h"
+{{/if}}
+{{#if @root.DAC_component}}
+#include "stm32c5xx_ll_dac.h"
+{{/if}}
+{{#if @root.DBGMCU_component}}
+#include "stm32c5xx_ll_dbgmcu.h"
+{{/if}}
+{{#if @root.DMA_component}}
+#include "stm32c5xx_ll_dma.h"
+{{/if}}
+{{#if @root.EXTI_component}}
+#include "stm32c5xx_ll_exti.h"
+{{/if}}
+{{#if @root.FLASH_component}}
+#include "stm32c5xx_ll_flash.h"
+{{/if}}
+{{#if @root.GPIO_component}}
+#include "stm32c5xx_ll_gpio.h"
+{{/if}}
+{{#if @root.I2C_component}}
+#include "stm32c5xx_ll_i2c.h"
+{{/if}}
+{{#if @root.I3C_component}}
+#include "stm32c5xx_ll_i3c.h"
+{{/if}}
+{{#if @root.ICACHE_component}}
+#include "stm32c5xx_ll_icache.h"
+{{/if}}
+{{#if @root.IWDG_component}}
+#include "stm32c5xx_ll_iwdg.h"
+{{/if}}
+{{#if @root.LPTIM_component}}
+#include "stm32c5xx_ll_lptim.h"
+{{/if}}
+{{#if @root.LPUART_component}}
+#include "stm32c5xx_ll_lpuart.h"
+{{/if}}
+{{#if @root.OPAMP_component}}
+#include "stm32c5xx_ll_opamp.h"
+{{/if}}
+{{#if @root.PKA_component}}
+#include "stm32c5xx_ll_pka.h"
+{{/if}}
+{{#if @root.PWR_component}}
+#include "stm32c5xx_ll_pwr.h"
+{{/if}}
+{{#if @root.RAMCFG_component}}
+#include "stm32c5xx_ll_ramcfg.h"
+{{/if}}
+{{#if @root.RCC_component}}
+#include "stm32c5xx_ll_rcc.h"
+{{/if}}
+{{#if @root.RNG_component}}
+#include "stm32c5xx_ll_rng.h"
+{{/if}}
+{{#if @root.RTC_component}}
+#include "stm32c5xx_ll_rtc.h"
+{{/if}}
+{{#if @root.SBS_component}}
+#include "stm32c5xx_ll_sbs.h"
+{{/if}}
+{{#if @root.SPI_component}}
+#include "stm32c5xx_ll_spi.h"
+{{/if}}
+{{#if @root.SYSTEM_component}}
+#include "stm32c5xx_ll_system.h"
+{{/if}}
+{{#if @root.TAMP_component}}
+#include "stm32c5xx_ll_tamp.h"
+{{/if}}
+{{#if @root.TIM_component}}
+#include "stm32c5xx_ll_tim.h"
+{{/if}}
+{{#if @root.USART_component}}
+#include "stm32c5xx_ll_usart.h"
+{{/if}}
+{{#if @root.UTILS_component}}
+#include "stm32c5xx_ll_utils.h"
+{{/if}}
+{{#if @root.WWDG_component}}
+#include "stm32c5xx_ll_wwdg.h"
+{{/if}}
+
+/* Exported variables --------------------------------------------------------*/
+/* Exported functions --------------------------------------------------------*/
+/* Private types -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private constants ---------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private functions ---------------------------------------------------------*/
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* STM32_LL_H */
+{{/helper_common_beautifier}}

@@ -1,0 +1,287 @@
+{{!
+ * @file Partial used to generate code for ADC:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!--
+  Partial used for HAL ADC:
+  how to use
+  > ADC_HAL fct='xxxx' with xxxx:
+    * init
+    * deinit
+--}}
+{{!==================== partial function: init ====================~}}
+{{#if (eq fct 'init')}}
+{{assign 'regular_sequencer' basic.group_panel.reg_config_t.reg_sequencer~}}
+{{assign 'injected_sequencer' basic.group_panel.inj_config_t.inj_sequencer}}
+  hal_adc_config_t adc_config;
+{{#if (eq (helper_adc_is_sequencer_not_empty @root.regular_sequencer) 1)}}
+  hal_adc_channel_config_t adc_channel_config;
+{{else}}
+{{#if (eq (helper_adc_is_sequencer_not_empty @root.injected_sequencer) 1)}}
+  hal_adc_channel_config_t adc_channel_config;
+{{/if}}{{!helper_adc_is_sequencer_empty injected_sequencer}}
+{{/if}}{{!helper_adc_is_sequencer_empty regular_sequencer}}
+
+{{#with basic}}
+  adc_config.resolution          = HAL_ADC_RESOLUTION_{{resolution}}_BIT;
+  adc_config.sampling_mode       = HAL_ADC_SAMPLING_MODE_{{sampling_mode}};
+  HAL_ADC_SetConfig(&h{{uppercase @root.current_resource}}, &adc_config);
+{{/with}}
+
+{{!==================== Features basic (mandatory) ====================}}
+  /****************************************************************************/
+  /* Configuration of basic features (mandatory)                              */
+  /****************************************************************************/
+{{assign 'available_channels' basic.channels}}
+{{#with basic.group_panel}}
+/* ==================== Group Regular ====================*/
+{{#if (eq reg_config_t.grp_reg_sel true)}}
+{{#with reg_config_t}}
+  hal_adc_reg_config_t reg_config;
+  {{#if (eq trigger_src true)}}
+  reg_config.trigger_src        = HAL_ADC_REG_TRIG_SOFTWARE;
+  {{else}}
+  reg_config.trigger_src        = HAL_ADC_REG_TRIG_{{helper_adc_transform_trigger_name trigger_src_query.source}};
+  reg_config.trigger_edge       = HAL_ADC_REG_TRIG_EDGE_{{trigger_edge}};
+  {{/if}}
+  reg_config.sequencer_length   = {{helper_adc_get_sequencer_length @root.regular_sequencer}};
+  reg_config.sequencer_discont  = HAL_ADC_REG_SEQ_DISCONT_{{sequencer_discontinuous}};
+  reg_config.continuous         = HAL_ADC_REG_CONV_{{continuous}};
+  reg_config.overrun            = HAL_ADC_REG_OVR_DATA_{{overrun}};
+  {{#if data_transfer}}
+  reg_config.data_transfer      = HAL_ADC_REG_DATA_TRANSFER_{{data_transfer}};
+  {{/if}}
+  HAL_ADC_REG_SetConfig(&h{{uppercase @root.current_resource}}, &reg_config);
+
+{{#if (eq (helper_adc_is_sequencer_not_empty @root.regular_sequencer) 1)}}
+{{#each reg_sequencer}}
+  adc_channel_config.group           = HAL_ADC_GROUP_REGULAR;
+  adc_channel_config.sequencer_rank  = {{helper_adc_increment @index}};
+  {{#with (helper_adc_lookup_channel @root.available_channels channel.source) as |channel|}}
+  adc_channel_config.sampling_time   = HAL_ADC_SAMPLING_TIME_{{channel.sampling_time}};
+  adc_channel_config.input_mode      = HAL_ADC_IN_{{channel.single_diff}};
+  {{/with}}
+  HAL_ADC_SetConfigChannel(&h{{uppercase @root.current_resource}}, HAL_{{helper_adc_transform_channel_name channel.source}}, &adc_channel_config);
+
+{{/each}}
+{{else}}
+/* Section commented due to information missing in CubeMX2 interface
+  adc_channel_config.group           = ...; // Channel has not been added in sequencer
+  adc_channel_config.sequencer_rank  = ...; // Channel has not been added in sequencer
+  adc_channel_config.sampling_time   = ...; // Channel has not been added in sequencer
+  adc_channel_config.input_mode      = ...; // Channel has not been added in sequencer
+  HAL_ADC_SetConfigChannel(&h{{uppercase @root.current_resource}}, HAL_ADC_CHANNEL_x , &adc_channel_config);
+*/
+{{/if}}{{!helper_adc_is_sequencer_not_empty}}
+{{/with}}
+{{/if}}{{! grp_reg_sel true}}
+{{#if (eq inj_config_t.grp_inj_sel true)}}
+/* ==================== Group Injected ====================*/
+{{#with inj_config_t}}
+  hal_adc_inj_config_t inj_config;
+  {{#if (eq trigger_src "SOFTWARE")}}
+  inj_config.trigger_src        = HAL_ADC_INJ_TRIG_SOFTWARE;
+  {{else if (eq trigger_src "TRIG_FROM_GRP_REG")}}
+  inj_config.trigger_src        = HAL_ADC_INJ_TRIG_FROM_REGULAR;
+  {{else}}
+  inj_config.trigger_src        = HAL_ADC_INJ_TRIG_{{helper_adc_transform_trigger_name trigger_src_query.source}};
+  inj_config.trigger_edge       = HAL_ADC_INJ_TRIG_EDGE_{{trigger_edge}};
+  {{/if}}
+  inj_config.sequencer_length   = {{helper_adc_get_sequencer_length @root.injected_sequencer}};
+  inj_config.sequencer_discont  = HAL_ADC_INJ_SEQ_DISCONT_{{sequencer_discontinuous}};
+  HAL_ADC_INJ_SetConfig(&h{{uppercase @root.current_resource}}, &inj_config);
+
+{{#if (eq (helper_adc_is_sequencer_not_empty @root.injected_sequencer) 1)}}
+{{#each inj_sequencer}}
+  adc_channel_config.group           = HAL_ADC_GROUP_INJECTED;
+  adc_channel_config.sequencer_rank  = {{helper_adc_increment @index}};
+  {{#with (helper_adc_lookup_channel @root.available_channels channel.source) as |channel|}}
+  adc_channel_config.sampling_time   = HAL_ADC_SAMPLING_TIME_{{channel.sampling_time}};
+  adc_channel_config.input_mode      = HAL_ADC_IN_{{channel.single_diff}};
+  {{/with}}
+  HAL_ADC_SetConfigChannel(&h{{uppercase @root.current_resource}}, HAL_{{helper_adc_transform_channel_name channel.source}}, &adc_channel_config);
+
+{{/each}}
+{{else}}
+/* Section commented due to information missing in CubeMX2 interface
+  adc_channel_config.group           = ...; // Channel has not been added in sequencer
+  adc_channel_config.sequencer_rank  = ...; // Channel has not been added in sequencer
+  adc_channel_config.sampling_time   = ...; // Channel has not been added in sequencer
+  adc_channel_config.input_mode      = ...; // Channel has not been added in sequencer
+  HAL_ADC_SetConfigChannel(&h{{uppercase @root.current_resource}}, HAL_ADC_CHANNEL_x , &adc_channel_config);
+*/
+{{/if}}{{!helper_adc_is_sequencer_not_empty}}
+{{/with}}
+
+{{/if}}{{! grp_inj_sel true}}
+{{/with}}
+
+{{!==================== Features additional (optional) ====================}}
+  /****************************************************************************/
+  /* Configuration of additional features (optional)                          */
+  /****************************************************************************/
+{{!==================== Post processing ====================~}}
+{{#if (eq additional.postproc_sel true)}}
+{{#with additional.postproc_panel}}
+  hal_adc_post_processing_config_t post_processing_config;
+  post_processing_config.left_bit_shift           = HAL_ADC_LEFT_BIT_SHIFT_{{left_bit_shift}};
+  post_processing_config.gain_compensation_x1000  = {{gain_compensation_x1000}};
+  HAL_ADC_SetConfigPostProcessing(&h{{uppercase @root.current_resource}}, &post_processing_config);
+
+{{/with}}
+{{/if~}}{{!(eq additional.postproc_sel true)~}}
+{{!==================== Low power ====================~}}
+{{#if (eq additional.lowpower_sel true)}}
+{{#with additional.low_power_config_t}}
+  hal_adc_low_power_config_t low_power_config;
+  low_power_config.lp_auto_wait       = HAL_ADC_LP_AUTO_WAIT_{{helper_adc_boolean_to_enable_disable lp_auto_wait}};
+  HAL_ADC_SetConfigLowPower(&h{{uppercase @root.current_resource}}, &low_power_config);
+
+{{/with}}
+{{/if~}}{{!(eq additional.lowpower_sel true)~}}
+{{!==================== AWD  ====================~}}
+{{#if (or (or (eq additional.awd1_panel.awd1_sel true) (eq additional.awd2_panel.awd2_sel true)) (eq additional.awd3_panel.awd3_sel true))}}
+  hal_adc_awd_config_t adc_awd_config;
+
+{{#helper_adc_get_awd_panels this}}
+{{#each awdPanels}}
+{{#with panel}}
+
+  /* Common configuration for AWD{{../awd_number}} */
+  adc_awd_config.threshold_high = {{threshold_high}};
+  adc_awd_config.threshold_low  = {{threshold_low}};
+{{#if filtering}}
+  adc_awd_config.filtering      = HAL_{{filtering}};
+{{else}}
+  adc_awd_config.filtering      = HAL_ADC_AWD_FILTERING_NONE;
+{{/if}}
+  {{!-- ================= AWD1 ================= --}}
+  {{#if awd1_sel}}
+    {{!-- AWD1: all channels --}}
+    {{#if (eq awd_channel_mode "ALL")}}
+  adc_awd_config.group          = HAL_{{group}};
+  adc_awd_config.channel        = HAL_ADC_CHANNEL_ALL;
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_1, &adc_awd_config);
+    {{!-- AWD1: single channel --}}
+    {{else}} {{!-- awd_channel_mode == "SINGLE" --}}
+  adc_awd_config.group          = HAL_{{group}};
+  adc_awd_config.channel        = HAL_{{helper_adc_transform_channel_name adc_channel.source}};
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_1, &adc_awd_config);
+    {{/if}}
+  {{!-- ================= AWD2 ================= --}}
+  {{else if awd2_sel}}
+    {{!-- AWD2: all channels --}}
+    {{#if (eq awd_channel_mode "ALL")}}
+  adc_awd_config.group          = HAL_{{group}};
+  adc_awd_config.channel        = HAL_ADC_CHANNEL_ALL;
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_2, &adc_awd_config);
+    {{!-- AWD2: multiple channels --}}
+    {{else if (eq awd_channel_mode "MULTIPLE")}}
+      {{#if (eq (helper_adc_is_sequencer_not_empty awd2_sequencer) 1)}}
+        {{#each awd2_sequencer}}
+          {{#if @first}}
+  adc_awd_config.group          = HAL_{{../group}};
+  adc_awd_config.channel        = HAL_{{helper_adc_transform_channel_name channel.source}};
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_2, &adc_awd_config);
+          {{else}}
+  HAL_ADC_SetAnalogWDChannel(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_2, HAL_{{helper_adc_transform_channel_name channel.source}});
+          {{/if}}
+        {{/each}}
+      {{else}}
+  /* The list of ADC channels is currently empty, please add a channel in CubeMX2 interface */
+  adc_awd_config.group          = HAL_ADC_GROUP_NONE;
+  adc_awd_config.channel        = HAL_ADC_CHANNEL_NONE;
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_2, &adc_awd_config);
+      {{/if}}
+    {{!-- AWD2: single channel --}}
+    {{else}} {{!-- awd_channel_mode == "SINGLE" --}}
+  adc_awd_config.group          = HAL_{{group}};
+  adc_awd_config.channel        = HAL_{{helper_adc_transform_channel_name adc_channel.source}};
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_2, &adc_awd_config);
+    {{/if}}
+  {{!-- ================= AWD3 ================= --}}
+  {{else if awd3_sel}}
+    {{!-- AWD3: all channels --}}
+    {{#if (eq awd_channel_mode "ALL")}}
+  adc_awd_config.group          = HAL_{{group}};
+  adc_awd_config.channel        = HAL_ADC_CHANNEL_ALL;
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_3, &adc_awd_config);
+    {{!-- AWD3: multiple channels --}}
+    {{else if (eq awd_channel_mode "MULTIPLE")}}
+      {{#if (eq (helper_adc_is_sequencer_not_empty awd3_sequencer) 1)}}
+        {{#each awd3_sequencer}}
+          {{#if @first}}
+        adc_awd_config.group          = HAL_{{../group}};
+  adc_awd_config.channel        = HAL_{{helper_adc_transform_channel_name channel.source}};
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_3, &adc_awd_config);
+          {{else}}
+  HAL_ADC_SetAnalogWDChannel(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_3, HAL_{{helper_adc_transform_channel_name channel.source}});
+          {{/if}}
+        {{/each}}
+      {{else}}
+  /* The list of ADC channels is currently empty, please add a channel in CubeMX2 interface */
+  adc_awd_config.group          = HAL_ADC_GROUP_NONE;
+  adc_awd_config.channel        = HAL_ADC_CHANNEL_NONE;
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_3, &adc_awd_config);
+      {{/if}}
+    {{!-- AWD3: single channel --}}
+    {{else}} {{!-- awd_channel_mode == "SINGLE" --}}
+  adc_awd_config.group          = HAL_{{group}};
+  adc_awd_config.channel        = HAL_{{helper_adc_transform_channel_name adc_channel.source}};
+  HAL_ADC_SetConfigAnalogWD(&h{{uppercase @root.current_resource}}, HAL_ADC_AWD_3, &adc_awd_config);
+    {{/if}}
+  {{/if}}
+{{/with}}
+{{/each}}
+{{/helper_adc_get_awd_panels}}
+{{/if}}
+{{!==================== Oversampling ====================~}}
+{{#if (eq additional.ovs_sel true)}}
+
+  hal_adc_ovs_config_t ovs_config;
+{{#with additional.ovs_panel}}
+  ovs_config.scope      = HAL_ADC_OVS_{{scope}};
+{{#if (not (eq scope 'DISABLE'))}}
+  ovs_config.discont    = HAL_ADC_OVS_{{discont}};
+  ovs_config.ratio      = {{ratio}};
+  {{#if (eq shift_keep_res true)}}
+  ovs_config.shift      = HAL_ADC_GetOverSamplingShiftKeepRes(ovs_config.ratio);
+  {{~else}}
+  ovs_config.shift      = {{shift}};
+  {{~/if}}
+{{~/if~}}{{!(eq scope DISABLE)}}
+  HAL_ADC_SetConfigOverSampling(&h{{uppercase @root.current_resource}}, HAL_ADC_OVS_1, &ovs_config);
+
+{{/with}}{{!ovs_panel}}
+{{/if~}}{{!(eq additional.ovs_sel true)~}}
+{{!==================== Offset ====================~}}
+{{#if (eq additional.offset_sel true)}}
+  hal_adc_offset_config_t offset_config;
+
+{{#helper_adc_get_offset_panels this}}
+{{#each offsetPanels}}
+{{#with panel}}
+  offset_config.channel              = HAL_{{helper_adc_transform_channel_name adc_channel.source}};
+  offset_config.level                = {{level}};
+  offset_config.saturation_signed    = HAL_ADC_OFFSET_SAT_SIGNED_{{helper_adc_boolean_to_enable_disable saturation_signed}};
+  offset_config.saturation_unsigned  = HAL_ADC_OFFSET_SAT_UNSIGNED_{{helper_adc_boolean_to_enable_disable saturation_unsigned}};
+  HAL_ADC_SetConfigOffset(&h{{uppercase @root.current_resource}}, HAL_ADC_OFFSET_{{../offset_number}}, &offset_config);
+
+{{/with}}
+{{/each}}
+{{/helper_adc_get_offset_panels}}
+{{/if}}
+{{!==================== partial function: deinit ====================~}}
+{{else if (eq fct 'deinit')}}
+  (void)HAL_ADC_DeInit(&h{{@root.current_resource}});
+{{else}}
+#warning "step {{fct}} in partial ADC_HAL not managed"
+{{/if}}

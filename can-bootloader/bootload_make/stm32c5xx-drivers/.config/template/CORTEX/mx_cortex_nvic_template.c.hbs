@@ -1,0 +1,168 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_cortex_nvic_template.c.hbs
+  * @brief          : {{uppercase @root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'CORTEX_NVIC' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "CORTEX_NVIC template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{uppercase @root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'cortex_nvic_cxt' config~}}
+    {{~log "CORTEX NVIC template cortex_nvic_cxt:" (toJSON @root.cortex_nvic_cxt)~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_nvic_cxt.info.layer~}}
+    {{~log "CORTEX NVIC template current_resource:" @root.current_resource~}}
+{{/each}}
+{{helper_common_initialize_index~}}
+{{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{~assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'cortex_nvic_cxt' config~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_nvic_cxt.info.layer~}}
+    {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{! Initialize the context for LL code optimization ~}}
+  {{!~assign 'lut_table' (helper_cortex_nvic_get_lut_table 'CORTEX NVICV1')~}}
+  {{!~helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+  {{~log "CORTEX NVIC template instance:" (toJSON this)}}
+
+/******************************************************************************/
+/* Exported functions for {{uppercase @root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+  {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+  {{~assign 'current_index' (helper_common_inc_index @root.current_resource)}}
+  {{#with @root.cortex_nvic_cxt}}
+system_status_t mx_cortex_nvic_init(void)
+{
+  {{~#with additional}}
+    {{~#if enable_exception_debugmon}}
+
+  /* Enable DebugMonitor exception */
+  STM32_SET_BIT(DCB->DEMCR, DCB_DEMCR_MON_EN_Msk);
+    {{~/if}}
+  {{~/with}}
+  {{~#with system.nvic}}
+    {{#if irq_config1.needs}}
+      {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context irq_config1.needs @root.current_resource false)}}
+    {{~/if}}
+    {{#if irq_config2.needs}}
+      {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context irq_config2.needs @root.current_resource false)}}
+    {{~/if}}
+    {{#if irq_config3.needs}}
+      {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context irq_config3.needs @root.current_resource false)}}
+    {{~/if}}
+  {{~/with}}{{! system.nvic}}
+
+{{> CORTEX fct='cortex_system_lines' system_line='NVIC'}}
+
+
+  return SYSTEM_OK;
+}
+
+    {{#if (eq @root.current_layer 'HAL')}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+      {{~assign 'shared_interrupts' (helper_cortex_nvic_get_shared_irq_lines @root.NvicAPI)}}
+      {{~#each @root.shared_interrupts}}
+        {{~assign 'is_interrupt' isInterrupt}}
+        {{~assign 'name' name}}
+
+
+/******************************************************************************/
+/*            {{description}}                    */
+/******************************************************************************/
+void {{name}}_{{#if isInterrupt}}IRQ{{/if}}Handler(void)
+{
+        {{~#each shared_with}}
+          {{~#if @root.is_interrupt}}
+
+  {{this}}_IRQHandler();
+          {{~else}}
+
+
+  if (SYSTEM_OK == {{this}}_{{@root.name}}_IRQHandler())
+  {
+    return;
+  }
+          {{~/if}}
+        {{~/each}}
+        {{~#if (not isInterrupt)}}
+
+
+  while(1);
+        {{~/if}}
+
+}
+      {{~/each}}{{!shared_interrupts}}
+    {{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+      {{~assign 'shared_interrupts' (helper_cortex_nvic_get_shared_irq_lines @root.NvicAPI)}}
+      {{~#each @root.shared_interrupts}}
+        {{~#if isInterrupt}}
+
+
+/******************************************************************************/
+/*    {{description}} is managed directly in user code.   */
+/******************************************************************************/
+__WEAK void {{name}}_{{#if isInterrupt}}IRQ{{/if}}Handler(void)
+{
+  /* NOTE : This function must not be modified in this file, when the IRQHandler is needed,
+            the function must preferably be implemented in the user file
+   */
+
+  while(1);
+}
+        {{~else}}
+
+
+/******************************************************************************/
+{{~assign 'text' (helper_cortex_nvic_generate_comment_block description false)}}
+{{@root.text}}
+/******************************************************************************/
+/* void {{name}}_Handler(void)
+{
+}
+  */
+        {{~/if}}
+      {{~/each}}{{!shared_interrupts}}
+    {{~/if}}
+  {{~/with}}
+{{/each}}
+
+{{> CORTEX fct='generate_handler' type='implementation' component='CORTEX'}}
+{{> SYSTEM fct='system_check_isr_model'}}
+{{/helper_common_beautifier}}

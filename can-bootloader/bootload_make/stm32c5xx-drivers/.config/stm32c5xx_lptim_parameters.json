@@ -1,0 +1,1365 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:LPTIM",
+  "grammarVersion": "3.8",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/lptim_helpers.js",
+      "accessor": "common"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": "",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ]
+              }
+            },
+            "layer": {
+              "type": "string",
+              "title": "Software layer",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "LL",
+                  "const": "LL"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_LPTIM_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "basic": {
+          "type": "object",
+          "title": "Main features",
+          "properties": {
+            "time_base": {
+              "type": "object",
+              "title": "Time-base",
+              "properties": {
+                "clock_source_configuration": {
+                  "type": "object",
+                  "title": "Clock",
+                  "properties": {
+                    "clock_source": {
+                      "type": "string",
+                      "title": "Source",
+                      "description": "Origin of the clock signal feeding the low power timer prescaler which by turn feeds the low power timer counter.",
+                      "actions": [
+                        {
+                          "type": "disable",
+                          "condition": "$resource.features.nb_cc === 0",
+                          "message": "The clock source configuration is not available when the timer has no channel."
+                        }
+                      ],
+                      "oneOf": [
+                        {
+                          "title": "Internal clock source",
+                          "const": "INTERNAL"
+                        },
+                        {
+                          "title": "External clock source (synchronous)",
+                          "const": "EXTERNAL_SYNCHRONOUS"
+                        },
+                        {
+                          "title": "External clock source (asynchronous)",
+                          "const": "EXTERNAL_ASYNCHRONOUS"
+                        },
+                        {
+                          "title": "Encoder sub-mode 1",
+                          "const": "ENCODER_SUBMODE_1"
+                        },
+                        {
+                          "title": "Encoder sub-mode 2",
+                          "const": "ENCODER_SUBMODE_2"
+                        },
+                        {
+                          "title": "Encoder sub-mode 3",
+                          "const": "ENCODER_SUBMODE_3"
+                        }
+                      ],
+                      "default": "INTERNAL"
+                    },
+                    "prescaler": {
+                      "type": "integer",
+                      "title": "Prescaler",
+                      "description": "Clock prescaler division factor applied to the LPTIM internal clock.",
+                      "oneOf": [
+                        {
+                          "title": "\u00F7 1",
+                          "const": 1
+                        },
+                        {
+                          "title": "\u00F7 2",
+                          "const": 2
+                        },
+                        {
+                          "title": "\u00F7 4",
+                          "const": 4
+                        },
+                        {
+                          "title": "\u00F7 8",
+                          "const": 8
+                        },
+                        {
+                          "title": "\u00F7 16",
+                          "const": 16
+                        },
+                        {
+                          "title": "\u00F7 32",
+                          "const": 32
+                        },
+                        {
+                          "title": "\u00F7 64",
+                          "const": 64
+                        },
+                        {
+                          "title": "\u00F7 128",
+                          "const": 128
+                        }
+                      ],
+                      "default": 1,
+                      "actions": [
+                        {
+                          "type": "warning",
+                          "condition": "$value !== 1 && $basic.time_base.clock_source_configuration.clock_source !== 'INTERNAL' && $basic.time_base.clock_source_configuration.clock_source !== 'EXTERNAL_ASYNCHRONOUS'",
+                          "message": "The internal clock provided to the LPTIM must not be prescaled when LPTIM external Input1 is sampled with the internal clock provided to the LPTIM (synchronous mode) or when LPTIM operates in encoder mode."
+                        }
+                      ]
+                    },
+                    "frequency": {
+                      "type": "number",
+                      "title": "Timer output frequency",
+                      "description": "Calculated Timer output frequency depending on LPTIM kernel clock, period and prescaler configuration.",
+                      "display_format": [
+                        "dec"
+                      ],
+                      "unit": "Hz",
+                      "default": 10000,
+                      "readOnly": true,
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$basic.time_base.clock_source_configuration.clock_source === 'INTERNAL'"
+                        },
+                        {
+                          "type": "set",
+                          "condition": "true",
+                          "computed": {
+                            "const": "$common.helper_lptim_compute_frequency($get('clock.frequency',$resource.id), $basic.time_base.clock_source_configuration.prescaler, $basic.time_base.counter.period)"
+                          }
+                        }
+                      ]
+                    },
+                    "in1_polarity": {
+                      "type": "string",
+                      "title": "Polarity",
+                      "description": "Active edge(s) of the external clock.",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$basic.time_base.clock_source_configuration.clock_source && $basic.time_base.clock_source_configuration.clock_source.includes('EXTERNAL')"
+                        },
+                        {
+                          "type": "warning",
+                          "condition": "$value == 'RISING_FALLING' && $basic.time_base.clock_source_configuration.clock_source === 'EXTERNAL_ASYNCHRONOUS'",
+                          "message": "When the LPTIM is clocked by an external clock source (asynchronous mode), the LPTIM counter can be updated either on rising edges or falling edges of the input1 clock signal but not on both rising and falling edges."
+                        }
+                      ],
+                      "oneOf": [
+                        {
+                          "title": "Rising edge",
+                          "description": "Rising edges are detected on input1.",
+                          "const": "RISING"
+                        },
+                        {
+                          "title": "Falling edge",
+                          "description": "Falling edges are detected on input1.",
+                          "const": "FALLING"
+                        },
+                        {
+                          "title": "Rising and falling edges",
+                          "description": "Both Rising and Falling edges are detected on input1.",
+                          "const": "RISING_FALLING"
+                        }
+                      ],
+                      "default": "RISING"
+                    },
+                    "in_filter": {
+                      "type": "string",
+                      "title": "Filter",
+                      "description": "Digital filter applied to the external clock.",
+                      "actions": [
+                        {
+                          "type": "exclude",
+                          "condition": "($basic.time_base.clock_source_configuration.clock_source === 'INTERNAL')"
+                        },
+                        {
+                          "type": "warning",
+                          "condition": "$value == 'FDIV1_N8' && $basic.time_base.clock_source_configuration.clock_source && $basic.time_base.clock_source_configuration.clock_source.includes('ENCODER_SUBMODE')",
+                          "message": "The signals frequency on both Input1 and Input2 inputs must not exceed the LPTIM internal clock frequency divided by 4."
+                        }
+                      ],
+                      "oneOf": [
+                        {
+                          "title": "Direct transition",
+                          "const": "FDIV1"
+                        },
+                        {
+                          "title": "2 transitions",
+                          "const": "FDIV1_N2"
+                        },
+                        {
+                          "title": "4 transitions",
+                          "const": "FDIV1_N4"
+                        },
+                        {
+                          "title": "8 transitions",
+                          "const": "FDIV1_N8"
+                        }
+                      ],
+                      "default": "FDIV1"
+                    },
+                    "input1": {
+                      "type": "object",
+                      "title": "Input1 source",
+                      "actions": [
+                        {
+                          "type": "exclude",
+                          "condition": "($basic.time_base.clock_source_configuration.clock_source === 'INTERNAL')"
+                        },
+                        {
+                          "type": "info",
+                          "condition": "true",
+                          "message": "All selected interconnects, either GPIO , must be configured manually"
+                        }
+                      ],
+                      "objectType": "query",
+                      "query": {
+                        "entity": "peripheral.interconnect.external input clock",
+                        "parent": "$resource.id",
+                        "where": "($entity.ip_signal.includes('in1')) && (($entity.source.toUpperCase().replace('AFI', 'GPIO') != 'GPIO') || (($entity.source.toUpperCase().replace('AFI', 'GPIO') == 'GPIO') && ($get('pinout.peripheralCanBeMapped', $resource.id, 'IN1') == true)))",
+                        "title": "{{source.toUpperCase().replace('AFI', 'GPIO')}}"
+                      }
+                    },
+                    "input2": {
+                      "type": "object",
+                      "title": "Input2 source",
+                      "actions": [
+                        {
+                          "type": "include",
+                          "condition": "$basic.time_base.clock_source_configuration.clock_source && $basic.time_base.clock_source_configuration.clock_source.includes('ENCODER_SUBMODE')"
+                        },
+                        {
+                          "type": "info",
+                          "condition": "true",
+                          "message": "All selected interconnects, either GPIO , must be configured manually"
+                        }
+                      ],
+                      "objectType": "query",
+                      "query": {
+                        "entity": "peripheral.interconnect.external input clock",
+                        "parent": "$resource.id",
+                        "where": "($entity.ip_signal.includes('in2')) && (($entity.source.toUpperCase().replace('AFI', 'GPIO') != 'GPIO') || (($entity.source.toUpperCase().replace('AFI', 'GPIO') == 'GPIO') && ($get('pinout.peripheralCanBeMapped', $resource.id, 'IN2') == true)))",
+                        "title": "{{source.toUpperCase().replace('AFI', 'GPIO')}}"
+                      }
+                    }
+                  }
+                },
+                "counter": {
+                  "type": "object",
+                  "title": "Counter",
+                  "properties": {
+                    "counter_mode": {
+                      "type": "string",
+                      "title": "Counter mode",
+                      "oneOf": [
+                        {
+                          "title": "Continuous",
+                          "description": "The timer is free running. Counter starts from trigger event and never stops.",
+                          "const": "CONTINUOUS"
+                        },
+                        {
+                          "title": "One shot",
+                          "description": "Counter stopped on update event.",
+                          "const": "ONE_SHOT"
+                        },
+                        {
+                          "title": "Set once",
+                          "description": "Counter starts after a trigger event for a single one-shot cycle.",
+                          "const": "SET_ONCE"
+                        },
+                        {
+                          "title": "Timeout",
+                          "description": "The detection of an active edge on one selected trigger input can be used to reset the LPTIM counter.",
+                          "const": "TIMEOUT"
+                        }
+                      ],
+                      "default": "CONTINUOUS",
+                      "actions": [
+                        {
+                          "type": "warning",
+                          "condition": "$value != 'CONTINUOUS' && $basic.time_base.clock_source_configuration.clock_source.includes('ENCODER_SUBMODE')",
+                          "message": "When the clock source is configured in encoder mode, only the CONTINUOUS mode is supported."
+                        }
+                      ]
+                    },
+                    "period": {
+                      "type": "integer",
+                      "title": "Counter period",
+                      "display_format": [
+                        "hex",
+                        "dec"
+                      ],
+                      "minimum": 1,
+                      "maximum": 65535,
+                      "default": 65535
+                    },
+                    "repetition_counter": {
+                      "type": "integer",
+                      "title": "Repetition counter",
+                      "description": "Repetition counter value that decreases by 1 on every overflow event of the LPTIM counter.",
+                      "display_format": [
+                        "hex",
+                        "dec"
+                      ],
+                      "minimum": 0,
+                      "maximum": 255,
+                      "default": 0
+                    }
+                  }
+                }
+              }
+            },
+            "preload_mode": {
+              "title": "Preload mode",
+              "description": "When enabled, the content of the preload registers (ARR, RCR, CCRx) is transferred into the shadow registers at the next LPTIM update event.",
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "channels": {
+          "type": "array",
+          "rendering": "channel-tabs",
+          "title": "Channels",
+          "source": "Array.from({ length: ($resource.features.nb_cc)}, (_, i) => ({ id: ('CH' + (i + 1) ), name: `Channel ${i+1}` }))",
+          "itemId": "id",
+          "itemTitle": "name",
+          "itemVar": "channel",
+          "actions": [
+            {
+              "type": "include",
+              "condition": "$resource.features.nb_cc > 0"
+            }
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "use_channel": {
+                "type": "boolean",
+                "title": "Use channel",
+                "description": "Use and configure the channel.",
+                "default": false
+              },
+              "channel_direction": {
+                "type": "string",
+                "title": "Channel direction",
+                "description": "Input (capture) or output mode.",
+                "actions": [
+                  {
+                    "type": "include",
+                    "condition": "$item.use_channel == true"
+                  },
+                  {
+                    "type": "set",
+                    "condition": "(($channel.id === 'CH1') || ($channel.id === 'CH2')) && ($basic.time_base.clock_source_configuration.clock_source.includes('ENCODER'))",
+                    "attributes": {
+                      "const": "Input"
+                    }
+                  }
+                ],
+                "oneOf": [
+                  {
+                    "title": "Input",
+                    "const": "Input"
+                  },
+                  {
+                    "title": "Output",
+                    "const": "Output"
+                  }
+                ],
+                "default": "Output"
+              },
+              "input_configuration": {
+                "type": "object",
+                "title": "Input",
+                "actions": [
+                  {
+                    "type": "include",
+                    "condition": "$item.use_channel && ($item.channel_direction === 'Input')"
+                  }
+                ],
+                "properties": {
+                  "ic_source": {
+                    "type": "object",
+                    "title": "Source",
+                    "description": "Input capture connection.",
+                    "actions": [
+                      {
+                        "type": "info",
+                        "condition": "true",
+                        "message": "The selected interconnect must be configured manually."
+                      }
+                    ],
+                    "objectType": "query",
+                    "query": {
+                      "entity": "peripheral.interconnect.input capture trigger",
+                      "parent": "$resource.id",
+                      "where": "(($entity.ip_signal.includes('ic' + $common.helper_lptim_get_channel_id($item._foreignKey))) || ($entity.ip_signal.includes('lpti' + $common.helper_lptim_get_channel_id($item._foreignKey))))  && ((($entity.source.toUpperCase().replace('AFI', 'GPIO') != 'GPIO') || (($entity.source.toUpperCase().replace('AFI', 'GPIO') == 'GPIO') && ($get('pinout.peripheralCanBeMapped', $resource.id, 'CH' + $common.helper_lptim_get_channel_id($item._foreignKey)) == true)))) ",
+                      "title": "{{source.toUpperCase().replace('AFI', 'GPIO')}}"
+                    }
+                  },
+                  "ic_polarity": {
+                    "type": "string",
+                    "title": "Polarity",
+                    "description": "The timer can capture the input signal on a rising edge, falling edge, or both edges.",
+                    "oneOf": [
+                      {
+                        "title": "Rising edge",
+                        "const": "RISING"
+                      },
+                      {
+                        "title": "Falling edge",
+                        "const": "FALLING"
+                      },
+                      {
+                        "title": "Rising and falling edges",
+                        "const": "RISING_FALLING"
+                      }
+                    ],
+                    "default": "RISING"
+                  },
+                  "ic_prescaler": {
+                    "type": "integer",
+                    "title": "Prescaler",
+                    "description": "Division factor applied to the frequency of input capture events.",
+                    "oneOf": [
+                      {
+                        "title": "\u00F7 1",
+                        "const": 1
+                      },
+                      {
+                        "title": "\u00F7 2",
+                        "const": 2
+                      },
+                      {
+                        "title": "\u00F7 4",
+                        "const": 4
+                      },
+                      {
+                        "title": "\u00F7 8",
+                        "const": 8
+                      }
+                    ],
+                    "default": 1
+                  },
+                  "ic_filter": {
+                    "type": "string",
+                    "title": "Filter",
+                    "description": "Filtering applied to the input signal before capture.",
+                    "oneOf": [
+                      {
+                        "title": "No filter",
+                        "const": "FDIV1"
+                      },
+                      {
+                        "title": "2 clock periods",
+                        "const": "FDIV1_N2"
+                      },
+                      {
+                        "title": "4 clock periods",
+                        "const": "FDIV1_N4"
+                      },
+                      {
+                        "title": "8 clock periods",
+                        "const": "FDIV1_N8"
+                      }
+                    ],
+                    "default": "FDIV1"
+                  },
+                  "labels": {
+                    "type": "array",
+                    "title": "Add a label",
+                    "items": {
+                      "type": "string",
+                      "actions": [
+                        {
+                          "type": "error",
+                          "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                          "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                        }
+                      ],
+                      "minLength": 0,
+                      "maxLength": 32,
+                      "unique": "project",
+                      "default": ""
+                    },
+                    "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$item.use_channel"
+                      }
+                    ]
+                  }
+                }
+              },
+              "output_configuration": {
+                "type": "object",
+                "title": "Output",
+                "description": "Output channel configuration.",
+                "actions": [
+                  {
+                    "type": "include",
+                    "condition": "$item.use_channel && ($item.channel_direction === 'Output')"
+                  }
+                ],
+                "properties": {
+                  "oc_pulse": {
+                    "type": "integer",
+                    "title": "Pulse",
+                    "description": "Determines the duty cycle of signal generated on the channel.",
+                    "display_format": [
+                      "hex",
+                      "dec"
+                    ],
+                    "minimum": 0,
+                    "maximum": 65535,
+                    "default": 1
+                  },
+                  "oc_polarity": {
+                    "type": "string",
+                    "title": "Polarity",
+                    "description": "Determines the active level of the signal generated on the channel.",
+                    "oneOf": [
+                      {
+                        "title": "Active high",
+                        "description": "Output channel is active high.",
+                        "const": "OC_HIGH"
+                      },
+                      {
+                        "title": "Active low",
+                        "description": "Output channel is active low.",
+                        "const": "OC_LOW"
+                      }
+                    ],
+                    "default": "OC_HIGH"
+                  },
+                  "use_gpio": {
+                    "title": "GPIO pin",
+                    "type": "boolean",
+                    "default": false,
+                    "actions": [
+                      {
+                        "type": "set",
+                        "condition": "true",
+                        "computed": {
+                          "title": "'Use ' + $resource.id + '_' + $channel.id + ' GPIO pin'"
+                        }
+                      },
+                      {
+                        "type": "include",
+                        "condition": "$get('pinout.peripheralCanBeMapped', $resource.id, $channel.id) == true"
+                      }
+                    ]
+                  },
+                  "gpio_remap": {
+                    "title": "GPIO remap",
+                    "type": "string",
+                    "readOnly": true,
+                    "actions": [
+                      {
+                        "type": "include",
+                        "condition": "!$get('pinout.peripheralCanBeMapped', $resource.id, $channel.id) == true"
+                      },
+                      {
+                        "type": "set",
+                        "condition": "true",
+                        "computed": {
+                          "title": "$resource.id + '_' + $channel.id + ' not available on this package’s pins.'"
+                        }
+                      }
+                    ]
+                  },
+                  "labels": {
+                    "type": "array",
+                    "title": "Add a label",
+                    "items": {
+                      "type": "string",
+                      "actions": [
+                        {
+                          "type": "error",
+                          "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                          "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                        }
+                      ],
+                      "minLength": 0,
+                      "maxLength": 32,
+                      "unique": "project",
+                      "default": ""
+                    },
+                    "actions": [
+                      {
+                        "type": "include",
+                        "condition": "$item.use_channel"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "additional": {
+          "type": "object",
+          "title": "Advanced features",
+          "properties": {
+            "external_trigger_config": {
+              "type": "object",
+              "title": "External trigger",
+              "properties": {
+                "use_external_trigger": {
+                  "type": "boolean",
+                  "title": "Use external trigger",
+                  "description": "Use and configure the external trigger input.",
+                  "default": false
+                },
+                "source": {
+                  "type": "object",
+                  "title": "Source",
+                  "description": "External trigger input connection.",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.external_trigger_config.use_external_trigger == true",
+                      "message": "Enable external trigger source"
+                    },
+                    {
+                      "type": "info",
+                      "condition": "true",
+                      "message": "The selected interconnect must be configured manually"
+                    }
+                  ],
+                  "objectType": "query",
+                  "query": {
+                    "entity": "peripheral.interconnect.external input trigger",
+                    "parent": "$resource.id",
+                    "where": "((($entity.source != 'AFI') && ($entity.source != 'GPIO')) || ($get('pinout.peripheralCanBeMapped', $resource.id, 'ETR') == true))",
+                    "title": "{{source.toUpperCase().replace('AFI', 'GPIO')}}"
+                  }
+                },
+                "polarity": {
+                  "type": "string",
+                  "title": "Polarity",
+                  "description": "The trigger event is detected on a rising edge, falling edge, or both edges.",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.external_trigger_config.use_external_trigger == true",
+                      "message": "Enable external trigger polarity"
+                    }
+                  ],
+                  "oneOf": [
+                    {
+                      "title": "Rising edge",
+                      "description": "Counter starts when a rising edge is detected.",
+                      "const": "RISING"
+                    },
+                    {
+                      "title": "Falling edge",
+                      "description": "Counter starts when a falling edge is detected.",
+                      "const": "FALLING"
+                    },
+                    {
+                      "title": "Rising and falling edges",
+                      "description": "Counter starts when a rising or a falling edge is detected.",
+                      "const": "RISING_FALLING"
+                    }
+                  ],
+                  "default": "RISING"
+                },
+                "filter": {
+                  "type": "string",
+                  "title": "Filter",
+                  "description": "Filtering applied to the external trigger input.",
+                  "actions": [
+                    {
+                      "type": "enable",
+                      "condition": "$additional.external_trigger_config.use_external_trigger == true",
+                      "message": "Enable external trigger filter"
+                    }
+                  ],
+                  "oneOf": [
+                    {
+                      "title": "No filter",
+                      "const": "FDIV1"
+                    },
+                    {
+                      "title": "2 clock periods",
+                      "const": "FDIV1_N2"
+                    },
+                    {
+                      "title": "4 clock periods",
+                      "const": "FDIV1_N4"
+                    },
+                    {
+                      "title": "8 clock periods",
+                      "const": "FDIV1_N8"
+                    }
+                  ],
+                  "default": "FDIV1"
+                }
+              }
+            }
+          }
+        },
+        "security_privilege": {
+          "title": "Security and privilege",
+          "description": "Manage security and privileged access levels attributes.",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+          "properties": {
+            "security": {
+              "type": "string",
+              "title": "Security attribute",
+              "description": "Set the security attribute of the securable peripheral.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "SEC"
+                  },
+                  "condition": "$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "NSEC"
+                  },
+                  "condition": "!$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', $resource.id)",
+                  "message": "The security attribute of the peripheral is automatically set to secure when the peripheral is bound to a secure resource and to non-secure when it is not. Manual configuration is not allowed."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-sec-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Secure",
+                  "const": "SEC"
+                },
+                {
+                  "title": "Non-secure",
+                  "const": "NSEC"
+                }
+              ],
+              "default": "NSEC"
+            },
+            "privilege": {
+              "type": "string",
+              "title": "Privileged attribute",
+              "description": "Manage the privileged attribute of a securable RISC peripheral.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-priv-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Privileged",
+                  "const": "PRIV"
+                },
+                {
+                  "title": "Unprivileged",
+                  "const": "NPRIV"
+                }
+              ],
+              "default": "PRIV"
+            },
+            "lock": {
+              "type": "boolean",
+              "title": "Lock",
+              "description": "Optional. Lock security and privilege attributes to prevent changes.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-lock-attr",
+                "custom": "$resource.id"
+              },
+              "default": false
+            },
+            "illegal_access": {
+              "title": "Illegal access interrupt",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure-only')",
+                  "message": "Secure-only mode: Illegal access interrupt is forced to disabled."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-iac-peripheral",
+                "custom": "$resource.id"
+              },
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "properties": {
+            "gpio": {
+              "type": "object",
+              "title": "GPIO",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($additional.external_trigger_config.use_external_trigger && ($additional.external_trigger_config.source.source === 'GPIO' || $additional.external_trigger_config.source.source === 'AFI')) || $common.helper_lptim_need_gpio_input($basic.time_base.clock_source_configuration.input1) == true || $common.helper_lptim_need_gpio_input($basic.time_base.clock_source_configuration.input2) == true || $common.helper_lptim_need_gpio_channel($channels, 'CH1') == true || $common.helper_lptim_need_gpio_channel($channels, 'CH2') == true"
+                }
+              ],
+              "properties": {
+                "in1_gpio": {
+                  "type": "object",
+                  "title": "LPTIM_IN1",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_lptim_need_gpio_input($basic.time_base.clock_source_configuration.input1)"
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "title": "$resource.id + '_IN1'"
+                      }
+                    }
+                  ],
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IN1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "in2_gpio": {
+                  "type": "object",
+                  "title": "LPTIM_IN2",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$common.helper_lptim_need_gpio_input($basic.time_base.clock_source_configuration.input2)"
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "title": "$resource.id + '_IN2'"
+                      }
+                    }
+                  ],
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IN2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "channel1_gpio": {
+                  "type": "object",
+                  "title": "LPTIM_CH1",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($common.helper_lptim_need_gpio_channel($channels, 'CH1') == true)"
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "title": "$resource.id + '_CH1'"
+                      }
+                    }
+                  ],
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "CH1",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "channel2_gpio": {
+                  "type": "object",
+                  "title": "LPTIM_CH2",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($common.helper_lptim_need_gpio_channel($channels, 'CH2') == true)"
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "title": "$resource.id + '_CH2'"
+                      }
+                    }
+                  ],
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "CH2",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "etr_gpio": {
+                  "type": "object",
+                  "title": "LPTIM_ETR",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "($additional.external_trigger_config.use_external_trigger == true) && (($additional.external_trigger_config.source.source === 'GPIO') || ($additional.external_trigger_config.source.source === 'AFI'))"
+                    },
+                    {
+                      "type": "set",
+                      "computed": {
+                        "title": "$resource.id + '_ETR'"
+                      }
+                    }
+                  ],
+                  "needs": [
+                    {
+                      "selector": "ETR",
+                      "constraints": {
+                        "mode": {
+                          "const": "ALTERNATE"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "dma": {
+              "type": "object",
+              "title": "DMA",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$resource.features.nb_cc > 0"
+                }
+              ],
+              "properties": {
+                "enable_dma_update": {
+                  "type": "boolean",
+                  "title": "Update event DMA request",
+                  "default": false
+                },
+                "dma_config_update": {
+                  "title": "Update event DMA request",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_update == true"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "UE",
+                      "constraints": {
+                        "direction": {
+                          "const": "MEMORY_TO_PERIPH"
+                        },
+                        "src_inc": {
+                          "const": "INCREMENTED"
+                        },
+                        "dest_inc": {
+                          "default": "FIXED"
+                        },
+                        "src_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        },
+                        "dest_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "enable_dma_ch1": {
+                  "type": "boolean",
+                  "title": "Capture 1 DMA request",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.nb_cc > 0"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$common.helper_lptim_find_channel_config($channels, 'CH1')",
+                      "message": "Enable dma request for channel 1"
+                    }
+                  ],
+                  "default": false
+                },
+                "dma_config_ch1": {
+                  "title": "Capture 1 DMA request",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_ch1 == true"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IC1",
+                      "constraints": {
+                        "direction": {
+                          "const": "PERIPH_TO_MEMORY"
+                        },
+                        "src_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "src_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        },
+                        "dest_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "enable_dma_ch2": {
+                  "type": "boolean",
+                  "title": "Capture 2 DMA request",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$resource.features.nb_cc > 0"
+                    },
+                    {
+                      "type": "enable",
+                      "condition": "$common.helper_lptim_find_channel_config($channels, 'CH2')",
+                      "message": "Enable dma request for channel 2"
+                    }
+                  ],
+                  "default": false
+                },
+                "dma_config_ch2": {
+                  "title": "Capture 2 DMA request",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_ch2 == true"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "IC2",
+                      "constraints": {
+                        "direction": {
+                          "const": "PERIPH_TO_MEMORY"
+                        },
+                        "src_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "src_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        },
+                        "dest_data_width": {
+                          "allow": [
+                            "WORD",
+                            "HALFWORD",
+                            "BYTE"
+                          ],
+                          "default": "WORD"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "type": "object",
+              "title": "NVIC",
+              "properties": {
+                "enable_interruption": {
+                  "type": "boolean",
+                  "title": "Global interrupt",
+                  "default": false
+                },
+                "irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "Interrupt handler generation",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "nvic_config": {
+                  "title": "Global interrupt",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_interruption"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "*"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

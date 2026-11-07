@@ -1,0 +1,1549 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "version": "0.0.1",
+  "componentid": "::Device:STM32CubeMX2 Config:I3C",
+  "grammarVersion": "3.7",
+  "type": "object",
+  "functions": [
+    {
+      "path": ".config/template/helpers/i3c_helpers.js",
+      "accessor": "common"
+    }
+  ],
+  "properties": {
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "info": {
+          "type": "object",
+          "title": "General information",
+          "properties": {
+            "labels": {
+              "type": "array",
+              "title": "Add a label",
+              "description": "Labels allow to create aliases inside mx_hal_def.h file like '<label>_init', '<label>_deinit' and '<label>_gethandle'. These aliases can be used on application side.",
+              "items": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 32,
+                "unique": "project",
+                "default": "",
+                "actions": [
+                  {
+                    "type": "error",
+                    "condition": "!/^[A-Za-z_][A-Za-z0-9_]*$/.test($value)",
+                    "message": "Name must be a valid C identifier: start with a letter or underscore, and contain only letters, digits, or underscores."
+                  }
+                ]
+              }
+            },
+            "layer": {
+              "type": "string",
+              "title": "Software layer",
+              "oneOf": [
+                {
+                  "title": "HAL",
+                  "const": "HAL"
+                },
+                {
+                  "title": "LL",
+                  "const": "LL"
+                }
+              ],
+              "variables": [
+                {
+                  "on": "update-value",
+                  "name": "HAL_I3C_PROJECT_USE_HAL",
+                  "condition": "$value === 'HAL'",
+                  "semaphore": true
+                }
+              ],
+              "default": "HAL"
+            },
+            "init_type": {
+              "type": "string",
+              "title": "Resource initialization code generation",
+              "description": "Pick whether the initialization code should be generated and automatically called at startup.",
+              "oneOf": [
+                {
+                  "title": "Callable",
+                  "const": "called",
+                  "description": "Initialization code is generated and called in peripheral initialization."
+                },
+                {
+                  "title": "Generated",
+                  "const": "enabled",
+                  "description": "Initialization code is generated but not called in peripheral initialization."
+                },
+                {
+                  "title": "Not generated",
+                  "const": "disabled",
+                  "description": "Initialization code is not generated."
+                }
+              ],
+              "default": "called"
+            }
+          }
+        },
+        "basic": {
+          "type": "object",
+          "title": "Main features",
+          "properties": {
+            "mode": {
+              "title": "Mode",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "Controller",
+                  "const": "CTRL"
+                },
+                {
+                  "title": "Target",
+                  "const": "TGT"
+                }
+              ],
+              "default": "CTRL"
+            },
+            "clock_source": {
+              "title": "Clock source",
+              "description": "Clock source can be modified in the clock tree.",
+              "type": "string",
+              "readOnly": true,
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "true",
+                  "computed": {
+                    "const": "$get('clock.input', $resource.id)"
+                  }
+                },
+                {
+                  "type": "warning",
+                  "condition": "(($get('clock.input', $resource.id) === 'HSE') && ($get('envVar.value', 'RCC_PROJECT_HSE') !== true))",
+                  "message": "Make sure that HSE is enabled into RCC panel"
+                }
+              ],
+              "default": ""
+            },
+            "clock_frequency": {
+              "title": "Clock frequency",
+              "description": "Clock frequency can be modified in the clock tree.",
+              "type": "integer",
+              "readOnly": true,
+              "default": 0,
+              "unit": "Hz",
+              "actions": [
+                {
+                  "type": "set",
+                  "condition": "true",
+                  "computed": {
+                    "const": "$get('clock.frequency', $resource.id)"
+                  }
+                }
+              ]
+            },
+            "bus_usage": {
+              "title": "Bus usage",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ],
+              "description": "I3C controller mode: using only I3C or mixed I3C + I2C.",
+              "type": "string",
+              "oneOf": [
+                {
+                  "title": "I3C pure bus",
+                  "const": "UTILS_I3C_PURE_I3C_BUS"
+                },
+                {
+                  "title": "I3C and I2C mixed bus",
+                  "const": "UTILS_I3C_I2C_MIXED_BUS"
+                }
+              ],
+              "default": "UTILS_I3C_PURE_I3C_BUS"
+            },
+            "freq_i3c": {
+              "title": "I3C frequency",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ],
+              "type": "integer",
+              "description": "I3C controller frequency (kHz). It must be between 124 kHz and 12.5 MHz.",
+              "minimum": 124,
+              "maximum": 12500,
+              "unit": "kHz",
+              "default": 12500
+            },
+            "freq_i2c": {
+              "title": "I2C frequency",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.bus_usage == 'UTILS_I3C_I2C_MIXED_BUS'"
+                }
+              ],
+              "type": "integer",
+              "description": "I2C controller frequency (kHz). It must be between 87 kHz and 1 MHz.",
+              "minimum": 87,
+              "maximum": 1000,
+              "unit": "kHz",
+              "default": 1000
+            },
+            "duty_cycle_i3c": {
+              "title": "Duty cycle I3C (%)",
+              "type": "integer",
+              "description": "Duty cycle I3C. It must be between 0% and 50%.",
+              "minimum": 0,
+              "maximum": 50,
+              "default": 50,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.bus_usage == 'UTILS_I3C_PURE_I3C_BUS'"
+                }
+              ]
+            },
+            "duty_cycle_i2c": {
+              "title": "Duty cycle I3C and I2C (%)",
+              "type": "integer",
+              "description": "Duty cycle I3C and I2C. It must be between 0% and 50%.",
+              "minimum": 0,
+              "maximum": 50,
+              "default": 30,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.bus_usage == 'UTILS_I3C_I2C_MIXED_BUS'"
+                }
+              ]
+            },
+            "ctrl_timing_reg0": {
+              "title": "Timing register 0",
+              "type": "integer",
+              "description": "I3C_TIMINGR0 value is directly calculated by CubeMX2.",
+              "display_format": [
+                "hex"
+              ],
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                },
+                {
+                  "type": "disable",
+                  "condition": "\"true\""
+                },
+                {
+                  "type": "set",
+                  "computed": {
+                    "const": "$common.helper_i3c_compute_timing_ctrl($get('clock.frequency',$resource.id), $basic.freq_i3c, $basic.freq_i2c, $basic.duty_cycle_i3c, $basic.duty_cycle_i2c, $basic.bus_usage, 'LL_I3C_OWN_ACTIVITY_STATE_0', -1, '-1', -1, -1, 'I3C_TIMINGR0')"
+                  }
+                },
+                {
+                  "type": "error",
+                  "condition": "$common.helper_i3c_compute_timing_ctrl_error() != 'NO_ERROR'",
+                  "message": "One of the bitfields computed for Timing Register 0 is out of the 0–255 range. Possible cause: clock source frequency too high or too low for the requested bus clock frequency."
+                }
+              ]
+            },
+            "ctrl_adv_timing": {
+              "title": "Advanced timing register 1 calculation",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ],
+              "type": "boolean",
+              "default": false
+            },
+            "ctrl_adv_timing_config": {
+              "type": "object",
+              "title": "Advanced timing register 1 calculation",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.ctrl_adv_timing==true"
+                }
+              ],
+              "properties": {
+                "sda_rise_time": {
+                  "title": "Hardware timing constraints: SDA rise time",
+                  "type": "integer",
+                  "description": "Time (ns) for SDA to rise to 70% VDD from GND (capacitive effect). For example, value measured on a Nucleo board is about 350 ns.",
+                  "minimum": 0,
+                  "maximum": 1000,
+                  "default": 350
+                },
+                "sda_hold_time": {
+                  "title": "SDA hold time",
+                  "description": "SDA hold time in terms of the number of kernel clock periods.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "0.5 kernel clock period",
+                      "const": "LL_I3C_SDA_HOLD_TIME_0_5"
+                    },
+                    {
+                      "title": "1.5 kernel clock period",
+                      "const": "LL_I3C_SDA_HOLD_TIME_1_5"
+                    }
+                  ],
+                  "default": "LL_I3C_SDA_HOLD_TIME_0_5"
+                },
+                "wait_time": {
+                  "title": "Activity state of the new controller (ASNCR)",
+                  "description": "Used to calculate the time that the main and new controllers must wait before issuing a START condition.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "0",
+                      "const": "LL_I3C_OWN_ACTIVITY_STATE_0"
+                    },
+                    {
+                      "title": "1",
+                      "const": "LL_I3C_OWN_ACTIVITY_STATE_1"
+                    },
+                    {
+                      "title": "2",
+                      "const": "LL_I3C_OWN_ACTIVITY_STATE_2"
+                    },
+                    {
+                      "title": "3",
+                      "const": "LL_I3C_OWN_ACTIVITY_STATE_3"
+                    }
+                  ],
+                  "default": "LL_I3C_OWN_ACTIVITY_STATE_0"
+                },
+                "bus_free_duration": {
+                  "title": "Bus free duration",
+                  "type": "integer",
+                  "description": "The duration after a stop and before a start (ns). It must be between 20 ns and 2042 ns.",
+                  "minimum": 20,
+                  "maximum": 2042,
+                  "unit": "ns",
+                  "default": 20
+                },
+                "bus_idle_duration": {
+                  "title": "Bus idle duration",
+                  "type": "integer",
+                  "description": "An extended duration of the bus free to allow the devices to hot join the I3C bus. It must be between 200000 ns and 205601 ns.",
+                  "minimum": 200000,
+                  "maximum": 205601,
+                  "unit": "ns",
+                  "default": 200000
+                }
+              }
+            },
+            "ctrl_timing_reg1": {
+              "title": "Timing register 1",
+              "type": "integer",
+              "description": "I3C_TIMINGR1 register value is calculated by CubeMX2.",
+              "display_format": [
+                "hex"
+              ],
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.ctrl_adv_timing==false"
+                },
+                {
+                  "type": "disable",
+                  "condition": "\"true\""
+                },
+                {
+                  "type": "set",
+                  "computed": {
+                    "const": "$common.helper_i3c_compute_timing_ctrl($get('clock.frequency',$resource.id), $basic.freq_i3c, $basic.freq_i2c, $basic.duty_cycle_i3c, $basic.duty_cycle_i2c, $basic.bus_usage, 'LL_I3C_OWN_ACTIVITY_STATE_0', -1, '-1', -1, -1, 'I3C_TIMINGR1')"
+                  }
+                }
+              ]
+            },
+            "ctrl_adv_timing_reg1": {
+              "title": "Timing register 1",
+              "type": "integer",
+              "description": "I3C_TIMINGR1 register value is calculated by CubeMX2.",
+              "display_format": [
+                "hex"
+              ],
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.ctrl_adv_timing==true"
+                },
+                {
+                  "type": "disable",
+                  "condition": "\"true\""
+                },
+                {
+                  "type": "set",
+                  "condition": "$basic.ctrl_adv_timing_config != null",
+                  "computed": {
+                    "const": "$common.helper_i3c_compute_timing_ctrl($get('clock.frequency',$resource.id), $basic.freq_i3c, $basic.freq_i2c, $basic.duty_cycle_i3c, $basic.duty_cycle_i2c, $basic.bus_usage, 'LL_I3C_OWN_ACTIVITY_STATE_0', -1, '-1', -1, -1, 'I3C_TIMINGR1')"
+                  }
+                }
+              ]
+            },
+            "tgt_adv_timing": {
+              "title": "Advanced timing register 1 calculation",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ],
+              "type": "boolean",
+              "default": false
+            },
+            "tgt_adv_timing_config": {
+              "type": "object",
+              "title": "Advanced timing register 1 calculation",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.tgt_adv_timing==true"
+                }
+              ],
+              "properties": {
+                "bus_available_duration": {
+                  "title": "Bus available duration",
+                  "type": "integer",
+                  "description": "Minimum idle time with SDA and SCL high before next transaction. It must be between 1000 ns and 2008 ns.",
+                  "minimum": 1000,
+                  "maximum": 2008,
+                  "unit": "ns",
+                  "default": 1000
+                }
+              }
+            },
+            "tgt_timing_reg1": {
+              "title": "Timing register 1",
+              "type": "integer",
+              "description": "I3C_TIMINGR1 register value is calculated by CubeMX2.",
+              "display_format": [
+                "hex"
+              ],
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.tgt_adv_timing==false"
+                },
+                {
+                  "type": "disable",
+                  "condition": "\"true\""
+                },
+                {
+                  "type": "set",
+                  "computed": {
+                    "const": "$common.helper_i3c_compute_timing_tgt($get('clock.frequency',$resource.id), 1000)"
+                  }
+                }
+              ]
+            },
+            "tgt_adv_timing_reg1": {
+              "title": "Timing register 1",
+              "type": "integer",
+              "description": "I3C_TIMINGR1 register value is calculated by CubeMX2.",
+              "display_format": [
+                "hex"
+              ],
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.tgt_adv_timing==true"
+                },
+                {
+                  "type": "disable",
+                  "condition": "\"true\""
+                },
+                {
+                  "type": "set",
+                  "computed": {
+                    "const": "$common.helper_i3c_compute_timing_tgt($get('clock.frequency',$resource.id), $basic.tgt_adv_timing_config.bus_available_duration)"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "additional": {
+          "type": "object",
+          "title": "Advanced features",
+          "properties": {
+            "ctrl_enable_own_dyn_addr": {
+              "title": "Own dynamic address",
+              "type": "boolean",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ]
+            },
+            "own_dyn_addr_config": {
+              "type": "object",
+              "title": "Own dynamic address",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.ctrl_enable_own_dyn_addr==true"
+                }
+              ],
+              "properties": {
+                "own_dyn_addr": {
+                  "title": "Own dynamic address",
+                  "type": "integer",
+                  "description": "The controller dynamic address when it becomes a target. It must be between 1 and 127.",
+                  "minimum": 1,
+                  "maximum": 127,
+                  "default": 1
+                }
+              }
+            },
+            "ctrl_stall": {
+              "title": "Stall time",
+              "type": "boolean",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ]
+            },
+            "stall_config": {
+              "type": "object",
+              "title": "Stall time",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.ctrl_stall==true"
+                }
+              ],
+              "properties": {
+                "stall_time": {
+                  "title": "Stall time",
+                  "type": "integer",
+                  "description": "Controller clock stall time (ns). It must be between 0 ns and 1020 ns. It is applied to ACK, CCC t-bit, Tx parity and Rx parity if enabled.",
+                  "minimum": 0,
+                  "maximum": 1020,
+                  "unit": "ns",
+                  "default": 0
+                },
+                "ack": {
+                  "title": "ACK stalling",
+                  "type": "boolean",
+                  "description": "Controller clock stall on the ACK phase.",
+                  "default": false
+                },
+                "ccc_tbit": {
+                  "title": "CCC t-bit stalling",
+                  "type": "boolean",
+                  "default": false
+                },
+                "tx_parity": {
+                  "title": "Tx parity stalling",
+                  "type": "boolean",
+                  "description": "Controller clock stall on the parity phase of data to allow the target to read received data.",
+                  "default": false
+                },
+                "rx_parity": {
+                  "title": "Rx parity stalling",
+                  "type": "boolean",
+                  "description": "Controller clock stall on the T bit phase of data enable to allow the target to prepare data to be sent.",
+                  "default": false
+                },
+                "ack_i2c": {
+                  "title": "I2C ACK stalling",
+                  "type": "boolean",
+                  "description": "Controller clock stall on the I2C ACK phase.",
+                  "default": false
+                },
+                "tx_parity_i2c": {
+                  "title": "I2C Tx parity stalling",
+                  "type": "boolean",
+                  "description": "Controller clock stall on the I2C parity phase of data to allow the target to read received data.",
+                  "default": false
+                },
+                "rx_parity_i2c": {
+                  "title": "I2C Rx parity stalling",
+                  "type": "boolean",
+                  "description": "Controller clock stall on the I2C T bit phase of data enable to allow the target to prepare data to be sent.",
+                  "default": false
+                }
+              }
+            },
+            "ctrl_hot_join": {
+              "title": "Hot-Join",
+              "type": "boolean",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ]
+            },
+            "ctrl_sda_high_keeper": {
+              "title": "SDA high keeper",
+              "type": "boolean",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ]
+            },
+            "ctrl_reset_pattern": {
+              "title": "Reset pattern",
+              "type": "boolean",
+              "description": "Inserts a target reset pattern before the STOP of a transmitted frame containing a RSTACT CCC command.",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ]
+            },
+            "ctrl_fifo_config": {
+              "type": "object",
+              "title": "FIFO",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'CTRL'"
+                }
+              ],
+              "properties": {
+                "tx_fifo_threshold": {
+                  "title": "Tx FIFO threshold",
+                  "type": "string",
+                  "default": "1_8",
+                  "oneOf": [
+                    {
+                      "title": "1 byte / FIFO 8 bytes",
+                      "const": "1_8"
+                    },
+                    {
+                      "title": "1 word / FIFO 2 words",
+                      "const": "1_2"
+                    }
+                  ]
+                },
+                "rx_fifo_threshold": {
+                  "title": "Rx FIFO threshold",
+                  "type": "string",
+                  "default": "1_8",
+                  "oneOf": [
+                    {
+                      "title": "1 byte / FIFO 8 bytes",
+                      "const": "1_8"
+                    },
+                    {
+                      "title": "1 word / FIFO 2 words",
+                      "const": "1_2"
+                    }
+                  ]
+                },
+                "ctrl_fifo": {
+                  "title": "Control and status FIFO",
+                  "type": "string",
+                  "default": "NONE",
+                  "oneOf": [
+                    {
+                      "title": "Both disabled",
+                      "const": "NONE"
+                    },
+                    {
+                      "title": "Control only",
+                      "const": "CONTROL_ONLY"
+                    },
+                    {
+                      "title": "Status only",
+                      "const": "STATUS_ONLY"
+                    },
+                    {
+                      "title": "Both enabled",
+                      "const": "ALL"
+                    }
+                  ]
+                }
+              }
+            },
+            "tgt_identifier": {
+              "title": "Target characteristic ID",
+              "type": "integer",
+              "description": "The target characteristic ID (MIPI named reference DCR). It must be a value between 0 and 255.",
+              "minimum": 0,
+              "maximum": 255,
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ]
+            },
+            "tgt_mipi_identifier": {
+              "title": "MIPI identifier",
+              "type": "integer",
+              "description": "The bits [12-15] of the 48-provisioned ID (MIPI named reference PID), other 48-provisioned ID are hardcoded. It must be a value between 0 and 15.",
+              "minimum": 0,
+              "maximum": 15,
+              "default": 0,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ]
+            },
+            "tgt_ibi": {
+              "type": "boolean",
+              "title": "IBI",
+              "description": "Target In Band Interrupt capability.",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ]
+            },
+            "ibi_config": {
+              "type": "object",
+              "title": "IBI",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.tgt_ibi == true"
+                }
+              ],
+              "properties": {
+                "ibi_payload": {
+                  "title": "IBI payload after IBI acknowledgement",
+                  "type": "string",
+                  "default": "EMPTY",
+                  "oneOf": [
+                    {
+                      "title": "Empty",
+                      "const": "EMPTY"
+                    },
+                    {
+                      "title": "1 byte",
+                      "const": "1_BYTE"
+                    },
+                    {
+                      "title": "2 bytes",
+                      "const": "2_BYTE"
+                    },
+                    {
+                      "title": "3 bytes",
+                      "const": "3_BYTE"
+                    },
+                    {
+                      "title": "4 bytes",
+                      "const": "4_BYTE"
+                    }
+                  ]
+                },
+                "pending_read_mandatory_data_byte": {
+                  "title": "Pending read mandatory data byte",
+                  "description": "Target transmission of mandatory data bytes indicating a pending read notification in response to the GETCAPR Common Command Code (CCC), which requests the target capabilities of the devices.",
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "tgt_hot_join": {
+              "title": "Hot-Join capability",
+              "type": "boolean",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ]
+            },
+            "tgt_ctrl_role": {
+              "title": "Controller-Role capability",
+              "type": "boolean",
+              "default": false,
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ]
+            },
+            "ctrl_role_config": {
+              "type": "object",
+              "title": "Controller-Role capability",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$additional.tgt_ctrl_role == true"
+                }
+              ],
+              "properties": {
+                "hand_off_activity_state": {
+                  "title": "Activity state after hand-off",
+                  "description": "Target activity state when becoming controller.",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "0",
+                      "const": "0"
+                    },
+                    {
+                      "title": "1",
+                      "const": "1"
+                    },
+                    {
+                      "title": "2",
+                      "const": "2"
+                    },
+                    {
+                      "title": "3",
+                      "const": "3"
+                    }
+                  ],
+                  "default": "0"
+                },
+                "group_address": {
+                  "title": "Group address",
+                  "description": "Target support for group address after a controller-role hand-off.",
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "tgt_max_config": {
+              "type": "object",
+              "title": "Max data size/speed",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ],
+              "properties": {
+                "read_data_size": {
+                  "title": "Max read data size (bytes)",
+                  "description": "The number of data bytes that the target can read at most. It must be a value between 0 and 65535.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 65535,
+                  "default": 0
+                },
+                "write_data_size": {
+                  "title": "Max write data size (bytes)",
+                  "description": "The number of data bytes that the target can write at most. It must be a value between 0 and 65535.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 65535,
+                  "default": 0
+                },
+                "speed_limit": {
+                  "title": "Max data speed limitation",
+                  "type": "boolean",
+                  "default": false
+                },
+                "speed": {
+                  "title": "Max read turn-around within GETMXDS CCC",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$additional.tgt_max_config.speed_limit==true"
+                    }
+                  ],
+                  "type": "string",
+                  "description": "The GETMXDS CCC is used to query a target device for its maximum supported data speed and related timing limitations.",
+                  "default": "1",
+                  "oneOf": [
+                    {
+                      "title": "Format 1, none",
+                      "const": "1"
+                    },
+                    {
+                      "title": "Format 2, LSB",
+                      "const": "2_LSB"
+                    },
+                    {
+                      "title": "Format 2, middle byte",
+                      "const": "2_MID"
+                    },
+                    {
+                      "title": "Format 2, MSB",
+                      "const": "2_MSB"
+                    }
+                  ]
+                }
+              }
+            },
+            "tgt_turn_around": {
+              "type": "object",
+              "title": "Turn-around",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ],
+              "properties": {
+                "ta_duration": {
+                  "title": "Clock to data turn-around time (tSCO)",
+                  "description": "Minimum interval between the falling edge of SCL and the moment when SDA changes state.",
+                  "type": "string",
+                  "default": "LESS_12NS",
+                  "oneOf": [
+                    {
+                      "title": "<= 12 ns",
+                      "const": "LESS_12NS"
+                    },
+                    {
+                      "title": "> 12 ns",
+                      "const": "GREATER_12NS"
+                    }
+                  ]
+                },
+                "ta_max_read": {
+                  "title": "Max read turn-around",
+                  "description": "Number of bytes the controller must wait (or insert as delay) after completing a read before the next bus transaction. This parameter must be between 0 and 255.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255,
+                  "default": 0
+                }
+              }
+            },
+            "tgt_fifo_config": {
+              "type": "object",
+              "title": "FIFO",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "$basic.mode == 'TGT'"
+                }
+              ],
+              "properties": {
+                "tx_fifo_threshold": {
+                  "title": "Tx FIFO threshold",
+                  "type": "string",
+                  "default": "1_8",
+                  "oneOf": [
+                    {
+                      "title": "1 byte / FIFO 8 bytes",
+                      "const": "1_8"
+                    },
+                    {
+                      "title": "1 word / FIFO 2 words",
+                      "const": "1_2"
+                    }
+                  ]
+                },
+                "rx_fifo_threshold": {
+                  "title": "Rx FIFO threshold",
+                  "type": "string",
+                  "default": "1_8",
+                  "oneOf": [
+                    {
+                      "title": "1 byte / FIFO 8 bytes",
+                      "const": "1_8"
+                    },
+                    {
+                      "title": "1 word / FIFO 2 words",
+                      "const": "1_2"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security_privilege": {
+          "title": "Security and privilege",
+          "description": "Manage security and privileged access levels attributes.",
+          "type": "object",
+          "actions": [
+            {
+              "type": "exclude",
+              "condition": "($get('swproject.getCurrentEngine') === null) || ($get('swproject.getCurrentEngine').secure === 'TZ-disabled')"
+            },
+            {
+              "type": "set",
+              "condition": "$get('swproject.getCurrentEngine').secure === 'Non-secure'",
+              "attributes": {
+                "title": "Privileged",
+                "description": "Manage privileged access levels attributes."
+              }
+            }
+          ],
+          "properties": {
+            "security": {
+              "type": "string",
+              "title": "Security attribute",
+              "description": "Set the security attribute of the securable peripheral.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "SEC"
+                  },
+                  "condition": "$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "set",
+                  "attributes": {
+                    "const": "NSEC"
+                  },
+                  "condition": "!$get('peripheral.isBound', $resource.id)"
+                },
+                {
+                  "type": "disable",
+                  "condition": "$get('peripheral.isBound', $resource.id)",
+                  "message": "The security attribute of the peripheral is automatically set to secure when the peripheral is bound to a secure resource and to non-secure when it is not. Manual configuration is not allowed."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-sec-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Secure",
+                  "const": "SEC"
+                },
+                {
+                  "title": "Non-secure",
+                  "const": "NSEC"
+                }
+              ],
+              "default": "NSEC"
+            },
+            "privilege": {
+              "type": "string",
+              "title": "Privileged attribute",
+              "description": "Manage the privileged attribute of a securable RISC peripheral.",
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-priv-attr",
+                "custom": "$resource.id"
+              },
+              "oneOf": [
+                {
+                  "title": "Privileged",
+                  "const": "PRIV"
+                },
+                {
+                  "title": "Unprivileged",
+                  "const": "NPRIV"
+                }
+              ],
+              "default": "PRIV"
+            },
+            "lock": {
+              "type": "boolean",
+              "title": "Lock",
+              "description": "Optional. Lock security and privilege attributes to prevent changes.",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-risc-peripheral-lock-attr",
+                "custom": "$resource.id"
+              },
+              "default": false
+            },
+            "illegal_access": {
+              "title": "Illegal access interrupt",
+              "actions": [
+                {
+                  "type": "include",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure') || ($get('swproject.getCurrentEngine').secure === 'Secure-only')"
+                },
+                {
+                  "type": "disable",
+                  "condition": "($get('swproject.getCurrentEngine').secure === 'Secure-only')",
+                  "message": "Secure-only mode: Illegal access interrupt is forced to disabled."
+                }
+              ],
+              "synchronize": true,
+              "synchronizeOn": {
+                "component": "ST-HAL",
+                "path": "rif-iac-peripheral",
+                "custom": "$resource.id"
+              },
+              "type": "boolean",
+              "default": false
+            }
+          }
+        },
+        "system": {
+          "type": "object",
+          "title": "System",
+          "properties": {
+            "gpio": {
+              "type": "object",
+              "title": "GPIO",
+              "properties": {
+                "gpio_scl": {
+                  "type": "object",
+                  "title": "GPIO SCL",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "SCL",
+                      "constraints": {
+                        "pull": {
+                          "allow": [
+                            "UP",
+                            "NO"
+                          ]
+                        },
+                        "mode": {
+                          "const": "ALTERNATE"
+                        },
+                        "output_type": {
+                          "const": "PUSHPULL"
+                        },
+                        "speed": {
+                          "default": "HIGH"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "error",
+                      "message": "The selected I3C peripheral cannot be mapped to a SCL pin: no pin available in the selected package.",
+                      "condition": "!$get('pinout.peripheralCanBeMapped', $resource.id, 'SCL')"
+                    }
+                  ]
+                },
+                "gpio_sda": {
+                  "type": "object",
+                  "title": "GPIO SDA",
+                  "objectType": "need.pinout.signals",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_GPIO_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "SDA",
+                      "constraints": {
+                        "pull": {
+                          "allow": [
+                            "UP",
+                            "NO"
+                          ]
+                        },
+                        "mode": {
+                          "const": "ALTERNATE"
+                        },
+                        "output_type": {
+                          "const": "PUSHPULL"
+                        },
+                        "speed": {
+                          "default": "HIGH"
+                        }
+                      }
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "error",
+                      "message": "The selected I3C peripheral cannot be mapped to a SDA pin: no pin available in the selected package.",
+                      "condition": "!$get('pinout.peripheralCanBeMapped', $resource.id, 'SDA')"
+                    }
+                  ]
+                }
+              }
+            },
+            "dma": {
+              "type": "object",
+              "title": "DMA",
+              "properties": {
+                "enable_dma_tx": {
+                  "type": "boolean",
+                  "title": "DMA transmit data (Tx)",
+                  "default": false
+                },
+                "dma_config_tx": {
+                  "title": "DMA transmit data (Tx)",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_tx && (($additional?.tgt_fifo_config?.tx_fifo_threshold == '1_8') || ($additional?.ctrl_fifo_config?.tx_fifo_threshold == '1_8'))"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "TX",
+                      "constraints": {
+                        "dma_mode": {
+                          "const": 0
+                        },
+                        "direction": {
+                          "const": "MEMORY_TO_PERIPH"
+                        },
+                        "src_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "src_data_width": {
+                          "default": "BYTE"
+                        },
+                        "dest_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_data_width": {
+                          "const": "BYTE"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "dma_config_tx_4bytes": {
+                  "title": "DMA transmit data (Tx)",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_tx && (($additional?.tgt_fifo_config?.tx_fifo_threshold == '1_2') || ($additional?.ctrl_fifo_config?.tx_fifo_threshold == '1_2'))"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "TX",
+                      "constraints": {
+                        "dma_mode": {
+                          "const": 0
+                        },
+                        "direction": {
+                          "const": "MEMORY_TO_PERIPH"
+                        },
+                        "src_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "src_data_width": {
+                          "default": "WORD"
+                        },
+                        "dest_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_data_width": {
+                          "const": "WORD"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "enable_dma_rx": {
+                  "type": "boolean",
+                  "title": "DMA receive data (Rx)",
+                  "default": false
+                },
+                "dma_config_rx": {
+                  "title": "DMA receive data (Rx)",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_rx && (($additional?.tgt_fifo_config?.rx_fifo_threshold == '1_8') || ($additional?.ctrl_fifo_config?.rx_fifo_threshold == '1_8'))"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "RX",
+                      "constraints": {
+                        "dma_mode": {
+                          "const": 0
+                        },
+                        "direction": {
+                          "const": "PERIPH_TO_MEMORY"
+                        },
+                        "src_inc": {
+                          "const": "FIXED"
+                        },
+                        "src_data_width": {
+                          "const": "BYTE"
+                        },
+                        "dest_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "dest_data_width": {
+                          "default": "BYTE"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "dma_config_rx_4bytes": {
+                  "title": "DMA receive data (Rx)",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_rx && (($additional?.tgt_fifo_config?.rx_fifo_threshold == '1_2') || ($additional?.ctrl_fifo_config?.rx_fifo_threshold == '1_2'))"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "RX",
+                      "constraints": {
+                        "dma_mode": {
+                          "const": 0
+                        },
+                        "direction": {
+                          "const": "PERIPH_TO_MEMORY"
+                        },
+                        "src_inc": {
+                          "const": "FIXED"
+                        },
+                        "src_data_width": {
+                          "const": "WORD"
+                        },
+                        "dest_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "dest_data_width": {
+                          "default": "WORD"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "enable_dma_tc": {
+                  "type": "boolean",
+                  "title": "DMA transmit control (TC)",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$basic.mode == 'CTRL'"
+                    }
+                  ],
+                  "default": false
+                },
+                "dma_config_tc": {
+                  "title": "DMA transmit control (TC)",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.dma.enable_dma_tc"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.dma.channels",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_DMA_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "TC",
+                      "constraints": {
+                        "dma_mode": {
+                          "const": 0
+                        },
+                        "direction": {
+                          "const": "MEMORY_TO_PERIPH"
+                        },
+                        "src_inc": {
+                          "default": "INCREMENTED"
+                        },
+                        "src_data_width": {
+                          "default": "WORD"
+                        },
+                        "dest_inc": {
+                          "const": "FIXED"
+                        },
+                        "dest_data_width": {
+                          "const": "WORD"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "nvic": {
+              "type": "object",
+              "title": "NVIC",
+              "properties": {
+                "enable_event_interruption": {
+                  "type": "boolean",
+                  "title": "Event interrupt",
+                  "default": false
+                },
+                "event_irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "IRQ handler generation",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_event_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "nvic_config_event": {
+                  "title": "NVIC event",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_event_interruption"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "EV"
+                    }
+                  ]
+                },
+                "enable_error_interruption": {
+                  "type": "boolean",
+                  "title": "Error interrupt",
+                  "default": false
+                },
+                "error_irq_handler_generation": {
+                  "type": "boolean",
+                  "title": "IRQ handler generation",
+                  "default": true,
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_error_interruption && $info.layer === 'HAL'"
+                    }
+                  ]
+                },
+                "nvic_config_error": {
+                  "title": "NVIC error",
+                  "actions": [
+                    {
+                      "type": "include",
+                      "condition": "$system.nvic.enable_error_interruption"
+                    }
+                  ],
+                  "type": "object",
+                  "objectType": "need.interrupt.lines",
+                  "variables": [
+                    {
+                      "on": "update-value",
+                      "name": "HAL_CORTEX_PROJECT_USE_HAL",
+                      "condition": "$info.layer === 'HAL'",
+                      "semaphore": true
+                    }
+                  ],
+                  "owner": "$resource.id",
+                  "needs": [
+                    {
+                      "selector": "ERR"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
