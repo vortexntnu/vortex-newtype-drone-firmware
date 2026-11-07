@@ -22,5 +22,6 @@ typedef struct {
 
 
 void esc_init(UART_HandleTypeDef *huart);
+EscTelemetry esc_fetch_latest_telemetry();
 
 #endif

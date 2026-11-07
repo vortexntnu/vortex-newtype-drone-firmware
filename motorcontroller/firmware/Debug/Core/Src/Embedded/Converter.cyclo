@@ -1,8 +1,9 @@
-../Core/Src/Embedded/converter.c:10:6:is_character_number	3
-../Core/Src/Embedded/converter.c:15:6:is_character_int_separator	4
-../Core/Src/Embedded/converter.c:20:6:will_overflow	1
-../Core/Src/Embedded/converter.c:29:9:converter_uint_to_string_length	3
-../Core/Src/Embedded/converter.c:41:9:converter_uint_to_string	5
-../Core/Src/Embedded/converter.c:67:9:converter_string_to_uint	9
-../Core/Src/Embedded/converter.c:100:9:converter_int_to_string	2
-../Core/Src/Embedded/converter.c:121:6:converter_int_to_byte_string	3
+../Core/Src/Embedded/converter.c:12:6:is_character_number	3
+../Core/Src/Embedded/converter.c:17:6:is_character_int_separator	4
+../Core/Src/Embedded/converter.c:22:6:will_overflow	1
+../Core/Src/Embedded/converter.c:31:9:converter_uint_to_string_length	3
+../Core/Src/Embedded/converter.c:43:9:converter_uint_to_string	5
+../Core/Src/Embedded/converter.c:69:9:converter_string_to_uint	9
+../Core/Src/Embedded/converter.c:102:9:converter_int_to_string	2
+../Core/Src/Embedded/converter.c:123:6:converter_int_to_byte_string	3
+../Core/Src/Embedded/converter.c:144:9:converter_float_to_string	10

@@ -1,7 +1,7 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-#include <commands.h>
+#include "Embedded/commands.h"
 #include "main.h"
 #include <string.h>
 #include <stdarg.h>

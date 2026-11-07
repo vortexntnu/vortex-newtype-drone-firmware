@@ -30,38 +30,54 @@ static uint16_t be16(const uint8_t *p) { return (p[0] << 8) | p[1]; }
 
 static void listen()
 {
-	HAL_UARTEx_ReceiveToIdle_DMA(uart, telemetry_buffer, FRAME_SIZE);
+//	HAL_UART_AbortReceive(uart);
+//	__HAL_UART_CLEAR_OREFLAG(uart);
+//	__HAL_UART_CLEAR_FEFLAG(uart);
+//	__HAL_UART_CLEAR_NEFLAG(uart);
+
+	HAL_StatusTypeDef status = HAL_UARTEx_ReceiveToIdle_DMA(uart, telemetry_buffer, FRAME_SIZE);
+	if (status != HAL_OK) debug_print("Something happened, uh oh");
+
 	__HAL_DMA_DISABLE_IT(uart->hdmarx, DMA_IT_HT);
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
-    if (huart != uart) return;
+//    debug_print("Received new telemetry");
+
+	if (huart != uart) return;
 
 //    SCB_InvalidateDCache_by_Addr((uint32_t *)telemetry_buffer, sizeof(telemetry_buffer));
 
-    if (size == FRAME_SIZE && crc8(telemetry_buffer, 9) == telemetry_buffer[9]) {
-        latest.temperature    = telemetry_buffer[0];
-        latest.voltage        = be16(&telemetry_buffer[1]) / 100.0f;
-        latest.current        = be16(&telemetry_buffer[3]) / 100.0f;
-        latest.consumption    = be16(&telemetry_buffer[5]);
-        latest.erpm           = be16(&telemetry_buffer[7]) * 100;
-    }
+//    if (size == FRAME_SIZE && crc8(telemetry_buffer, 9) == telemetry_buffer[9]) {
+//        latest.temperature    = telemetry_buffer[0];
+//        latest.voltage        = be16(&telemetry_buffer[1]) / 100.0f;
+//        latest.current        = be16(&telemetry_buffer[3]) / 100.0f;
+//        latest.consumption    = be16(&telemetry_buffer[5]);
+//        latest.erpm           = be16(&telemetry_buffer[7]) * 100;
+//    }
 
-    char string[11];
-    converter_int_to_string(string, latest.temperature);
-    debug_init("Temperature: %", string);
+	latest.temperature = telemetry_buffer[0];
+	latest.voltage = (float)((uint16_t)(telemetry_buffer[1] << 8) | (telemetry_buffer[2])) / 100.0;
+	latest.current = (float)((uint16_t)(telemetry_buffer[3] << 8) | (telemetry_buffer[4])) / 100.0;
+	latest.consumption = (uint16_t)(telemetry_buffer[5] << 8) | (telemetry_buffer[6]);
+	latest.erpm = (uint32_t)(telemetry_buffer[7] << 8) | (telemetry_buffer[8]) * 100;
 
     listen();
 }
 
-//void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
-//{
-//    if (huart == uart) listen();
-//}
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    if (huart == uart) listen();
+}
 
 void esc_init(UART_HandleTypeDef *huart)
 {
 	uart = huart;
 	listen();
+}
+
+EscTelemetry esc_fetch_latest_telemetry()
+{
+	return latest;
 }
