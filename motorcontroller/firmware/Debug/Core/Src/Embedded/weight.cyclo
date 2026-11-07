@@ -1,0 +1,5 @@
+../Core/Src/Embedded/weight.c:29:13:append_raw_reading	2
+../Core/Src/Embedded/weight.c:39:16:fetch_weight	2
+../Core/Src/Embedded/weight.c:56:6:weight_read	2
+../Core/Src/Embedded/weight.c:67:6:weight_tare	2
+../Core/Src/Embedded/weight.c:83:6:weight_tareall	2

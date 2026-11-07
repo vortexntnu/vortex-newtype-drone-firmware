@@ -6,7 +6,7 @@
 "./Core/Src/Embedded/converter.o"
 "./Core/Src/Embedded/debug.o"
 "./Core/Src/Embedded/dshot.o"
-"./Core/Src/Embedded/pwm.o"
+"./Core/Src/Embedded/esc.o"
 "./Core/Src/Embedded/weight.o"
 "./Core/Src/Interface/bridge.o"
 "./Core/Src/freertos.o"
