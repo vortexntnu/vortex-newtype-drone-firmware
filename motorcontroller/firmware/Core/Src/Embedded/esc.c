@@ -30,6 +30,11 @@ static uint16_t be16(const uint8_t *p) { return (p[0] << 8) | p[1]; }
 
 static void listen()
 {
+//	HAL_UART_AbortReceive(uart);
+//	__HAL_UART_CLEAR_OREFLAG(uart);
+//	__HAL_UART_CLEAR_FEFLAG(uart);
+//	__HAL_UART_CLEAR_NEFLAG(uart);
+
 	HAL_StatusTypeDef status = HAL_UARTEx_ReceiveToIdle_DMA(uart, telemetry_buffer, FRAME_SIZE);
 	if (status != HAL_OK) debug_print("Something happened, uh oh");
 
@@ -38,7 +43,7 @@ static void listen()
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
-    debug_print("Received new telemetry");
+//    debug_print("Received new telemetry");
 
 	if (huart != uart) return;
 
@@ -51,6 +56,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 //        latest.consumption    = be16(&telemetry_buffer[5]);
 //        latest.erpm           = be16(&telemetry_buffer[7]) * 100;
 //    }
+
+	latest.temperature = telemetry_buffer[0];
+	latest.voltage = (float)((uint16_t)(telemetry_buffer[1] << 8) | (telemetry_buffer[2])) * 100.0;
+	latest.current = (float)((uint16_t)(telemetry_buffer[3] << 8) | (telemetry_buffer[4])) * 100.0;
+	latest.consumption = (uint16_t)(telemetry_buffer[3] << 8) | (telemetry_buffer[4]);
+	latest.erpm = (uint32_t)(telemetry_buffer[5] << 8) | (telemetry_buffer[6]) * 100;
 
     listen();
 }
@@ -68,9 +79,22 @@ void esc_init(UART_HandleTypeDef *huart)
 
 EscTelemetry esc_fetch_latest_telemetry()
 {
-	char string[11];
-	converter_int_to_string(string, latest.temperature);
-	debug_print("Temperature: %", string);
+	char temperature_string[11];
+	converter_int_to_string(temperature_string, (uint8_t)latest.temperature);
+
+	char voltage_string[11];
+	converter_int_to_string(voltage_string, (uint32_t)latest.voltage);
+
+	char current_string[11];
+	converter_int_to_string(current_string, (uint32_t)latest.current);
+
+	char consumption_string[11];
+	converter_int_to_string(consumption_string, (uint16_t)latest.consumption);
+
+	char erpm_string[11];
+	converter_int_to_string(erpm_string, (uint32_t)latest.erpm);
+
+	debug_print("% C,\t% mV,\t% mA,\t% mAh,\t% eRPM", temperature_string, voltage_string, current_string, consumption_string, erpm_string);
 
 	return latest;
 }

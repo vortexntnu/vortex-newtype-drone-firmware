@@ -12,7 +12,7 @@ uint32_t controller_weight()
 {
 	BSP_LED_Toggle(LED_RED);
 
-//	esc_fetch_latest_telemetry();
+	esc_fetch_latest_telemetry();
 
 //	int32_t weight_value;
 //	char weight_string[20];
