@@ -7,25 +7,16 @@
 
 enum canide
 {
-	CAN_PING,
-	CAN_PONG,
-};
-int canids[] =
-{
-	[CAN_PING] = 0x080,
-	[CAN_PONG] = 0x081,
+	CAN_ID_BASE = 0x080,
+	CAN_PING = 0x080,
+	CAN_PONG = 0x081,
+	CAN_ID_END,
 };
 enum sendide
 {
-	CAN_SEND_PING,
-	CAN_SEND_PONG,
-	CAN_SEND_ERR,
-};
-int sendids[] =
-{
-	[CAN_SEND_PING] = 0x084,
-	[CAN_SEND_PONG] = 0x085,
-	[CAN_SEND_ERR] = 0x086,
+	CAN_SEND_PING = 0x084,
+	CAN_SEND_PONG = 0x085,
+	CAN_SEND_ERR = 0x086,
 };
 
 uint8_t cansbuf[8];
@@ -34,7 +25,7 @@ int power_can_senderror(uint32_t code)
 {
 	((uint32_t*)cansbuf)[0] = 0xefbeadde; // deadbeef
 	((uint32_t*)cansbuf)[1] = code;
-	can_senddata(1, cansbuf, 8, sendids[CAN_SEND_ERR]);
+	can_senddata(1, cansbuf, 8, CAN_SEND_ERR);
 //	err(2);
 	return 1;
 }
@@ -45,7 +36,7 @@ int power_can_spong(int caninst, int code)
 	((uint32_t*)cansbuf)[0] = 0xefbeafde; // deafbeef;
 	((uint16_t*)cansbuf)[2] = pingc;
 	((uint16_t*)cansbuf)[3] = code;
-	can_senddata(caninst, cansbuf, 8, sendids[CAN_SEND_PONG]);
+	can_senddata(caninst, cansbuf, 8, CAN_SEND_PONG);
 	return 0;
 }
 
@@ -61,29 +52,23 @@ int power_can_rping(int caninst)
 
 int (*canrfns[])(int caninst) =
 {
-	[CAN_PING] = power_can_rping,
+	[CAN_PING - CAN_ID_BASE] = power_can_rping,
+	[CAN_PONG - CAN_ID_BASE] = NULL,
 };
 
 int power_can_recvdcallback(void* canhan)
 {
-	int type = -1;
 	char size = 0;
 	int id = 0;
 	can_getdata(1 + (canhan == pcanhan2), canrbuf, &size, &id);
-	for(unsigned long i = 0; i < sizeof(canids)/sizeof(canids[0]); ++i)
-	{
-		if(canids[i] == id)
-		{
-			type = i;
-			break;
-		}
-	}
-	if(!~id)
+
+	if(id < CAN_ID_BASE && id > CAN_ID_END)
 	{
 		power_can_senderror(0x42);
 		return 0;
 	}
-	canrfns[type](1 + (canhan == pcanhan2));
+	if(canrfns[id - CAN_ID_BASE])
+		canrfns[id - CAN_ID_BASE](1 + (canhan == pcanhan2));
 	return 0;
 }
 
