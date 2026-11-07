@@ -249,6 +249,7 @@ static int can_try_send_data(int caninst, uint8_t* data, uint8_t can_size, uint1
 
 int can_resend(void* caninstfp)
 {
+	noerr(1);
 	size_t caninst = (size_t)caninstfp;
 	for(; !can_try_send_data(caninst, &queue[caninst - 1][startq[caninst - 1]],
 				 sizes[caninst - 1][startm[caninst - 1]],

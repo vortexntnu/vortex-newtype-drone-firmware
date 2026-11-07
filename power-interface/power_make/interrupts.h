@@ -23,6 +23,7 @@ enum FUNCTION_INDICES
 };
 
 int push_interrupt(uint8_t type, uint8_t index, void* payload);
+int push_new_interrupt(uint8_t type, uint8_t index, void* payload);
 int interrupt_loop(void);
 
 #endif /* INTERRUPTS_H_ */

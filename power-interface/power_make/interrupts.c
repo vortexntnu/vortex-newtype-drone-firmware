@@ -46,6 +46,19 @@ int push_interrupt(uint8_t type, uint8_t index, void* payload)
 	return 0;
 }
 
+// don't push if an interrupt of same type is already queued
+int push_new_interrupt(uint8_t type, uint8_t index, void* payload)
+{
+	for(uint8_t i = start; i != end; ++i)
+		if(indices[i] == index)
+			return -1;
+	if(full)
+		for(int i = 0; i < 256; ++i)
+			if(indices[i] == index)
+				return -1;
+	return push_interrupt(type, index, payload);
+}
+
 int interrupt_loop(void)
 {
 	for(;1;)
@@ -61,6 +74,7 @@ int interrupt_loop(void)
 			if(interrupted > 0xffff)
 				break;
 		}
+		interrupted = 0;
 		for(; start != end || full; start++)
 		{
 			ifns[indices[start]](payloads[start]);

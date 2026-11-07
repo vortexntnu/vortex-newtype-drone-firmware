@@ -53,7 +53,6 @@ uint8_t canrbuf[8];
 uint8_t spibuf[8];
 int power_can_rping(int caninst)
 {
-//	spi_slave_recv(8); // this is currently not init
 	((uint32_t*)spibuf)[0] = 0xadde;
 	spi_sdm_send((char*)spibuf, 8);
 	power_can_spong(caninst, 0x42);
@@ -127,6 +126,7 @@ int power_spi_errcallback(void* unused)
 // this function runs automatically once in a while
 int power_stick_callback(void* stock)
 {
+	++*(uint32_t*)stock;
 	uint32_t stick = *(uint32_t*)stock;
 	power_can_spong(1, stick);
 	return 0;
