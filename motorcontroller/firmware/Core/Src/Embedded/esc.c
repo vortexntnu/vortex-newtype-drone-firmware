@@ -58,10 +58,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 //    }
 
 	latest.temperature = telemetry_buffer[0];
-	latest.voltage = (float)((uint16_t)(telemetry_buffer[1] << 8) | (telemetry_buffer[2])) * 100.0;
-	latest.current = (float)((uint16_t)(telemetry_buffer[3] << 8) | (telemetry_buffer[4])) * 100.0;
-	latest.consumption = (uint16_t)(telemetry_buffer[3] << 8) | (telemetry_buffer[4]);
-	latest.erpm = (uint32_t)(telemetry_buffer[5] << 8) | (telemetry_buffer[6]) * 100;
+	latest.voltage = (float)((uint16_t)(telemetry_buffer[1] << 8) | (telemetry_buffer[2])) / 100.0;
+	latest.current = (float)((uint16_t)(telemetry_buffer[3] << 8) | (telemetry_buffer[4])) / 100.0;
+	latest.consumption = (uint16_t)(telemetry_buffer[5] << 8) | (telemetry_buffer[6]);
+	latest.erpm = (uint32_t)(telemetry_buffer[7] << 8) | (telemetry_buffer[8]) * 100;
 
     listen();
 }
@@ -79,22 +79,5 @@ void esc_init(UART_HandleTypeDef *huart)
 
 EscTelemetry esc_fetch_latest_telemetry()
 {
-	char temperature_string[11];
-	converter_int_to_string(temperature_string, (uint8_t)latest.temperature);
-
-	char voltage_string[11];
-	converter_int_to_string(voltage_string, (uint32_t)latest.voltage);
-
-	char current_string[11];
-	converter_int_to_string(current_string, (uint32_t)latest.current);
-
-	char consumption_string[11];
-	converter_int_to_string(consumption_string, (uint16_t)latest.consumption);
-
-	char erpm_string[11];
-	converter_int_to_string(erpm_string, (uint32_t)latest.erpm);
-
-	debug_print("% C,\t% mV,\t% mA,\t% mAh,\t% eRPM", temperature_string, voltage_string, current_string, consumption_string, erpm_string);
-
 	return latest;
 }
