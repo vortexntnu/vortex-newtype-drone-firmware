@@ -23,7 +23,7 @@ bool will_overflow(uint32_t current_value, uint8_t digit)
 }
 
 
-// uint32_t
+//
 
 
 uint8_t converter_uint_to_string_length(uint32_t number)
@@ -91,43 +91,4 @@ uint8_t converter_string_to_uint(uint32_t *output, const char string[])
 
 	*output = value;
 	return length;
-}
-
-
-// int32_t
-
-
-uint8_t converter_int_to_string(char *output, int32_t number)
-{
-	uint8_t offset = 0;
-	uint32_t magnitude;
-
-	if (number < 0) {
-		output[offset++] = '-';
-		magnitude = (uint32_t)0 - (uint32_t)number;   // trygt også for INT32_MIN
-	} else {
-		magnitude = (uint32_t)number;
-	}
-
-	uint8_t digits = converter_uint_to_string(output + offset, magnitude);
-
-	return offset + digits;
-}
-
-
-// binary representation
-
-
-bool converter_int_to_byte_string(char *output, int32_t number)
-{
-	for (uint8_t i = 0; i < 32; i++)
-	{
-		bool isZero = (number & 1u) == 0;
-
-		number >>= 1;
-		output[31 - i] = isZero ? '0' : '1';
-	}
-	output[32] = '\0';
-
-	return true;
 }

@@ -1,46 +1,43 @@
 #include <controller.h>
+#include <converter.h>
+#include <debug.h>
+#include <dshot.h>
+#include <pwm.h>
+#include <weight.h>
+#include "main.h"
 
 UART_HandleTypeDef *COMMUNICATION_PORT = &hcom_uart[COM1];
 
-extern UART_HandleTypeDef huart4;
+//
+
+
+
 
 
 //
 
 
-uint32_t controller_weight()
-{
-	BSP_LED_Toggle(LED_RED);
-
-//	int32_t weight_value;
-//	char weight_string[20];
-
-//	weight_read(&weight_value);
-//	converter_int_to_string(weight_string, weight_value);
-//	debug_print("Weight: %", weight_string);
-
-	return 500;
+void controller_init() {
+	pwm_init();
+	weight_init();
 }
 
-uint32_t controller_dshot()
-{
-	dshot_update();
-	return 1;
+void controller_main() {
+	debug_read_uart();
+
+//	dshot_update();
 }
 
-
-//
-
-
-void controller_init()
-{
-	dshot_init();
-	debug_init();
-	esc_init(&huart4);
-}
-
-uint32_t controller_main()
-{
+void controller_blinky() {
 	BSP_LED_Toggle(LED_GREEN);
-	return 1000;
+//	dshot_update();
+
+	uint16_t weight = weight_read(1);
+	char string[10];
+	converter_uint_to_string(string, weight);
+	debug_print(string);
+}
+
+void controller_can() {
+
 }

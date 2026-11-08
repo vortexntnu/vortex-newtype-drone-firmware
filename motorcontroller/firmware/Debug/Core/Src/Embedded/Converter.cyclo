@@ -4,5 +4,3 @@
 ../Core/Src/Embedded/converter.c:29:9:converter_uint_to_string_length	3
 ../Core/Src/Embedded/converter.c:41:9:converter_uint_to_string	5
 ../Core/Src/Embedded/converter.c:67:9:converter_string_to_uint	9
-../Core/Src/Embedded/converter.c:100:9:converter_int_to_string	2
-../Core/Src/Embedded/converter.c:121:6:converter_int_to_byte_string	3
