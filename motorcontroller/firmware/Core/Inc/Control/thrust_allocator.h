@@ -14,8 +14,8 @@ typedef enum {
 
 typedef struct {
     double tau[6];
-    double lower[8];
-    double upper[8];
+    double lower_force_bound[8];
+    double upper_force_bound[8];
     double x0[8];
 } AllocatorInputs;
 
