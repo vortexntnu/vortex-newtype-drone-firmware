@@ -1,2 +1,0 @@
-../Core/Src/Interface/bridge.c:7:6:bridge_lookup_duty	1
-../Core/Src/Interface/bridge.c:12:6:bridge_duty_to_dshot	1

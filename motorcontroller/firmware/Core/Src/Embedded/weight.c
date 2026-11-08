@@ -3,10 +3,10 @@
 #include <converter.h>
 
 extern SPI_HandleTypeDef hspi1;
-extern SPI_HandleTypeDef hspi3;
+extern SPI_HandleTypeDef hspi2;
 
 
-#define LOAD_CHANNEL_COUNT 2
+#define LOAD_CHANNEL_COUNT 1
 #define RAW_READING_HISTORY_LENGTH 10
 
 typedef struct {
@@ -18,9 +18,10 @@ typedef struct {
 
 
 LoadChannel LoadChannels[LOAD_CHANNEL_COUNT] = {
-	{ .hspi = &hspi1, .tare = -113658, .scale = 211 },
-	{ .hspi = &hspi3, .tare = -113658, .scale = 211 }
+	{ .hspi = &hspi1, .tare = -113658, .scale = 211 }
+//	{ .hspi = hspi2 }
 };
+
 
 //
 
@@ -57,7 +58,7 @@ bool weight_read(int32_t *output)
 	for (uint8_t i = 0; i < LOAD_CHANNEL_COUNT; i++)
 	{
 		int32_t weight = fetch_weight(&LoadChannels[i]);
-		output[i] = weight;
+		*output = weight;
 	}
 
 	return true;
