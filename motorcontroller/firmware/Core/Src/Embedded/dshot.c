@@ -1,116 +1,133 @@
-//#include <stdbool.h>
-//#include <stdint.h>
-//#include "main.h"
-//
-//#define DSHOT_FRAME_BITS 16
-//
-//// DMA requires non-DTCM memory
-//__attribute__((section(".dma_buffer")))
-//static uint8_t dshot_tx_buf[DSHOT_FRAME_BITS];
-//
-//extern SPI_HandleTypeDef hspi1;
-//
-//static uint16_t DShot_BuildPacket(uint16_t throttle, bool telemetry)
-//{
-//    uint16_t packet = (throttle << 1) | (telemetry ? 1 : 0);
-//    uint16_t crc = (packet ^ (packet >> 4) ^ (packet >> 8)) & 0x0F;
-//    return (packet << 4) | crc;
-//}
-//
-//static void DShot_Encode(uint16_t packet, uint8_t *buf)
-//{
-//    for (int i = 0; i < DSHOT_FRAME_BITS; i++) {
-//        bool bit = (packet >> (DSHOT_FRAME_BITS - 1 - i)) & 0x01;
-////        buf[i] = bit ? 0b11111100 : 0b11100000;
-////        buf[i] = bit ? 0b00000011 : 0b00011111;
-//        buf[i] = bit ? 0b00011111 : 0b00000011;
-//
-//    }
-//}
-//
-//uint16_t currentDuty = 0;
-//
-//void dshot_update()
-//{
-////	if (HAL_SPI_GetState(&hspi1) != HAL_SPI_STATE_READY) {
-////		return false; // previous frame still sending
-////	}
-//
-//	uint16_t packet = DShot_BuildPacket(currentDuty, false);
-//	DShot_Encode(packet, dshot_tx_buf);
-//
-//	HAL_SPI_Transmit_DMA(&hspi1, dshot_tx_buf, DSHOT_FRAME_BITS);
-//}
-//
-//
-//// throttle: 0-2047 (0 = disarmed, 48-2047 = range)
-//void dshot_set_duty(uint16_t throttle, bool telemetry)
-//{
-//	currentDuty = throttle;
-//}//#include <stdbool.h>
-//#include <stdint.h>
-//#include "main.h"//#include <stdbool.h>
-//#include <stdint.h>
-//#include "main.h"//#include <stdbool.h>
-//#include <stdint.h>
-//#include "main.h"
-
-
-
-
-
-#include <stdbool.h>
-#include <stdint.h>
-#include "main.h"
+#include <Embedded/dshot.h>
 
 extern TIM_HandleTypeDef htim1;
 
+static DShotChannel channels[DSHOT_CHANNEL_COUNT] = {
+	{ .htim = &htim1, .channel = TIM_CHANNEL_1, .telemetry = true },
+//	{ .htim = &htim1, .channel = TIM_CHANNEL_2 },
+//	{ .htim = &htim1, .channel = TIM_CHANNEL_3 },
+//	{ .htim = &htim1, .channel = TIM_CHANNEL_4 },
+};
 
-#define DSHOT_BITS 16
-static uint16_t dshot_buf[DSHOT_BITS + 1];
-static uint16_t BIT0, BIT1;
+
+// Statics
+
+
+static uint16_t calculate_checksum(uint16_t data)
+{
+	uint16_t shift4 = data >> 4;
+	uint16_t shift8 = data >> 8;
+	uint16_t combined = data ^ shift4 ^ shift8;
+
+	return combined & 0xF;
+}
+
+static uint16_t calculate_packet(uint16_t throttle, bool telemetry)
+{
+	uint16_t data = (throttle << 1) | (telemetry ? 1 : 0);
+	uint16_t packet = (data << 4) | calculate_checksum(data);
+
+	return packet;
+}
+
+static void write_to_buffer(DShotChannel* Channel, uint16_t packet)
+{
+	for (int i = 0; i < DSHOT_BIT_COUNT; i++)
+	{
+		bool is_one = (packet & 0x8000) != 0;
+		Channel->buffer[i] = is_one ? Channel->BIT1 : Channel->BIT0;
+		packet <<= 1;
+	}
+	Channel->buffer[DSHOT_BIT_COUNT] = 0; // Make sure it'll end low no matter what disturbs the buffer
+}
+
+static void send_packet(DShotChannel* Channel)
+{
+	if (Channel->busy) return; // Deadlock if callback isn't called
+
+    uint16_t packet = calculate_packet(Channel->throttle, Channel->telemetry);
+
+    Channel->busy = true;
+    write_to_buffer(Channel, packet);
+
+    HAL_StatusTypeDef status = HAL_TIM_PWM_Start_DMA(Channel->htim, Channel->channel, (uint32_t*)Channel->buffer, DSHOT_BIT_COUNT + 1);
+    if (status != HAL_OK) {
+    	Channel->busy = false;
+    }
+
+    if (status == HAL_ERROR) {
+    	debug_print("Hal error");
+    }
+    if (status == HAL_BUSY) {
+		debug_print("Hal busy");
+        }
+    if (status == HAL_TIMEOUT) {
+		debug_print("Hal timeout");
+	}
+}
+
+
+// STM32 callbacks
+
+
+void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
+{
+	uint32_t channel;
+
+    switch (htim->Channel) {
+    	case HAL_TIM_ACTIVE_CHANNEL_1: channel = TIM_CHANNEL_1; break;
+    	case HAL_TIM_ACTIVE_CHANNEL_2: channel = TIM_CHANNEL_2; break;
+    	case HAL_TIM_ACTIVE_CHANNEL_3: channel = TIM_CHANNEL_3; break;
+    	case HAL_TIM_ACTIVE_CHANNEL_4: channel = TIM_CHANNEL_4; break;
+    	default: return;
+    }
+
+//    HAL_TIM_PWM_Stop_DMA(htim, channel);
+    __HAL_TIM_DISABLE_DMA(htim, channel);
+
+    for (int i = 0; i < DSHOT_CHANNEL_COUNT; i++)
+    {
+    	DShotChannel* Channel = &channels[i];
+    	if (Channel->htim != htim) continue;
+    	if (Channel->channel != channel) continue;
+
+    	Channel->busy = false;
+    	break;
+    }
+}
+
+
+// External interface
 
 
 void dshot_init()
 {
-	uint16_t period = __HAL_TIM_GET_AUTORELOAD(&htim1) + 1;  // 107 ved ARR = 106
-	BIT0 = (period * 3 + 4) / 8;   // 40
-	BIT1 = (period * 3 + 2) / 4;   // 80
+	for (uint8_t i = 0; i < DSHOT_CHANNEL_COUNT; i++)
+	{
+		DShotChannel* Channel = &channels[i];
+		uint16_t period = __HAL_TIM_GET_AUTORELOAD(Channel->htim) + 1; // 107 ved ARR = 106
+
+		Channel->BIT0 = (period * 3 + 4) / 8;   // 40
+		Channel->BIT1 = (period * 3 + 2) / 4;   // 80
+	}
 }
-
-void dshot_send_packet(uint16_t throttle, bool telem)
-{
-    uint16_t v = (throttle << 1) | (telem ? 1 : 0);
-    uint16_t crc = (v ^ (v >> 4) ^ (v >> 8)) & 0xF;
-    uint16_t packet = (v << 4) | crc;
-
-    for (int i = 0; i < DSHOT_BITS; i++) {
-        dshot_buf[i] = (packet & 0x8000) ? BIT1 : BIT0;
-        packet <<= 1;
-    }
-    dshot_buf[DSHOT_BITS] = 0;  // idle low
-
-    HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, (uint32_t*)dshot_buf, DSHOT_BITS + 1);
-}
-
-void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim)
-{
-    if (htim->Instance == TIM1) {
-        HAL_TIM_PWM_Stop_DMA(htim, TIM_CHANNEL_1);
-    }
-}
-
-
-
-uint16_t currentDuty = 0;
-
 
 void dshot_update()
 {
-	dshot_send_packet(currentDuty, false);
+	for (uint8_t i = 0; i < DSHOT_CHANNEL_COUNT; i++)
+	{
+		send_packet(&channels[i]);
+	}
 }
 
-void dshot_set_duty(uint16_t throttle, bool telemetry)
+void dshot_set_throttle(uint8_t channel, uint16_t throttle)
 {
-	currentDuty = throttle;
+	if (channel >= DSHOT_CHANNEL_COUNT) return;
+	channels[channel].throttle = throttle;
+}
+
+void dshot_set_telemetry(uint8_t channel, bool telemetry)
+{
+	if (channel >= DSHOT_CHANNEL_COUNT) return;
+	channels[channel].telemetry = telemetry;
 }
