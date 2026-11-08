@@ -8,7 +8,6 @@
 #include <stdbool.h>
 
 // TODO: Handle interrupts: NEW MSG, MSG LOST, BUS OFF, RAM ACCESS FAILURE
-// TODO: Change from CAN to FDCAN frame format
 
 static hal_fdcan_handle_t *s_hfdcan = NULL;
 
