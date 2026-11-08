@@ -4,6 +4,8 @@
 #define UINT_TO_STRING_MAX_ITERATIONS 10
 #define STRING_TO_UINT_MAX_ITERATIONS 100
 
+#define FLOAT_TO_STRING_MAX_DECIMALS 9
+
 //
 
 
@@ -23,7 +25,7 @@ bool will_overflow(uint32_t current_value, uint8_t digit)
 }
 
 
-//
+// uint32_t
 
 
 uint8_t converter_uint_to_string_length(uint32_t number)
@@ -90,5 +92,91 @@ uint8_t converter_string_to_uint(uint32_t *output, const char string[])
 	if (length == 0 || string[i] != '\0') return 0;
 
 	*output = value;
+	return length;
+}
+
+
+// int32_t
+
+
+uint8_t converter_int_to_string(char *output, int32_t number)
+{
+	uint8_t offset = 0;
+	uint32_t magnitude;
+
+	if (number < 0) {
+		output[offset++] = '-';
+		magnitude = (uint32_t)0 - (uint32_t)number;   // trygt også for INT32_MIN
+	} else {
+		magnitude = (uint32_t)number;
+	}
+
+	uint8_t digits = converter_uint_to_string(output + offset, magnitude);
+
+	return offset + digits;
+}
+
+
+// binary representation
+
+
+bool converter_int_to_byte_string(char *output, int32_t number)
+{
+	for (uint8_t i = 0; i < 32; i++)
+	{
+		bool isZero = (number & 1u) == 0;
+
+		number >>= 1;
+		output[31 - i] = isZero ? '0' : '1';
+	}
+	output[32] = '\0';
+
+	return true;
+}
+
+
+// float
+
+
+// Skriver `number` med fast antall desimaler. Returnerer lengden på strengen,
+// eller 0 hvis tallet er NaN eller utenfor uint32-området.
+// Bufferen må ha plass til 22 tegn (tegn + 10 sifre + '.' + 9 desimaler + '\0').
+uint8_t converter_float_to_string(char *output, float number, uint8_t decimals)
+{
+	if (decimals > FLOAT_TO_STRING_MAX_DECIMALS) decimals = FLOAT_TO_STRING_MAX_DECIMALS;
+	if (number != number) return 0;   // NaN
+	if (number >= 4294967296.0f || number <= -4294967296.0f) return 0;   // inf eller for stort
+
+	uint8_t length = 0;
+
+	if (number < 0) {
+		output[length++] = '-';
+		number = -number;
+	}
+
+	uint32_t scale = 1;
+	for (uint8_t i = 0; i < decimals; i++) scale *= 10;
+
+	uint32_t whole    = (uint32_t)number;
+	uint32_t fraction = (uint32_t)(((double)number - whole) * scale + 0.5);   // avrunder
+
+	if (fraction >= scale) {   // f.eks. 1.999 med 2 desimaler -> 2.00
+		whole++;
+		fraction -= scale;
+	}
+
+	length += converter_uint_to_string(output + length, whole);
+
+	if (decimals == 0) return length;
+
+	output[length++] = '.';
+
+	for (uint8_t i = decimals; i > 0; i--) {   // fyller bakfra, så ledende nuller blir med
+		output[length + i - 1] = fraction % 10 + '0';
+		fraction /= 10;
+	}
+	length += decimals;
+	output[length] = '\0';
+
 	return length;
 }

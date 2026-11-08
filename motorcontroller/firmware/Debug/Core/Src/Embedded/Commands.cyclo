@@ -1,3 +1,4 @@
-../Core/Src/Embedded/commands.c:26:6:command_pwm_set_duty	3
-../Core/Src/Embedded/commands.c:45:6:command_dshot_set_duty	3
-../Core/Src/Embedded/commands.c:81:6:commands_execute_command	8
+../Core/Src/Embedded/commands.c:26:6:command_dshot_set_throttle	4
+../Core/Src/Embedded/commands.c:56:6:command_weight_tare	3
+../Core/Src/Embedded/commands.c:74:6:command_weight_tareall	1
+../Core/Src/Embedded/commands.c:97:6:commands_execute_command	8

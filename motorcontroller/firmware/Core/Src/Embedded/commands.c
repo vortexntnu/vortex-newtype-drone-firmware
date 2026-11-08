@@ -1,7 +1,7 @@
 #include <commands.h>
 #include <converter.h>
 #include <dshot.h>
-#include <pwm.h>
+#include <weight.h>
 
 
 
@@ -23,42 +23,57 @@ typedef struct {
 //
 
 
-void command_pwm_set_duty(CommandContext *context)
+void command_dshot_set_throttle(CommandContext *Context)
 {
-	if (context->arguments_count == 0) {
-		debug_print("No duty given");
+	if (Context->arguments_count < 2) {
+		debug_print("Usage: dshot setthrottle {channel} {throttle}");
 		return;
 	}
 
-	char *duty_string = context->arguments_vector[0];
-	uint32_t duty;
+	char *channel_string = Context->arguments_vector[0];
+	char *throttle_string = Context->arguments_vector[1];
+	uint32_t channel;
+	uint32_t throttle;
 
-	if (!converter_string_to_uint(&duty, duty_string)) {
-		debug_print("Invalid DShot duty");
+	if (!converter_string_to_uint(&channel, channel_string)) {
+		debug_print("Invalid DShot channel");
 		return;
 	}
 
-	debug_print("Setting PWM duty to %", duty_string);
-	pwm_set_duty(duty);
+	if (!converter_string_to_uint(&throttle, throttle_string)) {
+		debug_print("Invalid DShot throttle");
+		return;
+	}
+
+	debug_print("Setting DShot channel %'s throttle to %", channel_string, throttle_string);
+	dshot_set_throttle(channel, throttle);
 }
 
-void command_dshot_set_duty(CommandContext *context)
+
+//
+
+
+void command_weight_tare(CommandContext *Context)
 {
-	if (context->arguments_count == 0) {
-		debug_print("No duty given");
+	if (Context->arguments_count < 1) {
+		debug_print("Usage: weight tare {channel}");
 		return;
 	}
 
-	char *duty_string = context->arguments_vector[0];
-	uint32_t duty;
+	char *channel_string = Context->arguments_vector[0];
+	uint32_t channel;
 
-	if (!converter_string_to_uint(&duty, duty_string)) {
-		debug_print("Invalid DShot duty");
+	if (!converter_string_to_uint(&channel, channel_string)) {
+		debug_print("Invalid weight channel");
 		return;
 	}
 
-	debug_print("Setting DShot duty to %", duty_string);
-	dshot_set_duty(duty, false);
+	weight_tare(channel);
+}
+
+void command_weight_tareall(CommandContext *Context)
+{
+	weight_tareall();
 }
 
 
@@ -66,8 +81,9 @@ void command_dshot_set_duty(CommandContext *context)
 
 
 static const StaticCommand COMMAND_TABLE[] = {
-    {"PWM",  "SetDuty", command_pwm_set_duty},
-	{"DShot",  "SetDuty", command_dshot_set_duty},
+	{"dshot", "setthrottle", command_dshot_set_throttle},
+	{"weight", "tare", command_weight_tare},
+	{"weight", "tareall", command_weight_tareall},
 };
 
 #define COMMAND_COUNT (sizeof(COMMAND_TABLE) / sizeof(COMMAND_TABLE[0]))
