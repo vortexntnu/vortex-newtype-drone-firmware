@@ -34,7 +34,7 @@
         (++) UART pins configuration:
             (+++) Enable the clock for the UART GPIOs.
             (+++) Configure these UART pins as alternate function pull-up.
-        (++) NVIC configuration if you need to use interrupt process (HAL_uart_transmit_IT()
+        (++) NVIC configuration if you need to use interrupt process (HAL_UART_Transmit_IT()
              and HAL_UART_Receive_IT() APIs):
             (+++) Configure the USARTx interrupt priority.
             (+++) Enable the NVIC USART IRQ handle.
@@ -43,7 +43,7 @@
                 RXNE interrupt, RX/TX FIFOs related interrupts and Error Interrupts)
                 are managed using the macros __HAL_UART_ENABLE_IT() and __HAL_UART_DISABLE_IT()
                 inside the transmit and receive processes.
-        (++) DMA Configuration if you need to use DMA process (HAL_uart_transmit_DMA()
+        (++) DMA Configuration if you need to use DMA process (HAL_UART_Transmit_DMA()
              and HAL_UART_Receive_DMA() APIs):
             (+++) Declare a DMA handle structure for the Tx/Rx channel.
             (+++) Enable the DMAx interface clock.
@@ -1038,16 +1038,16 @@ HAL_StatusTypeDef HAL_UART_UnRegisterRxEventCallback(UART_HandleTypeDef *huart)
             The HAL_UART_ErrorCallback()user callback will be executed when a communication error is detected
 
     (#) Blocking mode API's are :
-        (++) HAL_uart_transmit()
+        (++) HAL_UART_Transmit()
         (++) HAL_UART_Receive()
 
     (#) Non-Blocking mode API's with Interrupt are :
-        (++) HAL_uart_transmit_IT()
+        (++) HAL_UART_Transmit_IT()
         (++) HAL_UART_Receive_IT()
         (++) HAL_UART_IRQHandler()
 
     (#) Non-Blocking mode API's with DMA are :
-        (++) HAL_uart_transmit_DMA()
+        (++) HAL_UART_Transmit_DMA()
         (++) HAL_UART_Receive_DMA()
         (++) HAL_UART_DMAPause()
         (++) HAL_UART_DMAResume()
@@ -1116,7 +1116,7 @@ HAL_StatusTypeDef HAL_UART_UnRegisterRxEventCallback(UART_HandleTypeDef *huart)
   * @param Timeout Timeout duration.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_uart_transmit(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size, uint32_t Timeout)
+HAL_StatusTypeDef HAL_UART_Transmit(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size, uint32_t Timeout)
 {
   const uint8_t  *pdata8bits;
   const uint16_t *pdata16bits;
@@ -1306,7 +1306,7 @@ HAL_StatusTypeDef HAL_UART_Receive(UART_HandleTypeDef *huart, uint8_t *pData, ui
   * @param Size  Amount of data elements (u8 or u16) to be sent.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_uart_transmit_IT(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size)
+HAL_StatusTypeDef HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size)
 {
   /* Check that a Tx process is not already ongoing */
   if (huart->gState == HAL_UART_STATE_READY)
@@ -1415,7 +1415,7 @@ HAL_StatusTypeDef HAL_UART_Receive_IT(UART_HandleTypeDef *huart, uint8_t *pData,
   * @param Size  Amount of data elements (u8 or u16) to be sent.
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_uart_transmit_DMA(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size)
+HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, const uint8_t *pData, uint16_t Size)
 {
   /* Check that a Tx process is not already ongoing */
   if (huart->gState == HAL_UART_STATE_READY)
@@ -4051,7 +4051,7 @@ static void UART_DMARxOnlyAbortCallback(DMA_HandleTypeDef *hdma)
 /**
   * @brief TX interrupt handler for 7 or 8 bits data word length .
   * @note   Function is called under interruption only, once
-  *         interruptions have been enabled by HAL_uart_transmit_IT().
+  *         interruptions have been enabled by HAL_UART_Transmit_IT().
   * @param huart UART handle.
   * @retval None
   */
@@ -4080,7 +4080,7 @@ static void UART_TxISR_8BIT(UART_HandleTypeDef *huart)
 /**
   * @brief TX interrupt handler for 9 bits data word length.
   * @note   Function is called under interruption only, once
-  *         interruptions have been enabled by HAL_uart_transmit_IT().
+  *         interruptions have been enabled by HAL_UART_Transmit_IT().
   * @param huart UART handle.
   * @retval None
   */
@@ -4112,7 +4112,7 @@ static void UART_TxISR_16BIT(UART_HandleTypeDef *huart)
 /**
   * @brief TX interrupt handler for 7 or 8 bits data word length and FIFO mode is enabled.
   * @note   Function is called under interruption only, once
-  *         interruptions have been enabled by HAL_uart_transmit_IT().
+  *         interruptions have been enabled by HAL_UART_Transmit_IT().
   * @param huart UART handle.
   * @retval None
   */
@@ -4152,7 +4152,7 @@ static void UART_TxISR_8BIT_FIFOEN(UART_HandleTypeDef *huart)
 /**
   * @brief TX interrupt handler for 9 bits data word length and FIFO mode is enabled.
   * @note   Function is called under interruption only, once
-  *         interruptions have been enabled by HAL_uart_transmit_IT().
+  *         interruptions have been enabled by HAL_UART_Transmit_IT().
   * @param huart UART handle.
   * @retval None
   */

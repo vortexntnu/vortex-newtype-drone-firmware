@@ -18,7 +18,7 @@
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:978:19:HAL_TIM_OC_Stop_IT	21
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:1055:19:HAL_TIM_OC_Start_DMA	45
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:1219:19:HAL_TIM_OC_Stop_DMA	21
-../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:1322:19:HAL_TIM_pwm_init	3
+../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:1322:19:HAL_TIM_PWM_Init	3
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:1382:19:HAL_TIM_PWM_DeInit	3
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:1425:13:HAL_TIM_PWM_MspInit	1
 ../Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_tim.c:1440:13:HAL_TIM_PWM_MspDeInit	1

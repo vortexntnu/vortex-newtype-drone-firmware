@@ -62,16 +62,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define SPI5_MOSI___WEIGHT_CELL_AMPLIFIER_Pin GPIO_PIN_9
-#define SPI5_MOSI___WEIGHT_CELL_AMPLIFIER_GPIO_Port GPIOF
-#define MOTORCONTROLLER_4___SPI4_MOSI_Pin GPIO_PIN_14
-#define MOTORCONTROLLER_4___SPI4_MOSI_GPIO_Port GPIOE
-#define SPI2_MOSI___MOTORCONTROLLER_2_Pin GPIO_PIN_15
-#define SPI2_MOSI___MOTORCONTROLLER_2_GPIO_Port GPIOB
-#define MOTORCONTROLLER_1___SPI1_MOSI_Pin GPIO_PIN_7
-#define MOTORCONTROLLER_1___SPI1_MOSI_GPIO_Port GPIOD
-#define SPI3_MOSI___MOTORCONTROLLER_3_Pin GPIO_PIN_5
-#define SPI3_MOSI___MOTORCONTROLLER_3_GPIO_Port GPIOB
+#define Motorcontroller_Motor_1___TIM1_CH1_Pin GPIO_PIN_9
+#define Motorcontroller_Motor_1___TIM1_CH1_GPIO_Port GPIOE
+#define Motorcontroller_Motor_2__TIM1_CH2_Pin GPIO_PIN_11
+#define Motorcontroller_Motor_2__TIM1_CH2_GPIO_Port GPIOE
+#define Motorcontroller_Motor_3___TIM1_CH3_Pin GPIO_PIN_13
+#define Motorcontroller_Motor_3___TIM1_CH3_GPIO_Port GPIOE
+#define Motorcontroller_Motor_4___TIM1_CH4_Pin GPIO_PIN_14
+#define Motorcontroller_Motor_4___TIM1_CH4_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 
