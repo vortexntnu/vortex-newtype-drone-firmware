@@ -16,14 +16,11 @@ typedef struct {
 	uint16_t BIT1;
 
 	uint16_t buffer[DSHOT_BIT_COUNT + 1];
-	uint32_t channel;
+	uint16_t channel;
 	uint16_t throttle;
 
-	DMA_HandleTypeDef *hdma;
-	uint32_t dma_source;
-	volatile uint32_t *capture_compare_register;
-
-	bool telemetry;
+	bool		  telemetry;
+	volatile bool busy;
 } DShotChannel;
 
 

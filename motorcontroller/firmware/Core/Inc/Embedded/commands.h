@@ -1,7 +1,7 @@
 #ifndef COMMANDS_H_
 #define COMMANDS_H_
 
-#include "Embedded/debug.h"
+#include <debug.h>
 #include <string.h>
 #include <stdbool.h>
 
