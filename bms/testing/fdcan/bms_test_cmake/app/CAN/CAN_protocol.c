@@ -8,7 +8,7 @@
 bool CAN_protocol_gen_payload(uint8_t *payload, uint32_t timestamp_ms, uint32_t pack_voltage_mV, int32_t pack_current_mA, int16_t temperature_C, uint16_t soc_centiPercent, uint8_t valid_flags) {
   if (payload == NULL) return false;
 
-  uint16_t temp_centiC = (uint16_t)(temperature_C * 100);
+  uint16_t temp_centiC = (uint16_t)(temperature_C);
   
   for (int i = 0; i < 4; i++) {
     payload[i]   = (uint8_t)(timestamp_ms >> (8*i));

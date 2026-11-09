@@ -26,9 +26,9 @@ void app_init(void) {
     printf("CAN initialized successfully\r\n");
     // Other data
     telemetry.timestamp_ms    = 200;
-    telemetry.pack_voltage_mV = 48000;      // 48.00 V
-    telemetry.pack_current_mA = 1003;       // 1
-    telemetry.temperature_C   = 5633;
+    telemetry.pack_voltage_mV = 4800;      // 48.00 V
+    telemetry.pack_current_mA = 1003;      // 10.03 mA
+    telemetry.temperature_C   = 563;
     telemetry.soc_percent     = 7534;
     telemetry.valid_flags     = 0x0F;
     init = true;
@@ -82,13 +82,19 @@ bool _rx_mode(void) {
         int temperature_C = data.temperature_C;
         int temperature_magnitude =
             temperature_C < 0 ? -temperature_C : temperature_C;
+        uint32_t current_magnitude =
+            data.pack_current_mA < 0
+                ? (uint32_t)(-(data.pack_current_mA + 1)) + 1U
+                : (uint32_t)data.pack_current_mA;
         printf("Decoded telemetry:\n\r"
-            "| Timestamp: %lu ms | Pack voltage: %lu mV | Pack current: %ld mA "
-            "|\n\r"
-            "| Temperature: %s%d.%02d C | State of charge: %u.%02u%% | Valid "
-            "flags: 0x%02X |\n\r",
+            "| Timestamp: %lu ms | Pack voltage: %lu.%02lu mV | Pack current: %s%lu.%02lu mA |\n\r"
+            "| Temperature: %s%d.%02d C | State of charge: %u.%02u%% | Valid flags: 0x%02X |\n\r",
             (unsigned long)data.timestamp_ms,
-            (unsigned long)data.pack_voltage_mV / 100, (long)data.pack_current_mA / 100,
+            (unsigned long)(data.pack_voltage_mV / 100),
+            (unsigned long)(data.pack_voltage_mV % 100),
+            data.pack_current_mA < 0 ? "-" : "",
+            (unsigned long)(current_magnitude / 100),
+            (unsigned long)(current_magnitude % 100),
             temperature_C < 0 ? "-" : "", temperature_magnitude / 100,
             temperature_magnitude % 100,
             (unsigned int)(data.soc_percent / 100),
