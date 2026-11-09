@@ -9,7 +9,9 @@ include(cmake/target.cmake)
 include(cmake/${TOOLCHAIN_FILE})
 
 project(vortex_bms)
-add_executable(vortex_bms)
+add_executable(vortex_bms
+  Peripheral/CAN/CAN_protocol.c
+  Peripheral/CAN/CAN_protocol.h)
 include(cmake/files.cmake)
 include(cmake/flags.cmake)
 include(cmake/components.cmake)
