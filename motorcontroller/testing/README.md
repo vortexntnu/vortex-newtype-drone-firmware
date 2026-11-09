@@ -35,18 +35,17 @@ DShot `1048` is minimum throttle in the other direction.
 
 ## Running a live sweep
 
-Run one sweep on `COM12`, channel 1:
+Run one sweep on `COM12`, channel 0:
 
 ```powershell
-python testing\test_script.py `
+python test_script.py `
   --port COM12 `
-  --channel 1 `
+  --channel 0 `
   --start 48 `
   --stop 2047 `
   --step 1 `
   --dwell 1 `
   --cycles 1 `
-  --output thruster_test.csv
 ```
 
 The sweep goes from `start` to `stop` and then reverses. Use a positive step
@@ -150,6 +149,15 @@ Plot the default 3D graph:
 ```powershell
 python testing\plot_thruster_csv.py thruster_test.csv
 ```
+
+To plot every CSV file in a folder, pass the folder path instead:
+
+```powershell
+python testing\plot_thruster_csv.py data
+```
+
+All files are plotted in alphabetical order on the same plot, with one
+legend entry per file.
 
 The default axes are:
 

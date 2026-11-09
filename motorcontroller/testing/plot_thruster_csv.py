@@ -3,6 +3,7 @@
 Examples:
 
     python testing\\plot_thruster_csv.py thruster_test.csv
+    python testing\\plot_thruster_csv.py data
     python testing\\plot_thruster_csv.py thruster_test.csv --x dshot_value --y voltage --z thrust
     python testing\\plot_thruster_csv.py thruster_test.csv --list-columns
 """
@@ -59,6 +60,22 @@ def validate_columns(columns: list[str], requested: Iterable[str]) -> None:
         )
 
 
+def csv_files(path: Path) -> list[Path]:
+    """Return the CSV file to plot, or all CSV files in a directory."""
+    if path.is_file():
+        return [path]
+    if path.is_dir():
+        files = sorted(
+            file
+            for file in path.iterdir()
+            if file.is_file() and file.suffix.lower() == ".csv"
+        )
+        if not files:
+            raise ValueError(f"Directory contains no CSV files: {path}")
+        return files
+    raise ValueError(f"Path does not exist or is not a file or directory: {path}")
+
+
 def add_derived_columns(rows: list[dict[str, str]], columns: list[str]) -> None:
     """Add calculated columns that do not need to be stored in the CSV."""
     if "power" not in columns and "efficiency" not in columns:
@@ -89,14 +106,13 @@ def add_derived_columns(rows: list[dict[str, str]], columns: list[str]) -> None:
             row["efficiency"] = "" if thrust == 0 or power == 0 else str(thrust / power)
 
 
-def plot_csv(
+def read_plot_data(
     path: Path,
     x_column: str,
     y_column: str,
     z_column: str,
     color_column: str | None,
-    line: bool,
-) -> None:
+) -> tuple[list[float], list[float], list[float], list[float] | None]:
     columns, rows = read_csv(path)
     requested_columns = (x_column, y_column, z_column, color_column)
     for derived_column in ("power", "efficiency"):
@@ -115,9 +131,21 @@ def plot_csv(
     y_values = numeric_column(rows, y_column)
     z_values = numeric_column(rows, z_column)
     color_values = numeric_column(rows, color_column) if color_column else None
+    return x_values, y_values, z_values, color_values
 
+
+def plot_csv(
+    path: Path,
+    x_column: str,
+    y_column: str,
+    z_column: str,
+    color_column: str | None,
+    line: bool,
+) -> None:
+    data = read_plot_data(path, x_column, y_column, z_column, color_column)
     figure = plt.figure("Thruster CSV plot")
     axes = figure.add_subplot(111, projection="3d")
+    x_values, y_values, z_values, color_values = data
     if color_values is None:
         axes.scatter(x_values, y_values, z_values)
     else:
@@ -140,9 +168,71 @@ def plot_csv(
     plt.show()
 
 
+def plot_csv_files(
+    paths: list[Path],
+    x_column: str,
+    y_column: str,
+    z_column: str,
+    color_column: str | None,
+    line: bool,
+) -> None:
+    """Plot all CSV files on one figure."""
+    data = [
+        (
+            path,
+            read_plot_data(path, x_column, y_column, z_column, color_column),
+        )
+        for path in paths
+    ]
+
+    figure = plt.figure("Thruster CSV plot")
+    axes = figure.add_subplot(111, projection="3d")
+    color_values = [
+        values[3]
+        for _, values in data
+        if values[3] is not None
+    ]
+    color_limits = (
+        min(value for values in color_values for value in values),
+        max(value for values in color_values for value in values),
+    ) if color_values else None
+    colorbar_points = None
+    for path, (x_values, y_values, z_values, file_color_values) in data:
+        if file_color_values is None:
+            points = axes.scatter(x_values, y_values, z_values, label=path.name)
+        else:
+            points = axes.scatter(
+                x_values,
+                y_values,
+                z_values,
+                c=file_color_values,
+                cmap="viridis",
+                vmin=color_limits[0],
+                vmax=color_limits[1],
+                label=path.name,
+            )
+            colorbar_points = points
+        if line:
+            axes.plot(x_values, y_values, z_values)
+    if colorbar_points is not None:
+        figure.colorbar(colorbar_points, ax=axes, label=color_column)
+    axes.legend()
+
+    axes.set_xlabel(x_column)
+    axes.set_ylabel(y_column)
+    axes.set_zlabel(z_column)
+    axes.set_title(paths[0].parent.name)
+    figure.tight_layout()
+    plt.show()
+
+
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("csv_file", type=Path, help="Thruster-test CSV file")
+    parser.add_argument(
+        "csv_file",
+        type=Path,
+        help="Thruster-test CSV file or directory containing CSV files",
+    )
     parser.add_argument("--x", default="voltage", help="Column for the X axis")
     parser.add_argument("--y", default="dshot_value", help="Column for the Y axis")
     parser.add_argument("--z", default="thrust", help="Column for the Z axis")
@@ -176,19 +266,23 @@ def make_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = make_parser().parse_args()
     try:
-        columns, rows = read_csv(args.csv_file)
-        if args.include_power:
-            if "power" not in columns:
+        paths = csv_files(args.csv_file)
+        for path in paths:
+            columns, rows = read_csv(path)
+            if args.include_power and "power" not in columns:
                 columns.append("power")
-        if args.include_efficiency:
-            if "efficiency" not in columns:
+            if args.include_efficiency and "efficiency" not in columns:
                 columns.append("efficiency")
-        if args.include_power or args.include_efficiency:
-            add_derived_columns(rows, columns)
-        if args.list_columns:
-            print("\n".join(columns))
-            return
-        plot_csv(args.csv_file, args.x, args.y, args.z, args.color, args.line)
+            if args.include_power or args.include_efficiency:
+                add_derived_columns(rows, columns)
+            if args.list_columns:
+                print(f"{path.name}:")
+                print("\n".join(columns))
+        if not args.list_columns:
+            if args.csv_file.is_dir():
+                plot_csv_files(paths, args.x, args.y, args.z, args.color, args.line)
+            else:
+                plot_csv(paths[0], args.x, args.y, args.z, args.color, args.line)
     except (OSError, ValueError) as exc:
         raise SystemExit(f"Could not plot CSV: {exc}") from exc
 
