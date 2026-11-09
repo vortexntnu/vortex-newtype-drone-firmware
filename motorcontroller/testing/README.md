@@ -1,87 +1,135 @@
 # Thruster testing tools
 
-These programs test a DShot-controlled thruster and plot the resulting CSV
-data:
+These scripts run DShot thruster tests, record telemetry to CSV, and plot
+recorded measurements.
 
-- `test_script.py` runs a live DShot sweep, reads telemetry, displays a live
-  3D plot, and saves measurements.
-- `plot_thruster_csv.py` plots a previously recorded CSV file.
+- `test_script.py` runs a test and saves measurements.
+- `plot_thruster_csv.py` creates a configurable 3D plot from one or more CSV
+  files.
+- `plot_efficiency_csv.py` plots thrust-per-power efficiency.
 
 ## Requirements
 
-From the `motorcontroller` directory, install the Python dependencies:
+Install the Python dependencies from the `motorcontroller` directory:
 
 ```powershell
 pip install -r tools\requirements.txt
 ```
 
-The STM32 must be connected to a serial port. On Windows this is usually a
+Connect the STM32 to the PC-facing serial port. On Windows this is usually a
 port such as `COM12`.
 
 ## Safety
 
-Secure the thruster and clear the test area before running a test. The script
+Secure the thruster and clear the test area before starting a test. The script
 automatically:
 
 1. Sends DShot `0` to stop the thruster.
 2. Waits for the thruster to stop.
 3. Sends `weight tareall`.
 4. Waits for tare completion.
-5. Starts the sweep.
+5. Starts the test.
 
-DShot values `0–47` are reserved commands. Sweep values must be in the
-throttle range `48–2047`. DShot `1047` is maximum throttle in one direction;
-DShot `1048` is minimum throttle in the other direction.
+DShot values `0–47` are reserved commands. Test values must be in the range
+`48–2047`:
 
-## Running a live sweep
+- `48–1047` uses `weight1` and produces positive thrust.
+- `1048–2047` uses `weight2` and produces negative thrust.
 
-Run one sweep on `COM12`, channel 0:
+The script sends DShot `0` again when the test ends.
 
-```powershell
-python test_script.py `
-  --port COM12 `
-  --channel 0 `
-  --start 48 `
-  --stop 2047 `
-  --step 1 `
-  --dwell 1 `
-  --cycles 1 `
-```
+## Running a test
 
-The sweep goes from `start` to `stop` and then reverses. Use a positive step
-for an upward sweep or a negative step for a downward sweep. For example, to
-start at maximum throttle:
+### Continuous random test
+
+Use `--direction 1` to continuously test random values in the positive
+direction:
 
 ```powershell
 python testing\test_script.py `
   --port COM12 `
-  --channel 1 `
-  --start 2047 `
-  --stop 48 `
-  --step -1 `
+  --direction 1
+```
+
+Use `--direction -1` for the negative direction:
+
+```powershell
+python testing\test_script.py `
+  --port COM12 `
+  --direction -1
+```
+
+In direction mode:
+
+- A new random DShot value is selected for each measurement.
+- The default dwell time is one second.
+- The default cycle count is zero, so the test runs until Ctrl+C or a safety
+  shutdown.
+
+### Deterministic sweep
+
+Without `--direction`, the script runs a repeatable sweep:
+
+```powershell
+python testing\test_script.py `
+  --port COM12 `
+  --channel 0 `
+  --start 48 `
+  --stop 2047 `
+  --step 48 `
   --dwell 1 `
   --cycles 1
 ```
 
-Use `--cycles 0` (the default) to continue until Ctrl+C.
+The sweep reverses direction after reaching `--stop`. Use a negative `--step`
+when starting above `--stop`, for example:
 
-If `--output` is omitted, the program generates a short timestamped filename:
-
-```text
-thruster_test_20261108_014600.csv
+```powershell
+python testing\test_script.py `
+  --port COM12 `
+  --start 2047 `
+  --stop 48 `
+  --step -48 `
+  --dwell 1 `
+  --cycles 1
 ```
 
-All test settings, including port, baud rate, channel, sweep range, step,
-dwell, cycles, character delay, telemetry format, CRC setting, and low-voltage
-cutoff, are stored as `# key=value` metadata lines at the top of the CSV.
-Providing `--output` explicitly changes only the filename; metadata is still
-written. The plotting programs ignore these metadata lines automatically.
+Use `--cycles 0` (the default) to repeat indefinitely.
 
-Each command character is sent with a default delay of 50 ms because of the
-microcontroller input limitation. This can be changed with
-`--character-delay`, but values below 50 ms are rejected.
+### Live plot
 
-## Telemetry and measurements
+Plotting is disabled by default. Add `--plot` to display the live 3D plot
+during a test:
+
+```powershell
+python testing\test_script.py `
+  --port COM12 `
+  --direction 1 `
+  --plot
+```
+
+### Output files
+
+If `--output` is omitted, the script creates a timestamped filename such as:
+
+```text
+thruster_test_20261109_162310.csv
+```
+
+Specify a path explicitly with:
+
+```powershell
+python testing\test_script.py `
+  --port COM12 `
+  --direction 1 `
+  --output data\positive_direction.csv
+```
+
+The CSV starts with `# key=value` metadata lines containing the test settings.
+Measurements are averaged over each dwell period and written in batches of
+25 rows. Any remaining rows are written when the test ends.
+
+## Telemetry
 
 The default telemetry format is text. The STM32 should send JSON such as:
 
@@ -98,18 +146,18 @@ The default telemetry format is text. The STM32 should send JSON such as:
 ```
 
 The script also accepts terminal-wrapped JSON and `key=value` telemetry.
-Binary ESC frames can be selected with:
+Select binary ESC frames with:
 
 ```powershell
---telemetry-format binary
+python testing\test_script.py `
+  --port COM12 `
+  --direction 1 `
+  --telemetry-format binary
 ```
 
-`weight1` and `weight2` measure opposite thrust directions:
+Use `--validate-telemetry-crc` to validate the CRC byte in binary frames.
 
-- DShot `48–1047` uses `weight1` and produces positive thrust.
-- DShot `1048–2047` uses `weight2` and produces negative thrust.
-
-Thrust is calculated in newtons using the load-cell reading in grams:
+Thrust is calculated from the active load-cell reading in grams:
 
 ```text
 thrust = weight_grams / 1000 * 9.80665 * 0.230 / 0.505
@@ -120,44 +168,30 @@ thrust = weight_grams / 1000 * 9.80665 * 0.230 / 0.505
 The test stops immediately when battery voltage drops below `12.0 V`. It also
 stops when voltage is at or below the configured low-voltage limit (default
 `12.5 V`) for the configured number of consecutive telemetry samples (default
-`5`). It also stops safely when Ctrl+C is pressed. In all cases the script
-commands DShot `0` and writes pending CSV data.
+`5`).
 
-Configure the cutoff with:
-
-```powershell
---low-voltage-limit 12.5 --low-voltage-samples 5
-```
-
-## CSV output
-
-Measurements are averaged over each `--dwell` period. The CSV contains fields
-including:
-
-```text
-id, timestamp, dshot_value, thrust, erpm, voltage,
-current_draw, temperature, consumption, weight1, weight2
-```
-
-Rows are written in batches of 25 to avoid slowing the live plot. Any partial
-batch is written when the test ends.
-
-## Plotting a recorded CSV
-
-Plot the default 3D graph:
+Configure these thresholds with:
 
 ```powershell
-python testing\plot_thruster_csv.py thruster_test.csv
+python testing\test_script.py `
+  --port COM12 `
+  --direction 1 `
+  --low-voltage-limit 12.5 `
+  --low-voltage-samples 5
 ```
 
-To plot every CSV file in a folder, pass the folder path instead:
+The test also stops safely when Ctrl+C is pressed. In all cases it commands
+DShot `0` and writes pending CSV data.
+
+## Plotting recorded data
+
+### 3D thruster plot
+
+Plot one CSV with the default axes:
 
 ```powershell
-python testing\plot_thruster_csv.py data
+python testing\plot_thruster_csv.py data\positive_direction.csv
 ```
-
-All files are plotted in alphabetical order on the same plot, with one
-legend entry per file.
 
 The default axes are:
 
@@ -167,82 +201,79 @@ Y = dshot_value
 Z = thrust
 ```
 
+Plot all CSV files in a folder on one figure:
+
+```powershell
+python testing\plot_thruster_csv.py data
+```
+
+Files are plotted in alphabetical order with one legend entry per file.
+
 Choose different columns:
 
 ```powershell
-python testing\plot_thruster_csv.py thruster_test.csv `
+python testing\plot_thruster_csv.py data `
   --x erpm `
   --y current_draw `
   --z temperature `
   --color voltage
 ```
 
-Power can be calculated by the plotter without changing the CSV:
+Connect points in CSV order with `--line`:
 
 ```powershell
-python testing\plot_thruster_csv.py thruster_test.csv `
+python testing\plot_thruster_csv.py data\positive_direction.csv --line
+```
+
+The plotter can calculate derived columns without changing the CSV:
+
+```powershell
+python testing\plot_thruster_csv.py data\positive_direction.csv `
   --x dshot_value `
   --y voltage `
   --z power
 ```
 
-Power is calculated in watts as:
+Power is calculated as:
 
 ```text
 power = voltage * current_draw
 ```
 
-Use `--include-power` with `--list-columns` to show the derived `power`
-column in the available-column list.
-
-The 3D plotter also supports derived efficiency:
+Efficiency can be plotted as:
 
 ```powershell
-python testing\plot_thruster_csv.py thruster_test.csv `
+python testing\plot_thruster_csv.py data\positive_direction.csv `
   --x dshot_value `
   --y voltage `
   --z efficiency
 ```
 
 Efficiency is calculated as `thrust / power` in `N/W`. Rows with zero thrust
-or zero power are ignored when efficiency is plotted. Use
-`--include-efficiency --list-columns` to display the derived column.
+or zero power are ignored.
 
-List available CSV columns:
-
-```powershell
-python testing\plot_thruster_csv.py thruster_test.csv --list-columns
-```
-
-Connect points in CSV order:
+List the available columns, including derived columns:
 
 ```powershell
-python testing\plot_thruster_csv.py thruster_test.csv --line
+python testing\plot_thruster_csv.py data\positive_direction.csv `
+  --include-power `
+  --include-efficiency `
+  --list-columns
 ```
 
-## Plotting efficiency
+### Efficiency plot
 
-Plot power divided by thrust against DShot value:
+Plot thrust-per-power efficiency against DShot value:
 
 ```powershell
-python testing\plot_efficiency_csv.py thruster_test.csv
+python testing\plot_efficiency_csv.py data\positive_direction.csv
 ```
 
-Power is calculated from the CSV as:
-
-```text
-power = voltage * current_draw
-```
-
-Efficiency is calculated as:
-
-```text
-efficiency = thrust / power
-```
-
-Rows with zero thrust or zero power are ignored. The efficiency unit is newtons
-per watt (`N/W`). Use `--line` to connect points in CSV order:
+Use `--line` to connect points in CSV order:
 
 ```powershell
-python testing\plot_efficiency_csv.py thruster_test.csv --line
+python testing\plot_efficiency_csv.py data\positive_direction.csv --line
 ```
+
+Efficiency is expressed in newtons per watt (`N/W`). Rows with zero thrust or
+zero power are ignored.

@@ -23,6 +23,7 @@ import csv
 import json
 import math
 import queue
+import random
 import re
 import struct
 import threading
@@ -349,6 +350,13 @@ def dshot_values(start: int, stop: int, step: int, bidirectional: bool) -> list[
     return values + (values[-2:0:-1] if bidirectional and len(values) > 2 else [])
 
 
+def random_dshot_value(direction: int) -> int:
+    """Choose a random DShot value from one rotation direction."""
+    if direction > 0:
+        return random.randint(MINIMUM_THROTTLE_VALUE, DIRECTION_ONE_MAX_DSHOT)
+    return random.randint(DIRECTION_TWO_MIN_DSHOT, MAXIMUM_DSHOT_VALUE)
+
+
 # Sweep execution ------------------------------------------------------------
 
 
@@ -491,6 +499,8 @@ def test_metadata(args: argparse.Namespace) -> dict[str, object]:
         "immediate_low_voltage_limit": IMMEDIATE_LOW_VOLTAGE_LIMIT_V,
         "command_template": args.command_template,
         "telemetry_command": args.telemetry_command or "",
+        "direction": args.direction,
+        "plot": args.plot,
     }
 
 
@@ -516,6 +526,15 @@ def make_parser() -> argparse.ArgumentParser:
         help="Validate byte 10 using the CRC-8 polynomial from esc.c",
     )
     parser.add_argument("--channel", type=int, default=0)
+    parser.add_argument(
+        "--direction",
+        type=int,
+        choices=(-1, 1),
+        help=(
+            "Randomly choose DShot values continuously from one direction: "
+            "1 selects 48-1047, -1 selects 1048-2047"
+        ),
+    )
     parser.add_argument(
         "--start", type=int, default=48, help="First throttle value (48-2047)"
     )
@@ -559,28 +578,38 @@ def make_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Output CSV path; otherwise a timestamped settings filename is generated",
     )
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Display the live plot while recording measurements",
+    )
     return parser
 
 
 def run(args: argparse.Namespace) -> None:
     """Run the configured sweep and save every measurement."""
-    if (
-        args.start < MINIMUM_THROTTLE_VALUE
-        or args.start > MAXIMUM_DSHOT_VALUE
-        or args.stop < MINIMUM_THROTTLE_VALUE
-        or args.stop > MAXIMUM_DSHOT_VALUE
-        or args.start == args.stop
-    ):
-        raise ValueError(
-            "Sweep values must be different and satisfy 48 <= start/stop <= 2047; "
-            "DShot values 0-47 are reserved commands"
-        )
-    if args.step == 0:
-        raise ValueError("step cannot be zero")
-    if (args.start < args.stop and args.step < 0) or (
-        args.start > args.stop and args.step > 0
-    ):
-        raise ValueError("step must move from start toward stop")
+    direction = args.direction
+    random_mode = direction is not None
+    if random_mode:
+        assert direction is not None
+    if not random_mode:
+        if (
+            args.start < MINIMUM_THROTTLE_VALUE
+            or args.start > MAXIMUM_DSHOT_VALUE
+            or args.stop < MINIMUM_THROTTLE_VALUE
+            or args.stop > MAXIMUM_DSHOT_VALUE
+            or args.start == args.stop
+        ):
+            raise ValueError(
+                "Sweep values must be different and satisfy 48 <= start/stop <= 2047; "
+                "DShot values 0-47 are reserved commands"
+            )
+        if args.step == 0:
+            raise ValueError("step cannot be zero")
+        if (args.start < args.stop and args.step < 0) or (
+            args.start > args.stop and args.step > 0
+        ):
+            raise ValueError("step must move from start toward stop")
     if (
         args.dwell <= 0
         or args.cycles < 0
@@ -592,12 +621,16 @@ def run(args: argparse.Namespace) -> None:
             "cycles cannot be negative"
         )
 
-    values = dshot_values(args.start, args.stop, args.step, bidirectional=True)
+    values = (
+        dshot_values(args.start, args.stop, args.step, bidirectional=True)
+        if not random_mode
+        else []
+    )
     output = (args.output or automatic_output_path(args)).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     stop_event = threading.Event()
     telemetry_queue: queue.Queue[Telemetry] = queue.Queue()
-    live_plot = LivePlot()
+    live_plot = LivePlot() if args.plot else None
     started = time.monotonic()
     record_id = 0
     low_voltage_count = [0]
@@ -623,8 +656,15 @@ def run(args: argparse.Namespace) -> None:
         reader.start()
         logger = SweepLogger(output, test_metadata(args))
         try:
-            while not stop_event.is_set() and (args.cycles == 0 or record_id < args.cycles * len(values)):
-                dshot = values[record_id % len(values)]
+            while not stop_event.is_set() and (
+                args.cycles == 0
+                or record_id < args.cycles * (1 if random_mode else len(values))
+            ):
+                dshot = (
+                    random_dshot_value(direction)
+                    if random_mode
+                    else values[record_id % len(values)]
+                )
                 command = make_dshot_command(args.command_template, args.channel, dshot)
                 send_command(port, command, args.character_delay)
                 if args.telemetry_command:
@@ -640,7 +680,8 @@ def run(args: argparse.Namespace) -> None:
                 )
                 row = build_data_row(record_id, started, args.channel, dshot, average)
                 logger.append(row)
-                live_plot.update(row)
+                if live_plot is not None:
+                    live_plot.update(row)
                 record_id += 1
                 print_data_row(row)
                 if battery_cutoff:
