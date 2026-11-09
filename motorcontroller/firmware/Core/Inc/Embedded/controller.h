@@ -13,5 +13,6 @@ void controller_init();
 uint32_t controller_main();
 uint32_t controller_dshot();
 uint32_t controller_weight();
+uint32_t controller_terminal();
 
 #endif

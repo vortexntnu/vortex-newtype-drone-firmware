@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 void debug_print_raw(const char message[]);
+void debug_proccess_input_buffer();
 void debug_init();
 void debug_print(const char message[], ...);
 

@@ -7,3 +7,4 @@
 ../Core/Src/Embedded/dshot.c:103:6:dshot_update	2
 ../Core/Src/Embedded/dshot.c:111:6:dshot_set_throttle	2
 ../Core/Src/Embedded/dshot.c:117:6:dshot_set_telemetry	2
+../Core/Src/Embedded/dshot.c:123:15:dshot_get_channel	1

@@ -1,4 +1,5 @@
 ../Core/Src/Embedded/controller.c:11:10:controller_weight	1
-../Core/Src/Embedded/controller.c:42:10:controller_dshot	1
-../Core/Src/Embedded/controller.c:52:6:controller_init	1
-../Core/Src/Embedded/controller.c:59:10:controller_main	1
+../Core/Src/Embedded/controller.c:43:10:controller_dshot	1
+../Core/Src/Embedded/controller.c:49:10:controller_terminal	1
+../Core/Src/Embedded/controller.c:59:6:controller_init	1
+../Core/Src/Embedded/controller.c:66:10:controller_main	1

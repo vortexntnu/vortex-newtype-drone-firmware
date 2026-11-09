@@ -13,6 +13,7 @@ uint32_t controller_weight()
 	BSP_LED_Toggle(LED_RED);
 
 	EscTelemetry latest = esc_fetch_latest_telemetry();
+	DShotChannel *DShot = dshot_get_channel(0);
 	int32_t weights[2] = {0};
 	weight_read(weights);
 
@@ -23,18 +24,18 @@ uint32_t controller_weight()
 	char current_string[11];
 	char consumption_string[11];
 	char erpm_string[11];
+	char throttle_string[11];
 
 	converter_int_to_string(first_weight_string, weights[0]);
 	converter_int_to_string(second_weight_string, weights[1]);
+	converter_int_to_string(throttle_string, DShot->throttle);
 	converter_int_to_string(temperature_string, (uint8_t)latest.temperature);
 	converter_float_to_string(voltage_string, latest.voltage, 2);
 	converter_float_to_string(current_string, latest.current, 2);
 	converter_int_to_string(consumption_string, (uint16_t)latest.consumption);
 	converter_int_to_string(erpm_string, (uint32_t)latest.erpm);
 
-	debug_print("{\"temperature\":%, \"voltage\":%, \"current\":%, \"consumption\":%, \"erpm\":%, \"weight1\":%, \"weight2\":%}", temperature_string, voltage_string, current_string, consumption_string, erpm_string, first_weight_string, second_weight_string);
-
-
+	debug_print("{\"temperature\":%, \"voltage\":%, \"current\":%, \"consumption\":%, \"erpm\":%, \"throttle\":%, \"weight1\":%, \"weight2\":%}", temperature_string, voltage_string, current_string, consumption_string, erpm_string, throttle_string, first_weight_string, second_weight_string);
 
 	return 500;
 }
@@ -43,6 +44,12 @@ uint32_t controller_dshot()
 {
 	dshot_update();
 	return 1;
+}
+
+uint32_t controller_terminal()
+{
+	debug_proccess_input_buffer();
+	return 50;
 }
 
 

@@ -78,6 +78,13 @@ const osThreadAttr_t Weight_attributes = {
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for Terminal */
+osThreadId_t TerminalHandle;
+const osThreadAttr_t Terminal_attributes = {
+  .name = "Terminal",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -94,6 +101,7 @@ static void MX_SPI3_Init(void);
 void RTOS_Main(void *argument);
 void DShot_Task(void *argument);
 void Weight_Task(void *argument);
+void Terminal_Task(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -173,6 +181,9 @@ int main(void)
 
   /* creation of Weight */
   WeightHandle = osThreadNew(Weight_Task, NULL, &Weight_attributes);
+
+  /* creation of Terminal */
+  TerminalHandle = osThreadNew(Terminal_Task, NULL, &Terminal_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -620,6 +631,24 @@ void Weight_Task(void *argument)
 	  osDelay(controller_weight());
   }
   /* USER CODE END Weight_Task */
+}
+
+/* USER CODE BEGIN Header_Terminal_Task */
+/**
+* @brief Function implementing the Terminal thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Terminal_Task */
+void Terminal_Task(void *argument)
+{
+  /* USER CODE BEGIN Terminal_Task */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(controller_terminal());
+  }
+  /* USER CODE END Terminal_Task */
 }
 
  /* MPU Configuration */

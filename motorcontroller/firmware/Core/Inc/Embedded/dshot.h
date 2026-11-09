@@ -32,6 +32,7 @@ typedef struct {
 
 void dshot_set_throttle(uint8_t channel, uint16_t duty);
 void dshot_set_telemetry(uint8_t channel, bool telemetry);
+DShotChannel *dshot_get_channel(uint8_t channel);
 void dshot_update();
 void dshot_init();
 

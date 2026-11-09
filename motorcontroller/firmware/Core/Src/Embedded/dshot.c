@@ -119,3 +119,9 @@ void dshot_set_telemetry(uint8_t channel, bool telemetry)
 	if (channel >= DSHOT_CHANNEL_COUNT) return;
 	channels[channel].telemetry = telemetry;
 }
+
+DShotChannel *dshot_get_channel(uint8_t channel)
+{
+//	if (channel >= DSHOT_CHANNEL_COUNT) return;
+	return &channels[channel];
+}
