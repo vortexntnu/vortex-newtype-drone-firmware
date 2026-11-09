@@ -27,6 +27,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "mx_def.h"
 #include "stm32_hal.h"
+#include "mx_cortex_debug.h"
 #include "mx_cortex_mpu.h"
 #include "mx_cortex_nvic.h"
 #include "mx_fdcan1.h"
@@ -42,6 +43,12 @@ extern "C" {
 /* Exported macros -----------------------------------------------------------*/
 
 /* ########### Aliases to initialization functions ########### */
+
+  /* *************************************************************
+    Cortex_DEBUG: No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for mx_cortex_debug_init
+    ************************************************************* */
 
   /* *************************************************************
     Cortex_MPU: No software label has been defined for this peripheral instance
@@ -94,6 +101,12 @@ extern "C" {
 /* ########################################################### */
 
 /* ########### Aliases to De-Initialization functions ########### */
+
+  /* *************************************************************
+    Cortex_DEBUG: No software label has been defined for this peripheral instance
+      in the STM32CubeMX2 configuration panel.
+      As a result, no aliases are generated for mx_cortex_debug_deinit
+    ************************************************************* */
 
   /* *************************************************************
     Cortex_MPU: No software label has been defined for this peripheral instance

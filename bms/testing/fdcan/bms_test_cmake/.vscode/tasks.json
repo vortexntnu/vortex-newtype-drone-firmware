@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build STM32C542",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/build/debug_GCC_STM32C542CCT6"
+      ],
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Flash STM32C542",
+      "type": "shell",
+      "command": "/home/stiajv/.local/share/stm32cube/bundles/programmer/2.23.0/bin/STM32_Programmer_CLI",
+      "args": [
+        "-c",
+        "port=SWD",
+        "mode=UR",
+        "freq=1000",
+        "-w",
+        "${workspaceFolder}/build/debug_GCC_STM32C542CCT6/FDCAN_test.elf",
+        "-v",
+        "-rst"
+      ],
+      "dependsOn": "Build STM32C542",
+      "problemMatcher": []
+    }
+  ]
+}

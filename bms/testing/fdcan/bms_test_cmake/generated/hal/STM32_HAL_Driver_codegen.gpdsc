@@ -560,6 +560,13 @@
         <file category="header" name="stm32c5xx_hal_conf.h" />
       </files>
     </component>
+    <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORTEX DEBUG"   Cversion="2.1.0" condition="HAL CORE Init GPIO and CORTEX">
+      <description>TO BE DEFINED</description>
+      <files>
+        <file category="source" name="mx_cortex_debug.c" />
+        <file category="header" name="mx_cortex_debug.h" />
+      </files>
+    </component>
     <component generator="stm32c5xx_hal_mx2codegen" Cclass="Device" Cgroup="STM32CubeMX2 Config" Csub="CORTEX MPU"   Cversion="2.1.0" condition="HAL CORE Init and CORTEX">
       <description>TO BE DEFINED</description>
       <files>

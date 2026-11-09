@@ -1,0 +1,55 @@
+
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "STM32C542 - SWO Flash and Debug",
+      "type": "cortex-debug",
+      "request": "attach",
+      "servertype": "openocd",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/debug_GCC_STM32C542CCT6/FDCAN_test.elf",
+      "preLaunchTask": "Flash STM32C542",
+      "serverpath": "/home/stiajv/OpenOCD/src/openocd",
+      "searchDir": ["/home/stiajv/OpenOCD/tcl"],
+      "configFiles": [
+        "interface/stlink-dap.cfg",
+        "target/stm32c5x.cfg",
+        ".vscode/stm32c5-swo.cfg"
+      ],
+      "openOCDLaunchCommands": [
+        "adapter speed 1000",
+        "gdb_memory_map disable",
+        "gdb_flash_program disable",
+        "gdb_breakpoint_override hard"
+      ],
+      "gdbPath": "/home/stiajv/.local/share/stm32cube/bundles/gnu-gdb-for-stm32/14.3.1+st.2/bin/arm-none-eabi-gdb",
+      "armToolchainPath": "/home/stiajv/.local/share/stm32cube/bundles/gnu-tools-for-stm32/14.3.1+st.2/bin",
+      "showDevDebugOutput": "raw",
+      "swoConfig": {
+        "enabled": true,
+        "source": "probe",
+        "cpuFrequency": 144000000,
+        "swoFrequency": 2000000,
+        "decoders": [
+          { "port": 0, "type": "console", "label": "ITM Console" }
+        ]
+      }
+    },
+    {
+        "type": "stlinkgdbtarget",
+        "request": "launch",
+        "name": "STM32Cube: Launch ST-Link GDB Server",
+        "origin": "snippet",
+        "cwd": "${workspaceFolder}",
+        "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+        "runEntry": "main",
+        "imagesAndSymbols": [
+            {
+                "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
+            }
+        ]
+    }
+
+  ]
+}

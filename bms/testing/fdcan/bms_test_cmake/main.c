@@ -16,11 +16,14 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "encode_decode_test.h"
+#include "app/encode_decode_test.h"
 #include <stdio.h>
+#include "app/itm/itm_log.h"
+#include "stm32c5xx.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+#define ENABLE_ITM_TRACE 1
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private functions prototype -----------------------------------------------*/
@@ -29,9 +32,33 @@
 int _write(int file, char *ptr, int len) {
   (void)file;
 
+#if ENABLE_ITM_TRACE
+
+  for (int i = 0; i < len; i++)
+  {
+    if (!ITM_TrySendChar(ptr[i]))
+      break;
+  }
+
+#else
+
   HAL_UART_Transmit(mx_usart2_uart_gethandle(), (uint8_t *)ptr, len, HAL_MAX_DELAY);
 
+#endif
+
   return len;
+}
+
+static void Trace_Init(void)
+{
+    // Enable Cortex-M trace infrastructure
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+
+    // Asynchronous SWO mode
+    DBGMCU->CR &= ~(3UL << 6);
+
+    // Enable trace pin routing and clock
+    DBGMCU->CR |= (1UL << 4) | (1UL << 5);
 }
 
 /**
@@ -53,10 +80,13 @@ int main(void)
   {
     /*
       * You can start your application code here
-      */
-    init_fdata();
+     */
+#if ENABLE_ITM_TRACE
+    Trace_Init();
+#endif
+    app_init();
     while (1) {
-      can_app();
+      app();
     }
   }
 } /* end main */

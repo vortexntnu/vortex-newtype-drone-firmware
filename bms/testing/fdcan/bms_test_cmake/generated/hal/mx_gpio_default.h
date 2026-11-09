@@ -33,6 +33,20 @@ extern "C" {
 /* Exported defines for gpio_default in HAL layer                             */
 /******************************************************************************/
 
+/* Primary aliases for GPIO PA5 pin */
+#define USR_LED_PORT                                    HAL_GPIOA
+#define USR_LED_PIN                                     HAL_GPIO_PIN_5
+#define USR_LED_INIT_STATE                              HAL_GPIO_PIN_RESET
+#define USR_LED_ACTIVE_STATE                            HAL_GPIO_PIN_SET
+#define USR_LED_INACTIVE_STATE                          HAL_GPIO_PIN_RESET
+
+/* Primary aliases for GPIO PC13 pin */
+#define USR_BTN_PORT                                    HAL_GPIOC
+#define USR_BTN_PIN                                     HAL_GPIO_PIN_13
+#define USR_BTN_INIT_STATE                              HAL_GPIO_PIN_RESET
+#define USR_BTN_ACTIVE_STATE                            HAL_GPIO_PIN_SET
+#define USR_BTN_INACTIVE_STATE                          HAL_GPIO_PIN_RESET
+
 /* Primary aliases for GPIO PE2 pin */
 #define CAN_STB_PORT                                    HAL_GPIOE
 #define CAN_STB_PIN                                     HAL_GPIO_PIN_2
