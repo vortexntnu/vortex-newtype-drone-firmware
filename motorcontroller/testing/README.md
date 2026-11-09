@@ -66,6 +66,18 @@ python testing\test_script.py `
 
 Use `--cycles 0` (the default) to continue until Ctrl+C.
 
+If `--output` is omitted, the program generates a short timestamped filename:
+
+```text
+thruster_test_20261108_014600.csv
+```
+
+All test settings, including port, baud rate, channel, sweep range, step,
+dwell, cycles, character delay, telemetry format, CRC setting, and low-voltage
+cutoff, are stored as `# key=value` metadata lines at the top of the CSV.
+Providing `--output` explicitly changes only the filename; metadata is still
+written. The plotting programs ignore these metadata lines automatically.
+
 Each command character is sent with a default delay of 50 ms because of the
 microcontroller input limitation. This can be changed with
 `--character-delay`, but values below 50 ms are rejected.
@@ -106,15 +118,16 @@ thrust = weight_grams / 1000 * 9.80665 * 0.230 / 0.505
 
 ## Safety shutdown
 
-The test stops automatically when battery voltage is at or below `12.1 V`
-for 25 consecutive telemetry samples. It also stops safely when Ctrl+C is
-pressed. In both cases the script commands DShot `0` and writes pending CSV
-data.
+The test stops immediately when battery voltage drops below `12.0 V`. It also
+stops when voltage is at or below the configured low-voltage limit (default
+`12.5 V`) for the configured number of consecutive telemetry samples (default
+`5`). It also stops safely when Ctrl+C is pressed. In all cases the script
+commands DShot `0` and writes pending CSV data.
 
 Configure the cutoff with:
 
 ```powershell
---low-voltage-limit 12.1 --low-voltage-samples 25
+--low-voltage-limit 12.5 --low-voltage-samples 5
 ```
 
 ## CSV output
@@ -174,6 +187,19 @@ power = voltage * current_draw
 Use `--include-power` with `--list-columns` to show the derived `power`
 column in the available-column list.
 
+The 3D plotter also supports derived efficiency:
+
+```powershell
+python testing\plot_thruster_csv.py thruster_test.csv `
+  --x dshot_value `
+  --y voltage `
+  --z efficiency
+```
+
+Efficiency is calculated as `thrust / power` in `N/W`. Rows with zero thrust
+or zero power are ignored when efficiency is plotted. Use
+`--include-efficiency --list-columns` to display the derived column.
+
 List available CSV columns:
 
 ```powershell
@@ -184,4 +210,31 @@ Connect points in CSV order:
 
 ```powershell
 python testing\plot_thruster_csv.py thruster_test.csv --line
+```
+
+## Plotting efficiency
+
+Plot power divided by thrust against DShot value:
+
+```powershell
+python testing\plot_efficiency_csv.py thruster_test.csv
+```
+
+Power is calculated from the CSV as:
+
+```text
+power = voltage * current_draw
+```
+
+Efficiency is calculated as:
+
+```text
+efficiency = thrust / power
+```
+
+Rows with zero thrust or zero power are ignored. The efficiency unit is newtons
+per watt (`N/W`). Use `--line` to connect points in CSV order:
+
+```powershell
+python testing\plot_efficiency_csv.py thruster_test.csv --line
 ```

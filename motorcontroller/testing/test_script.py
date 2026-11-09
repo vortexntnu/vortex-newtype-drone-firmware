@@ -39,8 +39,11 @@ import serial
 
 # Physical setup and telemetry protocol constants.
 GRAVITY_M_S2 = 9.80665
-THRUSTER_PIVOT_DISTANCE_M = 0.505
+THRUSTER_PIVOT_DISTANCE_M = 0.51
 WEIGHT_PIVOT_DISTANCE_M = 0.230
+
+WEIGHT_CALIBRATION_FACTOR = 587.0/1310.0  # Actual weight / measured weight in grams
+
 DEFAULT_CHARACTER_DELAY_S = 0.05
 MINIMUM_CHARACTER_DELAY_S = 0.05
 MINIMUM_THROTTLE_VALUE = 48
@@ -49,9 +52,10 @@ DIRECTION_ONE_MAX_DSHOT = 1047
 DIRECTION_TWO_MIN_DSHOT = 1048
 THRUSTER_STOP_SETTLE_S = 1.0
 TARE_SETTLE_S = 1.0
-LOW_VOLTAGE_LIMIT_V = 12.1
-LOW_VOLTAGE_SAMPLE_LIMIT = 25
-CSV_WRITE_BATCH_SIZE = 25
+LOW_VOLTAGE_LIMIT_V = 12.5
+LOW_VOLTAGE_SAMPLE_LIMIT = 5
+IMMEDIATE_LOW_VOLTAGE_LIMIT_V = 12.0
+CSV_WRITE_BATCH_SIZE = 25   
 
 
 FIELD_ALIASES = {
@@ -108,7 +112,7 @@ def parse_number(value: Any) -> float | None:
 def signed_weight_grams_to_thrust_newtons(signed_weight_grams: float) -> float:
     """Convert signed opposing load-cell readings to thrust in newtons."""
     weight_force_newtons = signed_weight_grams / 1000.0 * GRAVITY_M_S2
-    return weight_force_newtons * WEIGHT_PIVOT_DISTANCE_M / THRUSTER_PIVOT_DISTANCE_M
+    return weight_force_newtons * WEIGHT_CALIBRATION_FACTOR #WEIGHT_PIVOT_DISTANCE_M / THRUSTER_PIVOT_DISTANCE_M
 
 
 def thrust_from_directional_weights(
@@ -278,8 +282,10 @@ def value_or_nan(values: Mapping[str, float], field: str) -> float:
 class SweepLogger:
     """Buffer measurements and write them to disk in batches."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, metadata: Mapping[str, object]) -> None:
         self.file = path.open("w", newline="", encoding="utf-8")
+        for key, value in metadata.items():
+            self.file.write(f"# {key}={value}\n")
         self.writer = csv.DictWriter(self.file, fieldnames=CSV_FIELDS)
         self.writer.writeheader()
         self.pending_rows: list[dict[str, Any]] = []
@@ -404,16 +410,22 @@ def wait_for_telemetry(
     low_voltage_count: list[int],
     low_voltage_limit: float,
     low_voltage_sample_limit: int,
-) -> tuple[Telemetry | None, bool]:
-    """Average one dwell period and monitor consecutive low-voltage samples."""
+) -> tuple[Telemetry | None, bool, bool]:
+    """Average one dwell period and apply the battery safety cutoffs."""
     deadline = time.monotonic() + duration
     samples: list[Telemetry] = []
     battery_cutoff = False
+    immediate_cutoff = False
     while time.monotonic() < deadline and not stop_event.is_set():
         try:
             sample = telemetry_queue.get(timeout=0.1)
             samples.append(sample)
             voltage = sample.values.get("voltage")
+            if voltage is not None and voltage < IMMEDIATE_LOW_VOLTAGE_LIMIT_V:
+                battery_cutoff = True
+                immediate_cutoff = True
+                stop_event.set()
+                break
             if voltage is not None and voltage <= low_voltage_limit:
                 low_voltage_count[0] += 1
                 if low_voltage_count[0] >= low_voltage_sample_limit:
@@ -424,7 +436,7 @@ def wait_for_telemetry(
                 low_voltage_count[0] = 0
         except queue.Empty:
             pass
-    return average_telemetry(samples), battery_cutoff
+    return average_telemetry(samples), battery_cutoff, immediate_cutoff
 
 
 def print_data_row(row: Mapping[str, Any]) -> None:
@@ -451,6 +463,35 @@ def prepare_thruster_test(
     time.sleep(THRUSTER_STOP_SETTLE_S)
     send_command(port, "weight tareall", character_delay)
     time.sleep(TARE_SETTLE_S)
+
+
+def automatic_output_path(args: argparse.Namespace) -> Path:
+    """Build a short timestamped output filename."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return Path(f"thruster_test_{timestamp}.csv")
+
+
+def test_metadata(args: argparse.Namespace) -> dict[str, object]:
+    """Return all settings that should be recorded with the measurements."""
+    return {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "port": args.port,
+        "baudrate": args.baudrate,
+        "channel": args.channel,
+        "start": args.start,
+        "stop": args.stop,
+        "step": args.step,
+        "dwell": args.dwell,
+        "cycles": args.cycles,
+        "character_delay": args.character_delay,
+        "telemetry_format": args.telemetry_format,
+        "validate_telemetry_crc": args.validate_telemetry_crc,
+        "low_voltage_limit": args.low_voltage_limit,
+        "low_voltage_samples": args.low_voltage_samples,
+        "immediate_low_voltage_limit": IMMEDIATE_LOW_VOLTAGE_LIMIT_V,
+        "command_template": args.command_template,
+        "telemetry_command": args.telemetry_command or "",
+    }
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -492,7 +533,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--low-voltage-limit",
         type=float,
         default=LOW_VOLTAGE_LIMIT_V,
-        help="Stop at or below this battery voltage after the sample limit",
+        help="Stop at or below this voltage after the sample limit",
     )
     parser.add_argument(
         "--low-voltage-samples",
@@ -513,7 +554,11 @@ def make_parser() -> argparse.ArgumentParser:
         "--telemetry-command",
         help="Optional command requested before each point, e.g. 'telemetry read'",
     )
-    parser.add_argument("--output", type=Path, default=Path("thruster_test.csv"))
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Output CSV path; otherwise a timestamped settings filename is generated",
+    )
     return parser
 
 
@@ -548,7 +593,7 @@ def run(args: argparse.Namespace) -> None:
         )
 
     values = dshot_values(args.start, args.stop, args.step, bidirectional=True)
-    output = args.output.resolve()
+    output = (args.output or automatic_output_path(args)).resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     stop_event = threading.Event()
     telemetry_queue: queue.Queue[Telemetry] = queue.Queue()
@@ -576,7 +621,7 @@ def run(args: argparse.Namespace) -> None:
             daemon=True,
         )
         reader.start()
-        logger = SweepLogger(output)
+        logger = SweepLogger(output, test_metadata(args))
         try:
             while not stop_event.is_set() and (args.cycles == 0 or record_id < args.cycles * len(values)):
                 dshot = values[record_id % len(values)]
@@ -585,7 +630,7 @@ def run(args: argparse.Namespace) -> None:
                 if args.telemetry_command:
                     send_command(port, args.telemetry_command, args.character_delay)
 
-                average, battery_cutoff = wait_for_telemetry(
+                average, battery_cutoff, immediate_cutoff = wait_for_telemetry(
                     telemetry_queue,
                     args.dwell,
                     stop_event,
@@ -599,11 +644,18 @@ def run(args: argparse.Namespace) -> None:
                 record_id += 1
                 print_data_row(row)
                 if battery_cutoff:
-                    print(
-                        f"Battery voltage stayed at or below "
-                        f"{args.low_voltage_limit:.2f} V for "
-                        f"{args.low_voltage_samples} samples; stopping test."
-                    )
+                    last_voltage = average.values.get("voltage") if average else None
+                    if immediate_cutoff:
+                        print(
+                            f"Battery voltage dropped below "
+                            f"{IMMEDIATE_LOW_VOLTAGE_LIMIT_V:.2f} V; stopping test."
+                        )
+                    else:
+                        print(
+                            f"Battery voltage stayed at or below "
+                            f"{args.low_voltage_limit:.2f} V for "
+                            f"{args.low_voltage_samples} samples; stopping test."
+                        )
                     break
         finally:
             send_command(

@@ -22,7 +22,8 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 - registers 3D projection
 def read_csv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
     """Read the CSV header and rows."""
     with path.open(newline="", encoding="utf-8-sig") as file:
-        reader = csv.DictReader(file)
+        data_lines = (line for line in file if not line.startswith("#"))
+        reader = csv.DictReader(data_lines)
         if reader.fieldnames is None:
             raise ValueError("CSV file has no header row")
         return list(reader.fieldnames), list(reader)
@@ -60,7 +61,7 @@ def validate_columns(columns: list[str], requested: Iterable[str]) -> None:
 
 def add_derived_columns(rows: list[dict[str, str]], columns: list[str]) -> None:
     """Add calculated columns that do not need to be stored in the CSV."""
-    if "power" not in columns:
+    if "power" not in columns and "efficiency" not in columns:
         return
     for row_number, row in enumerate(rows, start=2):
         try:
@@ -74,7 +75,18 @@ def add_derived_columns(rows: list[dict[str, str]], columns: list[str]) -> None:
         power = voltage * current
         if not math.isfinite(power):
             raise ValueError(f"Power is non-finite on CSV row {row_number}")
-        row["power"] = str(power)
+        if "power" in columns:
+            row["power"] = str(power)
+        if "efficiency" in columns:
+            try:
+                thrust = float(row["thrust"])
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Efficiency requires a numeric thrust value on CSV row {row_number}"
+                ) from exc
+            if not math.isfinite(thrust):
+                raise ValueError(f"Thrust is non-finite on CSV row {row_number}")
+            row["efficiency"] = "" if thrust == 0 or power == 0 else str(thrust / power)
 
 
 def plot_csv(
@@ -87,9 +99,12 @@ def plot_csv(
 ) -> None:
     columns, rows = read_csv(path)
     requested_columns = (x_column, y_column, z_column, color_column)
-    if "power" in requested_columns and "power" not in columns:
-        columns.append("power")
+    for derived_column in ("power", "efficiency"):
+        if derived_column in requested_columns and derived_column not in columns:
+            columns.append(derived_column)
     add_derived_columns(rows, columns)
+    if "efficiency" in requested_columns:
+        rows = [row for row in rows if row.get("efficiency", "") != ""]
     validate_columns(columns, (x_column, y_column, z_column))
     if color_column is not None:
         validate_columns(columns, (color_column,))
@@ -150,6 +165,11 @@ def make_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Add calculated power (watts) from voltage x current_draw",
     )
+    parser.add_argument(
+        "--include-efficiency",
+        action="store_true",
+        help="Add calculated efficiency (N/W) from thrust / power",
+    )
     return parser
 
 
@@ -160,6 +180,10 @@ def main() -> None:
         if args.include_power:
             if "power" not in columns:
                 columns.append("power")
+        if args.include_efficiency:
+            if "efficiency" not in columns:
+                columns.append("efficiency")
+        if args.include_power or args.include_efficiency:
             add_derived_columns(rows, columns)
         if args.list_columns:
             print("\n".join(columns))
