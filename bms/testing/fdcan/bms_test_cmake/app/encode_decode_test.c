@@ -1,6 +1,6 @@
 #include "encode_decode_test.h"
-#include "CAN.h"
-#include "CAN_protocol.h"
+#include "CAN/CAN.h"
+#include "CAN/CAN_protocol.h"
 #include "stm32c5xx_hal.h"
 #include "stm32c5xx_hal_def.h"
 #include "stm32c5xx_hal_gpio.h"
@@ -16,7 +16,7 @@ FdcanPayload telemetry = {0};
 
 bool init = false;
 
-void init_fdata(void) {
+void app_init(void) {
     // CAN initalization
     if (!CAN_init()) {
         printf("FDCAN initialization FAILED...\r\n");
@@ -88,7 +88,7 @@ bool _rx_mode(void) {
             "| Temperature: %s%d.%02d C | State of charge: %u.%02u%% | Valid "
             "flags: 0x%02X |\n\r",
             (unsigned long)data.timestamp_ms,
-            (unsigned long)data.pack_voltage_mV, (long)data.pack_current_mA,
+            (unsigned long)data.pack_voltage_mV / 100, (long)data.pack_current_mA / 100,
             temperature_C < 0 ? "-" : "", temperature_magnitude / 100,
             temperature_magnitude % 100,
             (unsigned int)(data.soc_percent / 100),
@@ -102,7 +102,7 @@ bool _rx_mode(void) {
     return false;
 }
 
-void can_app(void) {
+void app(void) {
     if (!init)
         return;
 

@@ -4,7 +4,7 @@
 #define CAN_TX_INTERVAL_MS 1500U
 #define TX_LED_PULSE_MS 100U
 
-void init_fdata(void);
-void can_app(void);
+void app_init(void);
+void app(void);
 
 #endif

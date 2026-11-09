@@ -10,10 +10,10 @@ include(cmake/${TOOLCHAIN_FILE})
 
 project(FDCAN_test)
 add_executable(FDCAN_test
-  CAN.c
-  CAN_protocol.c
-  encode_decode_test.h
-  encode_decode_test.c)
+  app/CAN/CAN.c
+  app/CAN/CAN_protocol.c
+  app/encode_decode_test.c
+  app/itm/itm_log.c)
 include(cmake/files.cmake)
 include(cmake/flags.cmake)
 include(cmake/components.cmake)

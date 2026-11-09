@@ -12,8 +12,7 @@
 static hal_fdcan_handle_t *s_hfdcan = NULL;
 
 bool CAN_init(void) {
-  mx_fdcan2_init();
-  s_hfdcan = mx_fdcan2_gethandle();
+  s_hfdcan = mx_fdcan2_init();
 
   if (s_hfdcan == NULL)
     return false;
@@ -22,6 +21,7 @@ bool CAN_init(void) {
   HAL_GPIO_WritePin(CAN_STB_PORT, CAN_STB_PIN, HAL_GPIO_PIN_RESET);
 
   /* CONFIGURE FILTER */
+  /*
   // --- ONLY TEMPORARY FILTER CONFIG ---
   hal_fdcan_filter_t filter_config = {
     .id_type       = HAL_FDCAN_ID_STANDARD,
@@ -35,13 +35,13 @@ bool CAN_init(void) {
   if (HAL_FDCAN_SetFilter(s_hfdcan, &filter_config) != HAL_OK) {
     return false;
   }
+  */
 
   /* Enable interrupts/notifications */
-  uint32_t groups = HAL_FDCAN_IT_GROUP_RX_FIFO_0 | HAL_FDCAN_IT_GROUP_MISC |
-                    HAL_FDCAN_IT_GROUP_BIT_LINE_ERROR;
+  uint32_t groups = HAL_FDCAN_IT_GROUP_RX_FIFO_0 | HAL_FDCAN_IT_GROUP_MISC | HAL_FDCAN_IT_GROUP_BIT_LINE_ERROR;
 
-  if (HAL_FDCAN_SetInterruptGroupsToLine(s_hfdcan, groups,
-                                         HAL_FDCAN_IT_LINE_0) != HAL_OK) {
+  hal_status_t set_interruptGroups = HAL_FDCAN_SetInterruptGroupsToLine(s_hfdcan, groups, HAL_FDCAN_IT_LINE_0);
+  if (set_interruptGroups != HAL_OK) {
     return false;
   }
 
@@ -53,14 +53,13 @@ bool CAN_init(void) {
   );
 
   /* Start peripheral */
-  hal_status_t start_status = HAL_FDCAN_Start(s_hfdcan);
-  return (start_status == HAL_OK);
+  return (HAL_FDCAN_Start(s_hfdcan) == HAL_OK);
 }
 
-void CAN_deInit(void) { HAL_FDCAN_DeInit(s_hfdcan); }
+void CAN_deinit(void) { HAL_FDCAN_DeInit(s_hfdcan); }
 
-bool CAN_send(uint16_t id, const uint8_t *data, uint8_t length) {
-  if (s_hfdcan == NULL || length > 8U || (length > 0U && data == NULL)) {
+bool CAN_send(uint16_t id, const uint8_t *data) {
+  if (s_hfdcan == NULL || data == NULL) {
     return false;
   }
 
@@ -71,15 +70,14 @@ bool CAN_send(uint16_t id, const uint8_t *data, uint8_t length) {
   hal_fdcan_tx_header_t tx_header = {
     .b.identifier         = id,
     .b.frame_type         = HAL_FDCAN_FRAME_DATA,
-    .b.identifier_type    = HAL_FDCAN_ID_EXTENDED,
-    .b.data_length        = (hal_fdcan_data_length_code_t)length,
+    .b.identifier_type    = HAL_FDCAN_ID_STANDARD,
+    .b.data_length        = HAL_FDCAN_DATA_LEN_FDCAN_20_BYTE,
     .b.frame_format       = HAL_FDCAN_HEADER_FRAME_FORMAT_FD_CAN,
     .b.bit_rate_switch    = HAL_FDCAN_BIT_RATE_SWITCH_OFF,
     .b.event_fifo_control = HAL_FDCAN_TX_EVENTS_FIFO_DISCARD
   };
 
-  hal_status_t send_status =
-      HAL_FDCAN_ReqTransmitMsgFromFIFOQ(s_hfdcan, &tx_header, data);
+  hal_status_t send_status = HAL_FDCAN_ReqTransmitMsgFromFIFOQ(s_hfdcan, &tx_header, data);
 
   if (send_status != HAL_OK)
     return false;
@@ -96,16 +94,3 @@ bool CAN_recieve(hal_fdcan_rx_header_t *rx_header, uint8_t *rx_data) {
 
   return true;
 }
-
-
-
-/*
-bool CAN_recieve_FIFO_1(hal_fdcan_rx_header_t *header, uint8_t *data) {
-   hal_status_t recieve_status =
-HAL_FDCAN_GetReceivedMessage(mx_fdcan2_gethandle(), HAL_FDCAN_RX_FIFO_1, header,
-data); if (recieve_status != HAL_OK) return false;
-
-   return true;
-}
-*/
-
