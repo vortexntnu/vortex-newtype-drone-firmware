@@ -7,6 +7,7 @@ recorded measurements.
 - `plot_thruster_csv.py` creates a configurable 3D plot from one or more CSV
   files.
 - `plot_efficiency_csv.py` plots thrust-per-power efficiency.
+- `plan_thruster_test.py` adaptively explores unexplored voltage/DShot cells.
 
 ## Requirements
 
@@ -277,3 +278,73 @@ python testing\plot_efficiency_csv.py data\positive_direction.csv --line
 
 Efficiency is expressed in newtons per watt (`N/W`). Rows with zero thrust or
 zero power are ignored.
+
+## Adaptive coverage test
+
+`plan_thruster_test.py` reads every CSV in `data` and plans the next DShot
+value from the existing voltage/DShot coverage. It favors cells that have not
+been measured, estimates the expected voltage drop using
+`dV/dt ~= -K * dshot^2`, and penalizes abrupt DShot changes. Power cost is not
+penalized.
+
+Run it in the positive direction:
+
+```powershell
+python testing\plan_thruster_test.py `
+  --port COM12 `
+  --direction 1
+```
+
+Use `--direction -1` for DShot values `1048–2047`. The test continues until
+Ctrl+C or a safety shutdown. Add `--plot` to show historical coverage together
+with the planned and actual path:
+
+```powershell
+python testing\plan_thruster_test.py `
+  --port COM12 `
+  --direction 1 `
+  --plot
+```
+
+The planner is a model-based heuristic, not a mathematically guaranteed
+optimum. Adjust its resolution and penalties when needed:
+
+```powershell
+python testing\plan_thruster_test.py `
+  --port COM12 `
+  --direction 1 `
+  --voltage-bin 0.05 `
+  --dshot-step 8 `
+  --slew-penalty 0.35
+```
+
+Use `--data-folder` to select another historical-data folder and `--output`
+to choose the new CSV path. The planner estimates loaded-battery sag as
+`V_battery ~= V_ESC + R_internal * current_draw`; use
+`--battery-resistance` to provide a calibrated resistance in ohms.
+
+This is only an estimate: the historical files contain ESC voltage, not a
+direct battery-side voltage reference, and battery open-circuit voltage also
+changes over time. The estimated value is written as
+`battery_voltage_estimate` in the adaptive CSV and shown in green when
+`--plot` is enabled. Safety shutdown always uses the measured ESC voltage:
+the test stops immediately below `12.0 V`, regardless of the estimate.
+
+The planner also uses historical `elapsed_s` intervals to estimate the time
+cost of each measurement and favors expected new coverage per second. It uses
+historical `consumption` changes to report projected consumption for each
+planned step; consumption is not used as a penalty, so high-power measurements
+remain eligible when they reveal more data. By default, a test is limited to
+one hour and the battery capacity is limited to `8500 mAh`:
+
+```powershell
+python testing\plan_thruster_test.py `
+  --port COM12 `
+  --direction 1 `
+  --max-duration 1800
+```
+
+Use `--max-duration 0` for no time limit. The limit is a planning/operator
+limit and does not replace the immediate measured-ESC-voltage shutdown. The
+planner stops when measured cumulative `consumption` reaches the configured
+capacity. Change it with `--battery-capacity`; the default is `8500`.

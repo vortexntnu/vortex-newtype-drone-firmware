@@ -87,6 +87,7 @@ CSV_FIELDS = (
     "weight_difference",
     "weight1",
     "weight2",
+    "battery_voltage_estimate",
     "raw_telemetry",
 )
 
@@ -389,6 +390,7 @@ def build_data_row(
         "weight1": value_or_nan(values, "weight1"),
         "weight2": value_or_nan(values, "weight2"),
         "weight_difference": value_or_nan(values, "weight_difference"),
+        "battery_voltage_estimate": math.nan,
         "raw_telemetry": telemetry.raw if telemetry is not None else "",
     }
 
