@@ -152,8 +152,8 @@ The `throttle` value is the command currently applied by the microcontroller.
 It is used for the recorded `dshot_value` and for selecting the active weight
 cell, rather than the command requested by the PC. The script also accepts
 terminal-wrapped JSON and `key=value` telemetry.
-If a dwell window contains multiple reported throttle values, only samples
-from the most represented throttle are averaged, and a warning is printed.
+Every valid telemetry sample received during a dwell is recorded; samples with
+different reported throttle values are not filtered or averaged.
 Select binary ESC frames with:
 
 ```powershell
@@ -288,11 +288,12 @@ zero power are ignored.
 
 ## Adaptive coverage test
 
-`plan_thruster_test.py` reads every CSV in `data` and plans the next DShot
-value from the existing voltage/DShot coverage. It favors cells that have not
-been measured, estimates the expected voltage drop using
-`dV/dt ~= -K * dshot^2`, and penalizes abrupt DShot changes. Power cost is not
-penalized.
+`plan_thruster_test.py` reads every CSV in `data` and precomputes a finite
+path from the existing voltage/DShot coverage. Candidate points farther from
+known data are more valuable. The planner estimates voltage dynamics using
+`dV/dt ~= -K * dshot^2` plus current-dependent ESC sag, uses a quadratic
+DShot-change cost, and scores expected new coverage per unit time. Power cost
+is not penalized.
 
 Run it in the positive direction:
 
@@ -337,21 +338,90 @@ changes over time. The estimated value is written as
 `--plot` is enabled. Safety shutdown always uses the measured ESC voltage:
 the test stops immediately below `12.0 V`, regardless of the estimate.
 
-The planner also uses historical `elapsed_s` intervals to estimate the time
-cost of each measurement and favors expected new coverage per second. It uses
-historical `consumption` changes to report projected consumption for each
-planned step; consumption is not used as a penalty, so high-power measurements
-remain eligible when they reveal more data. By default, a test is limited to
-one hour and the battery capacity is limited to `8500 mAh`:
+The planner uses historical `elapsed_s` intervals to estimate the time cost of
+each measurement and historical `consumption` changes to report projected
+consumption. Consumption is not used as a penalty, so high-power measurements
+remain eligible when they reveal more data. The default maximum duration is
+four hours and the battery capacity is limited to `8500 mAh`:
 
 ```powershell
 python testing\plan_thruster_test.py `
   --port COM12 `
   --direction 1 `
-  --max-duration 1800
+  --max-duration 14400
 ```
 
 Use `--max-duration 0` for no time limit. The limit is a planning/operator
 limit and does not replace the immediate measured-ESC-voltage shutdown. The
 planner stops when measured cumulative `consumption` reaches the configured
 capacity. Change it with `--battery-capacity`; the default is `8500`.
+
+Before planning, the script holds DShot at zero and collects startup
+telemetry. The averaged ESC voltage is used as the initial voltage for the
+planned path, so a partially charged battery does not start from the highest
+historical voltage. Voltage alone is not a reliable mAh state-of-charge
+measurement, so provide capacity already used when starting with a partially
+discharged battery:
+
+```powershell
+python testing\plan_thruster_test.py `
+  --port COM12 `
+  --direction 1 `
+  --initial-consumed-mah 4250
+```
+
+For the default `8500 mAh` battery, `4250` represents an assumed half-used
+pack. The startup voltage is still used for voltage planning and safety
+checks.
+
+The program reports planning progress with completed steps, percentage,
+elapsed time, and an estimated time remaining before the test begins. The
+progress line is updated in place in an interactive terminal.
+The planner uses an indexed CPU coverage search rather than scanning every
+historical point for every candidate, so no GPU or CUDA installation is
+required.
+No nonzero DShot command is sent until startup telemetry has been collected
+and path planning has completed. The terminal then reports each DShot command
+as it is sent and indicates when it is waiting for telemetry.
+Telemetry samples may arrive much faster than commands. The planner therefore
+uses the dwell time or `--command-interval`, whichever is longer, as the
+minimum duration of a planned command step. The default minimum interval
+between DShot commands is 100 ms:
+
+```powershell
+python testing\plan_thruster_test.py `
+  --port COM12 `
+  --direction 1 `
+  --command-interval 0.1
+```
+
+This rate limit is enforced with a monotonic timer before every DShot command,
+while the final shutdown command is sent immediately for safety.
+The planner also applies a stronger quadratic cost to large DShot changes and
+adds more time cost to large slews. The defaults are equivalent to
+`--slew-penalty 1.0`; override this when deliberately testing more aggressive
+transitions. It also limits a single command transition to 256 DShot units by
+default; change this with `--max-dshot-change` if the ESC supports larger
+steps. The initial command from stopped (`DShot 0`) is exempt so direction
+`-1` can enter its valid range starting at `1048`; the limit applies after
+that first command.
+All telemetry samples are still written to the CSV, but the terminal prints
+only one summary per command. This prevents terminal output from becoming a
+processing bottleneck and causing stale telemetry to accumulate in the queue.
+The summary shows both the commanded and firmware-reported DShot values.
+
+The CSV comment header records the run configuration and planning context,
+including the startup ESC/battery-voltage estimates, startup current and
+temperature, initial and available capacity, historical point count, timing
+and consumption estimates, battery-resistance estimate, telemetry settings,
+and voltage safety limits.
+
+Telemetry is sent automatically by the firmware when ESC telemetry arrives.
+Every telemetry sample received during a dwell is saved as its own CSV row;
+samples with different reported DShot values are not filtered or averaged.
+The planner stops with an explicit error if no valid telemetry arrives during
+a dwell, rather than recording `nan` measurements.
+
+When `--plot` is enabled, the historical coverage, precomputed path, actual
+ESC-voltage path, and estimated battery-voltage path are shown together. The
+plot keeps its zoom and window state while new samples arrive.

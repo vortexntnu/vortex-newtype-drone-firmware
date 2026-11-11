@@ -54,7 +54,7 @@ TARE_SETTLE_S = 1.0
 LOW_VOLTAGE_LIMIT_V = 12.5
 LOW_VOLTAGE_SAMPLE_LIMIT = 5
 IMMEDIATE_LOW_VOLTAGE_LIMIT_V = 12.0
-CSV_WRITE_BATCH_SIZE = 25   
+CSV_WRITE_BATCH_SIZE = 25
 
 
 FIELD_ALIASES = {
@@ -401,48 +401,30 @@ def telemetry_throttle(sample: Telemetry) -> int | None:
 
 
 def average_telemetry(samples: list[Telemetry]) -> Telemetry | None:
-    """Average only samples belonging to the most represented throttle."""
+    """Average every telemetry sample in a dwell."""
     if not samples:
         return None
 
-    groups: dict[int | None, tuple[list[Telemetry], int]] = {}
-    for index, sample in enumerate(samples):
-        throttle = telemetry_throttle(sample)
-        if throttle not in groups:
-            groups[throttle] = ([], index)
-        group, _ = groups[throttle]
-        group.append(sample)
-        groups[throttle] = (group, index)
-    selected_samples, _ = max(
-        groups.values(),
-        key=lambda group_and_index: (
-            len(group_and_index[0]),
-            group_and_index[1],
-        ),
-    )
-    fields = set().union(*(sample.values for sample in selected_samples))
+    fields = set().union(*(sample.values for sample in samples))
     values = {
         field: sum(
-            sample.values[field] for sample in selected_samples if field in sample.values
+            sample.values[field] for sample in samples if field in sample.values
         )
-        / sum(field in sample.values for sample in selected_samples)
+        / sum(field in sample.values for sample in samples)
         for field in fields
     }
-    selected_throttle = telemetry_throttle(selected_samples[-1])
-    if selected_throttle is not None:
-        values["throttle"] = selected_throttle
-    return Telemetry(values, selected_samples[-1].raw)
+    return Telemetry(values, samples[-1].raw)
 
 
-def wait_for_telemetry(
+def collect_telemetry(
     telemetry_queue: queue.Queue[Telemetry],
     duration: float,
     stop_event: threading.Event,
     low_voltage_count: list[int],
     low_voltage_limit: float,
     low_voltage_sample_limit: int,
-) -> tuple[Telemetry | None, bool, bool]:
-    """Average one dwell period and apply the battery safety cutoffs."""
+) -> tuple[list[Telemetry], bool, bool]:
+    """Collect every telemetry sample during a dwell and apply safety cutoffs."""
     deadline = time.monotonic() + duration
     samples: list[Telemetry] = []
     battery_cutoff = False
@@ -467,16 +449,26 @@ def wait_for_telemetry(
                 low_voltage_count[0] = 0
         except queue.Empty:
             pass
-    throttle_values = {
-        throttle
-        for throttle in (telemetry_throttle(sample) for sample in samples)
-        if throttle is not None
-    }
-    if len(throttle_values) > 1:
-        print(
-            "Warning: telemetry dwell contained throttles "
-            f"{sorted(throttle_values)}; using the most represented throttle."
-        )
+    return samples, battery_cutoff, immediate_cutoff
+
+
+def wait_for_telemetry(
+    telemetry_queue: queue.Queue[Telemetry],
+    duration: float,
+    stop_event: threading.Event,
+    low_voltage_count: list[int],
+    low_voltage_limit: float,
+    low_voltage_sample_limit: int,
+) -> tuple[Telemetry | None, bool, bool]:
+    """Average one dwell period and apply the battery safety cutoffs."""
+    samples, battery_cutoff, immediate_cutoff = collect_telemetry(
+        telemetry_queue,
+        duration,
+        stop_event,
+        low_voltage_count,
+        low_voltage_limit,
+        low_voltage_sample_limit,
+    )
     return average_telemetry(samples), battery_cutoff, immediate_cutoff
 
 
@@ -528,7 +520,6 @@ def test_metadata(args: argparse.Namespace) -> dict[str, object]:
         "low_voltage_samples": args.low_voltage_samples,
         "immediate_low_voltage_limit": IMMEDIATE_LOW_VOLTAGE_LIMIT_V,
         "command_template": args.command_template,
-        "telemetry_command": args.telemetry_command or "",
         "direction": args.direction,
         "plot": args.plot,
     }
@@ -592,10 +583,6 @@ def make_parser() -> argparse.ArgumentParser:
             "Command sent for each point; placeholders: channel, dshot, throttle. "
             "Default matches the firmware command interface."
         ),
-    )
-    parser.add_argument(
-        "--telemetry-command",
-        help="Optional command requested before each point, e.g. 'telemetry read'",
     )
     parser.add_argument(
         "--output",
@@ -690,10 +677,7 @@ def run(args: argparse.Namespace) -> None:
                 )
                 command = make_dshot_command(args.command_template, args.channel, dshot)
                 send_command(port, command)
-                if args.telemetry_command:
-                    send_command(port, args.telemetry_command)
-
-                average, battery_cutoff, immediate_cutoff = wait_for_telemetry(
+                samples, battery_cutoff, immediate_cutoff = collect_telemetry(
                     telemetry_queue,
                     args.dwell,
                     stop_event,
@@ -701,14 +685,17 @@ def run(args: argparse.Namespace) -> None:
                     args.low_voltage_limit,
                     args.low_voltage_samples,
                 )
-                row = build_data_row(record_id, started, args.channel, dshot, average)
-                logger.append(row)
-                if live_plot is not None:
-                    live_plot.update(row)
-                record_id += 1
-                print_data_row(row)
+                for sample in samples:
+                    row = build_data_row(record_id, started, args.channel, dshot, sample)
+                    logger.append(row)
+                    if live_plot is not None:
+                        live_plot.update(row)
+                    record_id += 1
+                    print_data_row(row)
                 if battery_cutoff:
-                    last_voltage = average.values.get("voltage") if average else None
+                    last_voltage = (
+                        samples[-1].values.get("voltage") if samples else None
+                    )
                     if immediate_cutoff:
                         print(
                             f"Battery voltage dropped below "
