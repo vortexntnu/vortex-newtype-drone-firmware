@@ -59,5 +59,42 @@ int init_i2c(void)
 	// this is the interrupt callbacks for event and error
 	parserr(HAL_I2C_MASTER_RegisterTxCpltCallback(pi2chan, i2c_transfer_cplt_callback));
 	parserr(HAL_I2C_MASTER_RegisterRxCpltCallback(pi2chan, i2c_receive_cplt_callback));
-	parserr(HAL_I2C_MASTER_RegisterErrorCallback(pi2chan, i2c_error_callback));
+	parserr(HAL_I2C_RegisterErrorCallback(pi2chan, i2c_error_callback));
+
+	return 0;
+}
+
+// BME280, technically 0b111011X, but assume the lsb is 0 for now
+#define BME_ADDR 0b1110110
+int i2c_read_regs(uint8_t addr, uint8_t* regs, uint8_t size)
+{
+	// no stop signal
+	hal_i2c_xfer_opt_t opt = HAL_I2C_XFER_FIRST_FRAME;
+	HAL_I2C_MASTER_SEQ_Transmit_IT(pi2chan, BME_ADDR, &addr, 1, opt);
+	// need to move this to function after interrupt
+	HAL_I2C_MASTER_Receive_IT(pi2chan, BME_ADDR, regs, size);
+}
+
+int i2c_write_regs(uint8_t addr, uint8_t* regs, uint8_t size)
+{
+	uint8_t data[size*2];
+	for(int i = 0; i < size; ++i)
+	{
+		data[i*2] = addr++;
+		data[i*2 + 1] = regs[i];
+	}
+	HAL_I2C_MASTER_Transmit_IT(pi2chan, BME_ADDR, data, size*2);
+}
+
+static void i2c_transfer_cplt_callback(hal_i2c_handle_t* pi2chan)
+{
+
+}
+static void i2c_receive_cplt_callback(hal_i2c_handle_t* pi2chan)
+{
+
+}
+static void i2c_error_callback(hal_i2c_handle_t* pi2chan)
+{
+
 }
