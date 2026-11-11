@@ -1,0 +1,1467 @@
+ARM GAS  /tmp/ccJjao8i.s 			page 1
+
+
+   1              		.cpu cortex-m7
+   2              		.arch armv7e-m
+   3              		.fpu fpv5-d16
+   4              		.eabi_attribute 28, 1
+   5              		.eabi_attribute 20, 1
+   6              		.eabi_attribute 21, 1
+   7              		.eabi_attribute 23, 3
+   8              		.eabi_attribute 24, 1
+   9              		.eabi_attribute 25, 1
+  10              		.eabi_attribute 26, 1
+  11              		.eabi_attribute 30, 1
+  12              		.eabi_attribute 34, 1
+  13              		.eabi_attribute 18, 4
+  14              		.file	"boot.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.file 1 "Core/Src/boot.c"
+  19              		.section	.text.boot_ping,"ax",%progbits
+  20              		.align	1
+  21              		.global	boot_ping
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	boot_ping:
+  27              	.LFB153:
+   1:Core/Src/boot.c **** /*
+   2:Core/Src/boot.c ****  * boot.c
+   3:Core/Src/boot.c ****  *
+   4:Core/Src/boot.c ****  *  Created on: Sep 26, 2026
+   5:Core/Src/boot.c ****  *      Author: elias-gravdal
+   6:Core/Src/boot.c ****  */
+   7:Core/Src/boot.c **** 
+   8:Core/Src/boot.c **** #include <string.h>
+   9:Core/Src/boot.c **** 
+  10:Core/Src/boot.c **** #include "main.h"
+  11:Core/Src/boot.c **** #include "flash.h"
+  12:Core/Src/boot.c **** #include "boot.h"
+  13:Core/Src/boot.c **** 
+  14:Core/Src/boot.c **** //#define TX_BUFFER_SIZE 8
+  15:Core/Src/boot.c **** //static uint8_t BufferA[TX_BUFFER_SIZE] = {0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE};
+  16:Core/Src/boot.c **** //static const uint8_t BufferB[TX_BUFFER_SIZE*2] =
+  17:Core/Src/boot.c **** //{0x04, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+  18:Core/Src/boot.c **** 
+  19:Core/Src/boot.c **** uint8_t recvbuf[64];
+  20:Core/Src/boot.c **** 
+  21:Core/Src/boot.c **** enum canide
+  22:Core/Src/boot.c **** {
+  23:Core/Src/boot.c **** 	BOOT_PING = 0x040,
+  24:Core/Src/boot.c **** 	BOOT_INIT = 0x041,
+  25:Core/Src/boot.c **** 	BOOT_RESET = 0x042,
+  26:Core/Src/boot.c **** 	BOOT_DATA = 0x043,
+  27:Core/Src/boot.c **** };
+  28:Core/Src/boot.c **** enum sendide
+  29:Core/Src/boot.c **** {
+  30:Core/Src/boot.c **** 	BOOT_SEND_PING = 0x044,
+  31:Core/Src/boot.c **** 	BOOT_SEND_READY = 0x045,
+ARM GAS  /tmp/ccJjao8i.s 			page 2
+
+
+  32:Core/Src/boot.c **** 	BOOT_SEND_RESEND = 0x046,
+  33:Core/Src/boot.c **** 	BOOT_SEND_FINISH = 0x047,
+  34:Core/Src/boot.c **** };
+  35:Core/Src/boot.c **** int boot_ping(void);
+  36:Core/Src/boot.c **** int boot_init(void);
+  37:Core/Src/boot.c **** int boot_reset(void);
+  38:Core/Src/boot.c **** int boot_data(void);
+  39:Core/Src/boot.c **** // subtract base (BOOT_PING) when indexing this
+  40:Core/Src/boot.c **** int (*boot_recvfns[])(void) =
+  41:Core/Src/boot.c **** {
+  42:Core/Src/boot.c **** 		boot_ping,
+  43:Core/Src/boot.c **** 		boot_init,
+  44:Core/Src/boot.c **** 		boot_reset,
+  45:Core/Src/boot.c **** 		boot_data,
+  46:Core/Src/boot.c **** };
+  47:Core/Src/boot.c **** 
+  48:Core/Src/boot.c **** int boot_can_senderror(uint32_t code)
+  49:Core/Src/boot.c **** {
+  50:Core/Src/boot.c **** 	uint64_t errsig = 0xdeadbeef + ((uint64_t)code << 32);
+  51:Core/Src/boot.c **** 	can_senddata((uint8_t*)&errsig, 8, BOOT_SEND_PING);
+  52:Core/Src/boot.c **** 	err(1);
+  53:Core/Src/boot.c **** 	return 1;
+  54:Core/Src/boot.c **** }
+  55:Core/Src/boot.c **** int boot_can_resendfrom(uint32_t idx)
+  56:Core/Src/boot.c **** {
+  57:Core/Src/boot.c **** 	uint64_t send = idx;
+  58:Core/Src/boot.c **** 	can_senddata((uint8_t*)&send, 8, BOOT_SEND_RESEND);
+  59:Core/Src/boot.c **** 	noerr(2);
+  60:Core/Src/boot.c **** 	return 0;
+  61:Core/Src/boot.c **** }
+  62:Core/Src/boot.c **** int boot_can_readyfor(uint32_t idx)
+  63:Core/Src/boot.c **** {
+  64:Core/Src/boot.c **** 	uint64_t send = idx;
+  65:Core/Src/boot.c **** 	can_senddata((uint8_t*)&send, 8, BOOT_SEND_READY);
+  66:Core/Src/boot.c **** 	return 0;
+  67:Core/Src/boot.c **** }
+  68:Core/Src/boot.c **** 
+  69:Core/Src/boot.c **** // tell server ready
+  70:Core/Src/boot.c **** int boot_send_init(void* unused)
+  71:Core/Src/boot.c **** {
+  72:Core/Src/boot.c **** 	boot_ping();
+  73:Core/Src/boot.c **** 	return 0;
+  74:Core/Src/boot.c **** }
+  75:Core/Src/boot.c **** 
+  76:Core/Src/boot.c **** // starts at 0, goes to 1 on init, goes to 2 when erase is done, goes to 3 when programming of last
+  77:Core/Src/boot.c **** enum bootstate
+  78:Core/Src/boot.c **** {
+  79:Core/Src/boot.c **** 	BOOTSTATE_START,
+  80:Core/Src/boot.c **** 	BOOTSTATE_INIT,
+  81:Core/Src/boot.c **** 	BOOTSTATE_ERASE_DONE,
+  82:Core/Src/boot.c **** 	BOOTSTATE_PROGGED,
+  83:Core/Src/boot.c **** } bootstate = BOOTSTATE_START;
+  84:Core/Src/boot.c **** // the adress of the second bank (the one we write to); h7: 1MiB of flash per bank, 0x100000;
+  85:Core/Src/boot.c **** uint32_t curaddr = 0x8100000;// + (FLASH_SIZE/2);
+  86:Core/Src/boot.c **** // set to number of erases on init, decremented by one for every one done; h7: only one erase, that
+  87:Core/Src/boot.c **** int erasesleft = 0;
+  88:Core/Src/boot.c **** 
+ARM GAS  /tmp/ccJjao8i.s 			page 3
+
+
+  89:Core/Src/boot.c **** // number of progs, that is, number of pages left to prog; h7: flashwords instead of pages, 1fw = 3
+  90:Core/Src/boot.c **** int progsleft = 0;
+  91:Core/Src/boot.c **** 
+  92:Core/Src/boot.c **** // number of messages left to get
+  93:Core/Src/boot.c **** uint64_t getsleft = 0;
+  94:Core/Src/boot.c **** #define NUMBER_OF_BYTES_PER_FLASHWORD_AND_THEN_SOME 0x26 // this, as well as NUMBER_OF_BYTES_PER_PA
+  95:Core/Src/boot.c **** char progbuf[NUMBER_OF_BYTES_PER_FLASHWORD_AND_THEN_SOME]; // must be at least large enough for 8Ki
+  96:Core/Src/boot.c **** int boot_ping(void)
+  97:Core/Src/boot.c **** {
+  28              		.loc 1 97 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 8
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32 0000 00B5     		push	{lr}
+  33              	.LCFI0:
+  34              		.cfi_def_cfa_offset 4
+  35              		.cfi_offset 14, -4
+  36 0002 83B0     		sub	sp, sp, #12
+  37              	.LCFI1:
+  38              		.cfi_def_cfa_offset 16
+  98:Core/Src/boot.c **** 	uint64_t resend = 0;
+  39              		.loc 1 98 2 view .LVU1
+  40              		.loc 1 98 11 is_stmt 0 view .LVU2
+  41 0004 0022     		movs	r2, #0
+  42 0006 0023     		movs	r3, #0
+  43 0008 CDE90023 		strd	r2, [sp]
+  99:Core/Src/boot.c **** 	memcpy(&resend, recvbuf, 8);
+  44              		.loc 1 99 2 is_stmt 1 view .LVU3
+  45 000c 084A     		ldr	r2, .L3
+  46 000e 1368     		ldr	r3, [r2]
+  47 0010 5268     		ldr	r2, [r2, #4]
+  48 0012 0093     		str	r3, [sp]
+  49 0014 0192     		str	r2, [sp, #4]
+ 100:Core/Src/boot.c **** 	++resend;
+  50              		.loc 1 100 2 view .LVU4
+  51 0016 0133     		adds	r3, r3, #1
+  52 0018 42F10002 		adc	r2, r2, #0
+  53 001c 0093     		str	r3, [sp]
+  54 001e 0192     		str	r2, [sp, #4]
+ 101:Core/Src/boot.c **** 	can_senddata((uint8_t*)&resend, 8, BOOT_SEND_PING);
+  55              		.loc 1 101 2 view .LVU5
+  56 0020 4422     		movs	r2, #68
+  57 0022 0821     		movs	r1, #8
+  58 0024 6846     		mov	r0, sp
+  59 0026 FFF7FEFF 		bl	can_senddata
+  60              	.LVL0:
+ 102:Core/Src/boot.c **** //	noerr(1);
+ 103:Core/Src/boot.c **** 	return 0;
+  61              		.loc 1 103 2 view .LVU6
+ 104:Core/Src/boot.c **** }
+  62              		.loc 1 104 1 is_stmt 0 view .LVU7
+  63 002a 0020     		movs	r0, #0
+  64 002c 03B0     		add	sp, sp, #12
+  65              	.LCFI2:
+  66              		.cfi_def_cfa_offset 4
+  67              		@ sp needed
+  68 002e 00BD     		pop	{pc}
+ARM GAS  /tmp/ccJjao8i.s 			page 4
+
+
+  69              	.L4:
+  70              		.align	2
+  71              	.L3:
+  72 0030 00000000 		.word	recvbuf
+  73              		.cfi_endproc
+  74              	.LFE153:
+  76              		.section	.text.boot_can_senderror,"ax",%progbits
+  77              		.align	1
+  78              		.global	boot_can_senderror
+  79              		.syntax unified
+  80              		.thumb
+  81              		.thumb_func
+  83              	boot_can_senderror:
+  84              	.LVL1:
+  85              	.LFB149:
+  49:Core/Src/boot.c **** 	uint64_t errsig = 0xdeadbeef + ((uint64_t)code << 32);
+  86              		.loc 1 49 1 is_stmt 1 view -0
+  87              		.cfi_startproc
+  88              		@ args = 0, pretend = 0, frame = 8
+  89              		@ frame_needed = 0, uses_anonymous_args = 0
+  49:Core/Src/boot.c **** 	uint64_t errsig = 0xdeadbeef + ((uint64_t)code << 32);
+  90              		.loc 1 49 1 is_stmt 0 view .LVU9
+  91 0000 00B5     		push	{lr}
+  92              	.LCFI3:
+  93              		.cfi_def_cfa_offset 4
+  94              		.cfi_offset 14, -4
+  95 0002 83B0     		sub	sp, sp, #12
+  96              	.LCFI4:
+  97              		.cfi_def_cfa_offset 16
+  50:Core/Src/boot.c **** 	can_senddata((uint8_t*)&errsig, 8, BOOT_SEND_PING);
+  98              		.loc 1 50 2 is_stmt 1 view .LVU10
+  50:Core/Src/boot.c **** 	can_senddata((uint8_t*)&errsig, 8, BOOT_SEND_PING);
+  99              		.loc 1 50 31 is_stmt 0 view .LVU11
+ 100 0004 064B     		ldr	r3, .L7
+  50:Core/Src/boot.c **** 	can_senddata((uint8_t*)&errsig, 8, BOOT_SEND_PING);
+ 101              		.loc 1 50 11 view .LVU12
+ 102 0006 0093     		str	r3, [sp]
+ 103 0008 0190     		str	r0, [sp, #4]
+  51:Core/Src/boot.c **** 	err(1);
+ 104              		.loc 1 51 2 is_stmt 1 view .LVU13
+ 105 000a 4422     		movs	r2, #68
+ 106 000c 0821     		movs	r1, #8
+ 107 000e 6846     		mov	r0, sp
+ 108              	.LVL2:
+  51:Core/Src/boot.c **** 	err(1);
+ 109              		.loc 1 51 2 is_stmt 0 view .LVU14
+ 110 0010 FFF7FEFF 		bl	can_senddata
+ 111              	.LVL3:
+  52:Core/Src/boot.c **** 	return 1;
+ 112              		.loc 1 52 2 is_stmt 1 view .LVU15
+ 113 0014 0120     		movs	r0, #1
+ 114 0016 FFF7FEFF 		bl	err
+ 115              	.LVL4:
+  53:Core/Src/boot.c **** }
+ 116              		.loc 1 53 2 view .LVU16
+  54:Core/Src/boot.c **** int boot_can_resendfrom(uint32_t idx)
+ 117              		.loc 1 54 1 is_stmt 0 view .LVU17
+ARM GAS  /tmp/ccJjao8i.s 			page 5
+
+
+ 118 001a 0120     		movs	r0, #1
+ 119 001c 03B0     		add	sp, sp, #12
+ 120              	.LCFI5:
+ 121              		.cfi_def_cfa_offset 4
+ 122              		@ sp needed
+ 123 001e 00BD     		pop	{pc}
+ 124              	.L8:
+ 125              		.align	2
+ 126              	.L7:
+ 127 0020 EFBEADDE 		.word	-559038737
+ 128              		.cfi_endproc
+ 129              	.LFE149:
+ 131              		.section	.text.boot_init,"ax",%progbits
+ 132              		.align	1
+ 133              		.global	boot_init
+ 134              		.syntax unified
+ 135              		.thumb
+ 136              		.thumb_func
+ 138              	boot_init:
+ 139              	.LFB154:
+ 105:Core/Src/boot.c **** int boot_init(void)
+ 106:Core/Src/boot.c **** {
+ 140              		.loc 1 106 1 is_stmt 1 view -0
+ 141              		.cfi_startproc
+ 142              		@ args = 0, pretend = 0, frame = 0
+ 143              		@ frame_needed = 0, uses_anonymous_args = 0
+ 144 0000 08B5     		push	{r3, lr}
+ 145              	.LCFI6:
+ 146              		.cfi_def_cfa_offset 8
+ 147              		.cfi_offset 3, -8
+ 148              		.cfi_offset 14, -4
+ 107:Core/Src/boot.c **** 	if(bootstate != BOOTSTATE_START)
+ 149              		.loc 1 107 2 view .LVU19
+ 150              		.loc 1 107 15 is_stmt 0 view .LVU20
+ 151 0002 184B     		ldr	r3, .L14
+ 152 0004 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 153              		.loc 1 107 4 view .LVU21
+ 154 0006 3BBB     		cbnz	r3, .L13
+ 108:Core/Src/boot.c **** 	{
+ 109:Core/Src/boot.c **** 		boot_can_senderror(1);
+ 110:Core/Src/boot.c **** 		return 1;
+ 111:Core/Src/boot.c **** 	}
+ 112:Core/Src/boot.c **** 	bootstate = BOOTSTATE_INIT;
+ 155              		.loc 1 112 2 is_stmt 1 view .LVU22
+ 156              		.loc 1 112 12 is_stmt 0 view .LVU23
+ 157 0008 164B     		ldr	r3, .L14
+ 158 000a 0122     		movs	r2, #1
+ 159 000c 1A70     		strb	r2, [r3]
+ 113:Core/Src/boot.c **** 
+ 114:Core/Src/boot.c **** #define LOG_2_OF_NUMBER_OF_BYTES_PER_FLASHWORD 5
+ 115:Core/Src/boot.c **** #define NUMBER_OF_BYTES_PER_GET 6
+ 116:Core/Src/boot.c **** #define NUMBER_OF_BYTES_PER_FLASHWORD 0x20
+ 117:Core/Src/boot.c **** 	memcpy(&getsleft, recvbuf, 4);
+ 160              		.loc 1 117 2 is_stmt 1 view .LVU24
+ 161 000e 164B     		ldr	r3, .L14+4
+ 162 0010 164A     		ldr	r2, .L14+8
+ 163 0012 1268     		ldr	r2, [r2]
+ARM GAS  /tmp/ccJjao8i.s 			page 6
+
+
+ 164 0014 1A60     		str	r2, [r3]
+ 118:Core/Src/boot.c **** 	progsleft = (getsleft*NUMBER_OF_BYTES_PER_GET + NUMBER_OF_BYTES_PER_FLASHWORD - 1) >> LOG_2_OF_NUM
+ 165              		.loc 1 118 2 view .LVU25
+ 166              		.loc 1 118 23 is_stmt 0 view .LVU26
+ 167 0016 5B68     		ldr	r3, [r3, #4]
+ 168 0018 9118     		adds	r1, r2, r2
+ 169 001a 43EB0300 		adc	r0, r3, r3
+ 170 001e 8918     		adds	r1, r1, r2
+ 171 0020 43EB0003 		adc	r3, r3, r0
+ 172 0024 4918     		adds	r1, r1, r1
+ 173 0026 5B41     		adcs	r3, r3, r3
+ 174              		.loc 1 118 80 view .LVU27
+ 175 0028 11F11F02 		adds	r2, r1, #31
+ 176 002c 43F10000 		adc	r0, r3, #0
+ 177              		.loc 1 118 85 view .LVU28
+ 178 0030 5209     		lsrs	r2, r2, #5
+ 179 0032 42EAC062 		orr	r2, r2, r0, lsl #27
+ 180              		.loc 1 118 12 view .LVU29
+ 181 0036 0E48     		ldr	r0, .L14+12
+ 182 0038 0260     		str	r2, [r0]
+ 119:Core/Src/boot.c **** #define LOG_2_OF_NUMBER_OF_BYTES_PER_SECTOR 17
+ 120:Core/Src/boot.c **** #define NUMBER_OF_BYTES_PER_SECTOR 0x20000
+ 121:Core/Src/boot.c **** 	erasesleft = (getsleft*NUMBER_OF_BYTES_PER_GET + NUMBER_OF_BYTES_PER_SECTOR - 1) >> LOG_2_OF_NUMBE
+ 183              		.loc 1 121 2 is_stmt 1 view .LVU30
+ 184              		.loc 1 121 78 is_stmt 0 view .LVU31
+ 185 003a 0E4A     		ldr	r2, .L14+16
+ 186 003c 8918     		adds	r1, r1, r2
+ 187 003e 43F10003 		adc	r3, r3, #0
+ 188              		.loc 1 121 83 view .LVU32
+ 189 0042 490C     		lsrs	r1, r1, #17
+ 190 0044 41EAC331 		orr	r1, r1, r3, lsl #15
+ 191              		.loc 1 121 13 view .LVU33
+ 192 0048 0B4B     		ldr	r3, .L14+20
+ 193 004a 1960     		str	r1, [r3]
+ 122:Core/Src/boot.c **** 	flash_erase_addr(curaddr, erasesleft);
+ 194              		.loc 1 122 2 is_stmt 1 view .LVU34
+ 195 004c 0B4B     		ldr	r3, .L14+24
+ 196 004e 1868     		ldr	r0, [r3]
+ 197 0050 FFF7FEFF 		bl	flash_erase_addr
+ 198              	.LVL5:
+ 123:Core/Src/boot.c **** 	return 0;
+ 199              		.loc 1 123 2 view .LVU35
+ 200              		.loc 1 123 9 is_stmt 0 view .LVU36
+ 201 0054 0020     		movs	r0, #0
+ 202              	.L9:
+ 124:Core/Src/boot.c **** }
+ 203              		.loc 1 124 1 view .LVU37
+ 204 0056 08BD     		pop	{r3, pc}
+ 205              	.L13:
+ 109:Core/Src/boot.c **** 		return 1;
+ 206              		.loc 1 109 3 is_stmt 1 view .LVU38
+ 207 0058 0120     		movs	r0, #1
+ 208 005a FFF7FEFF 		bl	boot_can_senderror
+ 209              	.LVL6:
+ 110:Core/Src/boot.c **** 	}
+ 210              		.loc 1 110 3 view .LVU39
+ 110:Core/Src/boot.c **** 	}
+ARM GAS  /tmp/ccJjao8i.s 			page 7
+
+
+ 211              		.loc 1 110 10 is_stmt 0 view .LVU40
+ 212 005e 0120     		movs	r0, #1
+ 213 0060 F9E7     		b	.L9
+ 214              	.L15:
+ 215 0062 00BF     		.align	2
+ 216              	.L14:
+ 217 0064 00000000 		.word	bootstate
+ 218 0068 00000000 		.word	getsleft
+ 219 006c 00000000 		.word	recvbuf
+ 220 0070 00000000 		.word	progsleft
+ 221 0074 FFFF0100 		.word	131071
+ 222 0078 00000000 		.word	erasesleft
+ 223 007c 00000000 		.word	curaddr
+ 224              		.cfi_endproc
+ 225              	.LFE154:
+ 227              		.section	.text.boot_reset,"ax",%progbits
+ 228              		.align	1
+ 229              		.global	boot_reset
+ 230              		.syntax unified
+ 231              		.thumb
+ 232              		.thumb_func
+ 234              	boot_reset:
+ 235              	.LFB155:
+ 125:Core/Src/boot.c **** int boot_reset(void) // this is not really implemented, but it's not implemented server side either
+ 126:Core/Src/boot.c **** {
+ 236              		.loc 1 126 1 is_stmt 1 view -0
+ 237              		.cfi_startproc
+ 238              		@ args = 0, pretend = 0, frame = 0
+ 239              		@ frame_needed = 0, uses_anonymous_args = 0
+ 240 0000 08B5     		push	{r3, lr}
+ 241              	.LCFI7:
+ 242              		.cfi_def_cfa_offset 8
+ 243              		.cfi_offset 3, -8
+ 244              		.cfi_offset 14, -4
+ 127:Core/Src/boot.c **** 	if(erasesleft)
+ 245              		.loc 1 127 2 view .LVU42
+ 246              		.loc 1 127 5 is_stmt 0 view .LVU43
+ 247 0002 084B     		ldr	r3, .L23
+ 248 0004 1868     		ldr	r0, [r3]
+ 249              		.loc 1 127 4 view .LVU44
+ 250 0006 20B9     		cbnz	r0, .L21
+ 128:Core/Src/boot.c **** 	{
+ 129:Core/Src/boot.c **** 		boot_can_senderror(2);
+ 130:Core/Src/boot.c **** 		return 1;
+ 131:Core/Src/boot.c **** 	}
+ 132:Core/Src/boot.c **** 	if(bootstate != BOOTSTATE_ERASE_DONE)
+ 251              		.loc 1 132 2 is_stmt 1 view .LVU45
+ 252              		.loc 1 132 15 is_stmt 0 view .LVU46
+ 253 0008 074B     		ldr	r3, .L23+4
+ 254 000a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 255              		.loc 1 132 4 view .LVU47
+ 256 000c 022B     		cmp	r3, #2
+ 257 000e 04D1     		bne	.L22
+ 258              	.L16:
+ 133:Core/Src/boot.c **** 	{
+ 134:Core/Src/boot.c **** 		boot_can_senderror(4);
+ 135:Core/Src/boot.c **** 		return 1;
+ARM GAS  /tmp/ccJjao8i.s 			page 8
+
+
+ 136:Core/Src/boot.c **** 	}
+ 137:Core/Src/boot.c **** 	return 0;
+ 138:Core/Src/boot.c **** }
+ 259              		.loc 1 138 1 view .LVU48
+ 260 0010 08BD     		pop	{r3, pc}
+ 261              	.L21:
+ 129:Core/Src/boot.c **** 		return 1;
+ 262              		.loc 1 129 3 is_stmt 1 view .LVU49
+ 263 0012 0220     		movs	r0, #2
+ 264 0014 FFF7FEFF 		bl	boot_can_senderror
+ 265              	.LVL7:
+ 130:Core/Src/boot.c **** 	}
+ 266              		.loc 1 130 3 view .LVU50
+ 130:Core/Src/boot.c **** 	}
+ 267              		.loc 1 130 10 is_stmt 0 view .LVU51
+ 268 0018 02E0     		b	.L19
+ 269              	.L22:
+ 134:Core/Src/boot.c **** 		return 1;
+ 270              		.loc 1 134 3 is_stmt 1 view .LVU52
+ 271 001a 0420     		movs	r0, #4
+ 272 001c FFF7FEFF 		bl	boot_can_senderror
+ 273              	.LVL8:
+ 135:Core/Src/boot.c **** 	}
+ 274              		.loc 1 135 3 view .LVU53
+ 275              	.L19:
+ 130:Core/Src/boot.c **** 	}
+ 276              		.loc 1 130 10 is_stmt 0 view .LVU54
+ 277 0020 0120     		movs	r0, #1
+ 278 0022 F5E7     		b	.L16
+ 279              	.L24:
+ 280              		.align	2
+ 281              	.L23:
+ 282 0024 00000000 		.word	erasesleft
+ 283 0028 00000000 		.word	bootstate
+ 284              		.cfi_endproc
+ 285              	.LFE155:
+ 287              		.section	.text.boot_can_resendfrom,"ax",%progbits
+ 288              		.align	1
+ 289              		.global	boot_can_resendfrom
+ 290              		.syntax unified
+ 291              		.thumb
+ 292              		.thumb_func
+ 294              	boot_can_resendfrom:
+ 295              	.LVL9:
+ 296              	.LFB150:
+  56:Core/Src/boot.c **** 	uint64_t send = idx;
+ 297              		.loc 1 56 1 is_stmt 1 view -0
+ 298              		.cfi_startproc
+ 299              		@ args = 0, pretend = 0, frame = 8
+ 300              		@ frame_needed = 0, uses_anonymous_args = 0
+  56:Core/Src/boot.c **** 	uint64_t send = idx;
+ 301              		.loc 1 56 1 is_stmt 0 view .LVU56
+ 302 0000 10B5     		push	{r4, lr}
+ 303              	.LCFI8:
+ 304              		.cfi_def_cfa_offset 8
+ 305              		.cfi_offset 4, -8
+ 306              		.cfi_offset 14, -4
+ARM GAS  /tmp/ccJjao8i.s 			page 9
+
+
+ 307 0002 82B0     		sub	sp, sp, #8
+ 308              	.LCFI9:
+ 309              		.cfi_def_cfa_offset 16
+  57:Core/Src/boot.c **** 	can_senddata((uint8_t*)&send, 8, BOOT_SEND_RESEND);
+ 310              		.loc 1 57 2 is_stmt 1 view .LVU57
+  57:Core/Src/boot.c **** 	can_senddata((uint8_t*)&send, 8, BOOT_SEND_RESEND);
+ 311              		.loc 1 57 11 is_stmt 0 view .LVU58
+ 312 0004 0024     		movs	r4, #0
+ 313 0006 0090     		str	r0, [sp]
+ 314 0008 0194     		str	r4, [sp, #4]
+  58:Core/Src/boot.c **** 	noerr(2);
+ 315              		.loc 1 58 2 is_stmt 1 view .LVU59
+ 316 000a 4622     		movs	r2, #70
+ 317 000c 0821     		movs	r1, #8
+ 318 000e 6846     		mov	r0, sp
+ 319              	.LVL10:
+  58:Core/Src/boot.c **** 	noerr(2);
+ 320              		.loc 1 58 2 is_stmt 0 view .LVU60
+ 321 0010 FFF7FEFF 		bl	can_senddata
+ 322              	.LVL11:
+  59:Core/Src/boot.c **** 	return 0;
+ 323              		.loc 1 59 2 is_stmt 1 view .LVU61
+ 324 0014 0220     		movs	r0, #2
+ 325 0016 FFF7FEFF 		bl	noerr
+ 326              	.LVL12:
+  60:Core/Src/boot.c **** }
+ 327              		.loc 1 60 2 view .LVU62
+  61:Core/Src/boot.c **** int boot_can_readyfor(uint32_t idx)
+ 328              		.loc 1 61 1 is_stmt 0 view .LVU63
+ 329 001a 2046     		mov	r0, r4
+ 330 001c 02B0     		add	sp, sp, #8
+ 331              	.LCFI10:
+ 332              		.cfi_def_cfa_offset 8
+ 333              		@ sp needed
+ 334 001e 10BD     		pop	{r4, pc}
+ 335              		.cfi_endproc
+ 336              	.LFE150:
+ 338              		.section	.text.boot_data,"ax",%progbits
+ 339              		.align	1
+ 340              		.global	boot_data
+ 341              		.syntax unified
+ 342              		.thumb
+ 343              		.thumb_func
+ 345              	boot_data:
+ 346              	.LFB156:
+ 139:Core/Src/boot.c **** int boot_data(void)
+ 140:Core/Src/boot.c **** {
+ 347              		.loc 1 140 1 is_stmt 1 view -0
+ 348              		.cfi_startproc
+ 349              		@ args = 0, pretend = 0, frame = 0
+ 350              		@ frame_needed = 0, uses_anonymous_args = 0
+ 351 0000 10B5     		push	{r4, lr}
+ 352              	.LCFI11:
+ 353              		.cfi_def_cfa_offset 8
+ 354              		.cfi_offset 4, -8
+ 355              		.cfi_offset 14, -4
+ 141:Core/Src/boot.c **** 	// this is checked to see if the packet really is the next one
+ARM GAS  /tmp/ccJjao8i.s 			page 10
+
+
+ 142:Core/Src/boot.c **** 	static uint16_t lastidx = 0xffff;
+ 356              		.loc 1 142 2 view .LVU65
+ 143:Core/Src/boot.c **** 	// where on the page buffer to copy to
+ 144:Core/Src/boot.c **** 	static int pageidx = 0;
+ 357              		.loc 1 144 2 view .LVU66
+ 145:Core/Src/boot.c **** 	if(bootstate != BOOTSTATE_ERASE_DONE)
+ 358              		.loc 1 145 2 view .LVU67
+ 359              		.loc 1 145 15 is_stmt 0 view .LVU68
+ 360 0002 2A4B     		ldr	r3, .L41
+ 361 0004 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 362              		.loc 1 145 4 view .LVU69
+ 363 0006 022B     		cmp	r3, #2
+ 364 0008 0ED1     		bne	.L39
+ 146:Core/Src/boot.c **** 	{
+ 147:Core/Src/boot.c **** 		boot_can_senderror(3);
+ 148:Core/Src/boot.c **** 		return 1;
+ 149:Core/Src/boot.c **** 	}
+ 150:Core/Src/boot.c **** 	++lastidx;
+ 365              		.loc 1 150 2 is_stmt 1 view .LVU70
+ 366 000a 294A     		ldr	r2, .L41+4
+ 367 000c 1088     		ldrh	r0, [r2]
+ 368 000e 431C     		adds	r3, r0, #1
+ 369 0010 9BB2     		uxth	r3, r3
+ 370 0012 1380     		strh	r3, [r2]	@ movhi
+ 151:Core/Src/boot.c **** 	uint16_t idx = ((uint16_t*)recvbuf)[3];
+ 371              		.loc 1 151 2 view .LVU71
+ 372              		.loc 1 151 11 is_stmt 0 view .LVU72
+ 373 0014 274A     		ldr	r2, .L41+8
+ 374 0016 D288     		ldrh	r2, [r2, #6]
+ 375              	.LVL13:
+ 152:Core/Src/boot.c **** 	if(idx != lastidx)
+ 376              		.loc 1 152 2 is_stmt 1 view .LVU73
+ 377              		.loc 1 152 4 is_stmt 0 view .LVU74
+ 378 0018 9342     		cmp	r3, r2
+ 379 001a 09D0     		beq	.L30
+ 153:Core/Src/boot.c **** 	{
+ 154:Core/Src/boot.c **** 		--lastidx;
+ 380              		.loc 1 154 3 is_stmt 1 view .LVU75
+ 381 001c 244B     		ldr	r3, .L41+4
+ 382 001e 1880     		strh	r0, [r3]	@ movhi
+ 155:Core/Src/boot.c **** 		boot_can_resendfrom(lastidx);
+ 383              		.loc 1 155 3 view .LVU76
+ 384 0020 FFF7FEFF 		bl	boot_can_resendfrom
+ 385              	.LVL14:
+ 156:Core/Src/boot.c **** 		return 1;
+ 386              		.loc 1 156 3 view .LVU77
+ 387              	.L29:
+ 148:Core/Src/boot.c **** 	}
+ 388              		.loc 1 148 10 is_stmt 0 view .LVU78
+ 389 0024 0120     		movs	r0, #1
+ 390              	.L27:
+ 157:Core/Src/boot.c **** 	}
+ 158:Core/Src/boot.c **** 	memcpy(&progbuf[pageidx], recvbuf, NUMBER_OF_BYTES_PER_GET);
+ 159:Core/Src/boot.c **** 	--getsleft;
+ 160:Core/Src/boot.c **** 	pageidx += NUMBER_OF_BYTES_PER_GET;
+ 161:Core/Src/boot.c **** 	if(pageidx >= NUMBER_OF_BYTES_PER_FLASHWORD)
+ 162:Core/Src/boot.c **** 	{
+ARM GAS  /tmp/ccJjao8i.s 			page 11
+
+
+ 163:Core/Src/boot.c **** 		pageidx -= NUMBER_OF_BYTES_PER_FLASHWORD;
+ 164:Core/Src/boot.c **** 		flash_prog_addr(curaddr, (uint32_t*)progbuf);
+ 165:Core/Src/boot.c **** 		curaddr += NUMBER_OF_BYTES_PER_FLASHWORD;
+ 166:Core/Src/boot.c **** 	}
+ 167:Core/Src/boot.c **** 	else if(!getsleft)
+ 168:Core/Src/boot.c **** 	{
+ 169:Core/Src/boot.c **** 		for(int i = pageidx; i < NUMBER_OF_BYTES_PER_FLASHWORD; ++i)
+ 170:Core/Src/boot.c **** 		{
+ 171:Core/Src/boot.c **** 			progbuf[i] = 0xff;
+ 172:Core/Src/boot.c **** 		}
+ 173:Core/Src/boot.c **** 		flash_prog_addr(curaddr, (uint32_t*)progbuf);
+ 174:Core/Src/boot.c **** 	}
+ 175:Core/Src/boot.c **** 	else
+ 176:Core/Src/boot.c **** 	{
+ 177:Core/Src/boot.c **** 		can_senddata((uint8_t*)&getsleft, 8, BOOT_SEND_READY);
+ 178:Core/Src/boot.c **** 	}
+ 179:Core/Src/boot.c **** 	return 0;
+ 180:Core/Src/boot.c **** }
+ 391              		.loc 1 180 1 view .LVU79
+ 392 0026 10BD     		pop	{r4, pc}
+ 393              	.L39:
+ 147:Core/Src/boot.c **** 		return 1;
+ 394              		.loc 1 147 3 is_stmt 1 view .LVU80
+ 395 0028 0320     		movs	r0, #3
+ 396 002a FFF7FEFF 		bl	boot_can_senderror
+ 397              	.LVL15:
+ 148:Core/Src/boot.c **** 	}
+ 398              		.loc 1 148 3 view .LVU81
+ 148:Core/Src/boot.c **** 	}
+ 399              		.loc 1 148 10 is_stmt 0 view .LVU82
+ 400 002e F9E7     		b	.L29
+ 401              	.LVL16:
+ 402              	.L30:
+ 158:Core/Src/boot.c **** 	--getsleft;
+ 403              		.loc 1 158 2 is_stmt 1 view .LVU83
+ 158:Core/Src/boot.c **** 	--getsleft;
+ 404              		.loc 1 158 17 is_stmt 0 view .LVU84
+ 405 0030 DFF890E0 		ldr	lr, .L41+24
+ 406 0034 DEF800C0 		ldr	ip, [lr]
+ 158:Core/Src/boot.c **** 	--getsleft;
+ 407              		.loc 1 158 9 view .LVU85
+ 408 0038 1F4A     		ldr	r2, .L41+12
+ 409 003a 0CEB0201 		add	r1, ip, r2
+ 158:Core/Src/boot.c **** 	--getsleft;
+ 410              		.loc 1 158 2 view .LVU86
+ 411 003e 1D4B     		ldr	r3, .L41+8
+ 412              	.LVL17:
+ 158:Core/Src/boot.c **** 	--getsleft;
+ 413              		.loc 1 158 2 view .LVU87
+ 414 0040 1868     		ldr	r0, [r3]
+ 415 0042 42F80C00 		str	r0, [r2, ip]	@ unaligned
+ 416              	.LVL18:
+ 158:Core/Src/boot.c **** 	--getsleft;
+ 417              		.loc 1 158 2 view .LVU88
+ 418 0046 9B88     		ldrh	r3, [r3, #4]	@ unaligned
+ 419 0048 8B80     		strh	r3, [r1, #4]	@ unaligned
+ 159:Core/Src/boot.c **** 	pageidx += NUMBER_OF_BYTES_PER_GET;
+ARM GAS  /tmp/ccJjao8i.s 			page 12
+
+
+ 420              		.loc 1 159 2 is_stmt 1 view .LVU89
+ 421 004a 1C49     		ldr	r1, .L41+16
+ 422 004c 0B68     		ldr	r3, [r1]
+ 423 004e 4868     		ldr	r0, [r1, #4]
+ 424 0050 5A1E     		subs	r2, r3, #1
+ 425 0052 40F1FF30 		adc	r0, r0, #-1
+ 426 0056 0A60     		str	r2, [r1]
+ 427 0058 4860     		str	r0, [r1, #4]
+ 160:Core/Src/boot.c **** 	if(pageidx >= NUMBER_OF_BYTES_PER_FLASHWORD)
+ 428              		.loc 1 160 2 view .LVU90
+ 160:Core/Src/boot.c **** 	if(pageidx >= NUMBER_OF_BYTES_PER_FLASHWORD)
+ 429              		.loc 1 160 10 is_stmt 0 view .LVU91
+ 430 005a 0CF10603 		add	r3, ip, #6
+ 431 005e CEF80030 		str	r3, [lr]
+ 161:Core/Src/boot.c **** 	{
+ 432              		.loc 1 161 2 is_stmt 1 view .LVU92
+ 161:Core/Src/boot.c **** 	{
+ 433              		.loc 1 161 4 is_stmt 0 view .LVU93
+ 434 0062 1F2B     		cmp	r3, #31
+ 435 0064 07DC     		bgt	.L40
+ 167:Core/Src/boot.c **** 	{
+ 436              		.loc 1 167 7 is_stmt 1 view .LVU94
+ 167:Core/Src/boot.c **** 	{
+ 437              		.loc 1 167 9 is_stmt 0 view .LVU95
+ 438 0066 0243     		orrs	r2, r2, r0
+ 439 0068 17D0     		beq	.L33
+ 177:Core/Src/boot.c **** 	}
+ 440              		.loc 1 177 3 is_stmt 1 view .LVU96
+ 441 006a 4522     		movs	r2, #69
+ 442 006c 0821     		movs	r1, #8
+ 443 006e 1348     		ldr	r0, .L41+16
+ 444 0070 FFF7FEFF 		bl	can_senddata
+ 445              	.LVL19:
+ 446 0074 18E0     		b	.L32
+ 447              	.L40:
+ 163:Core/Src/boot.c **** 		flash_prog_addr(curaddr, (uint32_t*)progbuf);
+ 448              		.loc 1 163 3 view .LVU97
+ 163:Core/Src/boot.c **** 		flash_prog_addr(curaddr, (uint32_t*)progbuf);
+ 449              		.loc 1 163 11 is_stmt 0 view .LVU98
+ 450 0076 ACF11A03 		sub	r3, ip, #26
+ 451 007a CEF80030 		str	r3, [lr]
+ 164:Core/Src/boot.c **** 		curaddr += NUMBER_OF_BYTES_PER_FLASHWORD;
+ 452              		.loc 1 164 3 is_stmt 1 view .LVU99
+ 453 007e 0E49     		ldr	r1, .L41+12
+ 454 0080 0F4A     		ldr	r2, .L41+20
+ 455 0082 1446     		mov	r4, r2
+ 456 0084 1068     		ldr	r0, [r2]
+ 457 0086 FFF7FEFF 		bl	flash_prog_addr
+ 458              	.LVL20:
+ 165:Core/Src/boot.c **** 	}
+ 459              		.loc 1 165 3 view .LVU100
+ 165:Core/Src/boot.c **** 	}
+ 460              		.loc 1 165 11 is_stmt 0 view .LVU101
+ 461 008a 2368     		ldr	r3, [r4]
+ 462 008c 2033     		adds	r3, r3, #32
+ 463 008e 2360     		str	r3, [r4]
+ 464 0090 0AE0     		b	.L32
+ARM GAS  /tmp/ccJjao8i.s 			page 13
+
+
+ 465              	.LVL21:
+ 466              	.L35:
+ 467              	.LBB2:
+ 171:Core/Src/boot.c **** 		}
+ 468              		.loc 1 171 4 is_stmt 1 view .LVU102
+ 171:Core/Src/boot.c **** 		}
+ 469              		.loc 1 171 15 is_stmt 0 view .LVU103
+ 470 0092 094A     		ldr	r2, .L41+12
+ 471 0094 FF21     		movs	r1, #255
+ 472 0096 D154     		strb	r1, [r2, r3]
+ 169:Core/Src/boot.c **** 		{
+ 473              		.loc 1 169 59 is_stmt 1 discriminator 1 view .LVU104
+ 474 0098 0133     		adds	r3, r3, #1
+ 475              	.LVL22:
+ 476              	.L33:
+ 169:Core/Src/boot.c **** 		{
+ 477              		.loc 1 169 26 discriminator 2 view .LVU105
+ 478 009a 1F2B     		cmp	r3, #31
+ 479 009c F9DD     		ble	.L35
+ 480              	.LBE2:
+ 173:Core/Src/boot.c **** 	}
+ 481              		.loc 1 173 3 view .LVU106
+ 482 009e 0649     		ldr	r1, .L41+12
+ 483 00a0 074B     		ldr	r3, .L41+20
+ 484              	.LVL23:
+ 173:Core/Src/boot.c **** 	}
+ 485              		.loc 1 173 3 is_stmt 0 view .LVU107
+ 486 00a2 1868     		ldr	r0, [r3]
+ 487 00a4 FFF7FEFF 		bl	flash_prog_addr
+ 488              	.LVL24:
+ 489              	.L32:
+ 179:Core/Src/boot.c **** }
+ 490              		.loc 1 179 9 view .LVU108
+ 491 00a8 0020     		movs	r0, #0
+ 492 00aa BCE7     		b	.L27
+ 493              	.L42:
+ 494              		.align	2
+ 495              	.L41:
+ 496 00ac 00000000 		.word	bootstate
+ 497 00b0 00000000 		.word	lastidx.1
+ 498 00b4 00000000 		.word	recvbuf
+ 499 00b8 00000000 		.word	progbuf
+ 500 00bc 00000000 		.word	getsleft
+ 501 00c0 00000000 		.word	curaddr
+ 502 00c4 00000000 		.word	pageidx.0
+ 503              		.cfi_endproc
+ 504              	.LFE156:
+ 506              		.section	.text.boot_can_readyfor,"ax",%progbits
+ 507              		.align	1
+ 508              		.global	boot_can_readyfor
+ 509              		.syntax unified
+ 510              		.thumb
+ 511              		.thumb_func
+ 513              	boot_can_readyfor:
+ 514              	.LVL25:
+ 515              	.LFB151:
+  63:Core/Src/boot.c **** 	uint64_t send = idx;
+ARM GAS  /tmp/ccJjao8i.s 			page 14
+
+
+ 516              		.loc 1 63 1 is_stmt 1 view -0
+ 517              		.cfi_startproc
+ 518              		@ args = 0, pretend = 0, frame = 8
+ 519              		@ frame_needed = 0, uses_anonymous_args = 0
+  63:Core/Src/boot.c **** 	uint64_t send = idx;
+ 520              		.loc 1 63 1 is_stmt 0 view .LVU110
+ 521 0000 10B5     		push	{r4, lr}
+ 522              	.LCFI12:
+ 523              		.cfi_def_cfa_offset 8
+ 524              		.cfi_offset 4, -8
+ 525              		.cfi_offset 14, -4
+ 526 0002 82B0     		sub	sp, sp, #8
+ 527              	.LCFI13:
+ 528              		.cfi_def_cfa_offset 16
+  64:Core/Src/boot.c **** 	can_senddata((uint8_t*)&send, 8, BOOT_SEND_READY);
+ 529              		.loc 1 64 2 is_stmt 1 view .LVU111
+  64:Core/Src/boot.c **** 	can_senddata((uint8_t*)&send, 8, BOOT_SEND_READY);
+ 530              		.loc 1 64 11 is_stmt 0 view .LVU112
+ 531 0004 0024     		movs	r4, #0
+ 532 0006 0090     		str	r0, [sp]
+ 533 0008 0194     		str	r4, [sp, #4]
+  65:Core/Src/boot.c **** 	return 0;
+ 534              		.loc 1 65 2 is_stmt 1 view .LVU113
+ 535 000a 4522     		movs	r2, #69
+ 536 000c 0821     		movs	r1, #8
+ 537 000e 6846     		mov	r0, sp
+ 538              	.LVL26:
+  65:Core/Src/boot.c **** 	return 0;
+ 539              		.loc 1 65 2 is_stmt 0 view .LVU114
+ 540 0010 FFF7FEFF 		bl	can_senddata
+ 541              	.LVL27:
+  66:Core/Src/boot.c **** }
+ 542              		.loc 1 66 2 is_stmt 1 view .LVU115
+  67:Core/Src/boot.c **** 
+ 543              		.loc 1 67 1 is_stmt 0 view .LVU116
+ 544 0014 2046     		mov	r0, r4
+ 545 0016 02B0     		add	sp, sp, #8
+ 546              	.LCFI14:
+ 547              		.cfi_def_cfa_offset 8
+ 548              		@ sp needed
+ 549 0018 10BD     		pop	{r4, pc}
+ 550              		.cfi_endproc
+ 551              	.LFE151:
+ 553              		.section	.text.boot_send_init,"ax",%progbits
+ 554              		.align	1
+ 555              		.global	boot_send_init
+ 556              		.syntax unified
+ 557              		.thumb
+ 558              		.thumb_func
+ 560              	boot_send_init:
+ 561              	.LVL28:
+ 562              	.LFB152:
+  71:Core/Src/boot.c **** 	boot_ping();
+ 563              		.loc 1 71 1 is_stmt 1 view -0
+ 564              		.cfi_startproc
+ 565              		@ args = 0, pretend = 0, frame = 0
+ 566              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/ccJjao8i.s 			page 15
+
+
+  71:Core/Src/boot.c **** 	boot_ping();
+ 567              		.loc 1 71 1 is_stmt 0 view .LVU118
+ 568 0000 08B5     		push	{r3, lr}
+ 569              	.LCFI15:
+ 570              		.cfi_def_cfa_offset 8
+ 571              		.cfi_offset 3, -8
+ 572              		.cfi_offset 14, -4
+  72:Core/Src/boot.c **** 	return 0;
+ 573              		.loc 1 72 2 is_stmt 1 view .LVU119
+ 574 0002 FFF7FEFF 		bl	boot_ping
+ 575              	.LVL29:
+  73:Core/Src/boot.c **** }
+ 576              		.loc 1 73 2 view .LVU120
+  74:Core/Src/boot.c **** 
+ 577              		.loc 1 74 1 is_stmt 0 view .LVU121
+ 578 0006 0020     		movs	r0, #0
+ 579 0008 08BD     		pop	{r3, pc}
+ 580              		.cfi_endproc
+ 581              	.LFE152:
+ 583              		.section	.text.boot_can_recvdcallback,"ax",%progbits
+ 584              		.align	1
+ 585              		.global	boot_can_recvdcallback
+ 586              		.syntax unified
+ 587              		.thumb
+ 588              		.thumb_func
+ 590              	boot_can_recvdcallback:
+ 591              	.LVL30:
+ 592              	.LFB157:
+ 181:Core/Src/boot.c **** int boot_can_recvdcallback(void* unused)
+ 182:Core/Src/boot.c **** {
+ 593              		.loc 1 182 1 is_stmt 1 view -0
+ 594              		.cfi_startproc
+ 595              		@ args = 0, pretend = 0, frame = 8
+ 596              		@ frame_needed = 0, uses_anonymous_args = 0
+ 597              		.loc 1 182 1 is_stmt 0 view .LVU123
+ 598 0000 00B5     		push	{lr}
+ 599              	.LCFI16:
+ 600              		.cfi_def_cfa_offset 4
+ 601              		.cfi_offset 14, -4
+ 602 0002 83B0     		sub	sp, sp, #12
+ 603              	.LCFI17:
+ 604              		.cfi_def_cfa_offset 16
+ 183:Core/Src/boot.c **** 	uint8_t size = 0;
+ 605              		.loc 1 183 2 is_stmt 1 view .LVU124
+ 606              		.loc 1 183 10 is_stmt 0 view .LVU125
+ 607 0004 0023     		movs	r3, #0
+ 608 0006 8DF80730 		strb	r3, [sp, #7]
+ 184:Core/Src/boot.c **** 	uint16_t id = 0;
+ 609              		.loc 1 184 2 is_stmt 1 view .LVU126
+ 610              		.loc 1 184 11 is_stmt 0 view .LVU127
+ 611 000a ADF80430 		strh	r3, [sp, #4]	@ movhi
+ 185:Core/Src/boot.c **** 	can_getdata(recvbuf, &size, &id);
+ 612              		.loc 1 185 2 is_stmt 1 view .LVU128
+ 613 000e 01AA     		add	r2, sp, #4
+ 614 0010 0DF10701 		add	r1, sp, #7
+ 615 0014 0A48     		ldr	r0, .L52
+ 616              	.LVL31:
+ARM GAS  /tmp/ccJjao8i.s 			page 16
+
+
+ 617              		.loc 1 185 2 is_stmt 0 view .LVU129
+ 618 0016 FFF7FEFF 		bl	can_getdata
+ 619              	.LVL32:
+ 186:Core/Src/boot.c **** 	if(id != BOOT_PING &&
+ 620              		.loc 1 186 2 is_stmt 1 view .LVU130
+ 187:Core/Src/boot.c **** 	   id != BOOT_INIT &&
+ 188:Core/Src/boot.c **** 	   id != BOOT_RESET &&
+ 621              		.loc 1 188 22 is_stmt 0 view .LVU131
+ 622 001a BDF80430 		ldrh	r3, [sp, #4]
+ 623 001e A3F14002 		sub	r2, r3, #64
+ 624 0022 92B2     		uxth	r2, r2
+ 186:Core/Src/boot.c **** 	if(id != BOOT_PING &&
+ 625              		.loc 1 186 4 view .LVU132
+ 626 0024 032A     		cmp	r2, #3
+ 627 0026 06D8     		bhi	.L51
+ 189:Core/Src/boot.c **** 	   id != BOOT_DATA)
+ 190:Core/Src/boot.c **** 	{
+ 191:Core/Src/boot.c **** 		boot_can_senderror(0);
+ 192:Core/Src/boot.c **** 		return 1;
+ 193:Core/Src/boot.c **** 	}
+ 194:Core/Src/boot.c **** 	return boot_recvfns[id - BOOT_PING]();
+ 628              		.loc 1 194 2 is_stmt 1 view .LVU133
+ 629              		.loc 1 194 25 is_stmt 0 view .LVU134
+ 630 0028 403B     		subs	r3, r3, #64
+ 631              		.loc 1 194 21 view .LVU135
+ 632 002a 064A     		ldr	r2, .L52+4
+ 633 002c 52F82330 		ldr	r3, [r2, r3, lsl #2]
+ 634              		.loc 1 194 9 view .LVU136
+ 635 0030 9847     		blx	r3
+ 636              	.LVL33:
+ 637              	.L47:
+ 195:Core/Src/boot.c **** }
+ 638              		.loc 1 195 1 view .LVU137
+ 639 0032 03B0     		add	sp, sp, #12
+ 640              	.LCFI18:
+ 641              		.cfi_remember_state
+ 642              		.cfi_def_cfa_offset 4
+ 643              		@ sp needed
+ 644 0034 00BD     		pop	{pc}
+ 645              	.L51:
+ 646              	.LCFI19:
+ 647              		.cfi_restore_state
+ 191:Core/Src/boot.c **** 		return 1;
+ 648              		.loc 1 191 3 is_stmt 1 view .LVU138
+ 649 0036 0020     		movs	r0, #0
+ 650 0038 FFF7FEFF 		bl	boot_can_senderror
+ 651              	.LVL34:
+ 192:Core/Src/boot.c **** 	}
+ 652              		.loc 1 192 3 view .LVU139
+ 192:Core/Src/boot.c **** 	}
+ 653              		.loc 1 192 10 is_stmt 0 view .LVU140
+ 654 003c 0120     		movs	r0, #1
+ 655 003e F8E7     		b	.L47
+ 656              	.L53:
+ 657              		.align	2
+ 658              	.L52:
+ 659 0040 00000000 		.word	recvbuf
+ARM GAS  /tmp/ccJjao8i.s 			page 17
+
+
+ 660 0044 00000000 		.word	boot_recvfns
+ 661              		.cfi_endproc
+ 662              	.LFE157:
+ 664              		.section	.text.boot_can_sentcallback,"ax",%progbits
+ 665              		.align	1
+ 666              		.global	boot_can_sentcallback
+ 667              		.syntax unified
+ 668              		.thumb
+ 669              		.thumb_func
+ 671              	boot_can_sentcallback:
+ 672              	.LVL35:
+ 673              	.LFB158:
+ 196:Core/Src/boot.c **** 
+ 197:Core/Src/boot.c **** // data sent successfully
+ 198:Core/Src/boot.c **** int boot_can_sentcallback(void* unused)
+ 199:Core/Src/boot.c **** {
+ 674              		.loc 1 199 1 is_stmt 1 view -0
+ 675              		.cfi_startproc
+ 676              		@ args = 0, pretend = 0, frame = 0
+ 677              		@ frame_needed = 0, uses_anonymous_args = 0
+ 678              		.loc 1 199 1 is_stmt 0 view .LVU142
+ 679 0000 08B5     		push	{r3, lr}
+ 680              	.LCFI20:
+ 681              		.cfi_def_cfa_offset 8
+ 682              		.cfi_offset 3, -8
+ 683              		.cfi_offset 14, -4
+ 200:Core/Src/boot.c **** 	if(bootstate == BOOTSTATE_PROGGED)
+ 684              		.loc 1 200 2 is_stmt 1 view .LVU143
+ 685              		.loc 1 200 15 is_stmt 0 view .LVU144
+ 686 0002 064B     		ldr	r3, .L58
+ 687 0004 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 688              		.loc 1 200 4 view .LVU145
+ 689 0006 032B     		cmp	r3, #3
+ 690 0008 01D0     		beq	.L57
+ 691              	.LVL36:
+ 692              	.L55:
+ 201:Core/Src/boot.c **** 	{
+ 202:Core/Src/boot.c **** 		noerr(3);
+ 203:Core/Src/boot.c **** //		bootstate = BOOTSTATE_START; // not needed, as system reboots anyway
+ 204:Core/Src/boot.c **** 		flash_swap_banks_and_die();
+ 205:Core/Src/boot.c **** 	}
+ 206:Core/Src/boot.c **** 	return 0;
+ 693              		.loc 1 206 2 is_stmt 1 view .LVU146
+ 207:Core/Src/boot.c **** }
+ 694              		.loc 1 207 1 is_stmt 0 view .LVU147
+ 695 000a 0020     		movs	r0, #0
+ 696 000c 08BD     		pop	{r3, pc}
+ 697              	.LVL37:
+ 698              	.L57:
+ 202:Core/Src/boot.c **** //		bootstate = BOOTSTATE_START; // not needed, as system reboots anyway
+ 699              		.loc 1 202 3 is_stmt 1 view .LVU148
+ 700 000e 0320     		movs	r0, #3
+ 701              	.LVL38:
+ 202:Core/Src/boot.c **** //		bootstate = BOOTSTATE_START; // not needed, as system reboots anyway
+ 702              		.loc 1 202 3 is_stmt 0 view .LVU149
+ 703 0010 FFF7FEFF 		bl	noerr
+ 704              	.LVL39:
+ARM GAS  /tmp/ccJjao8i.s 			page 18
+
+
+ 204:Core/Src/boot.c **** 	}
+ 705              		.loc 1 204 3 is_stmt 1 view .LVU150
+ 706 0014 FFF7FEFF 		bl	flash_swap_banks_and_die
+ 707              	.LVL40:
+ 708 0018 F7E7     		b	.L55
+ 709              	.L59:
+ 710 001a 00BF     		.align	2
+ 711              	.L58:
+ 712 001c 00000000 		.word	bootstate
+ 713              		.cfi_endproc
+ 714              	.LFE158:
+ 716              		.section	.text.boot_can_errcallback,"ax",%progbits
+ 717              		.align	1
+ 718              		.global	boot_can_errcallback
+ 719              		.syntax unified
+ 720              		.thumb
+ 721              		.thumb_func
+ 723              	boot_can_errcallback:
+ 724              	.LVL41:
+ 725              	.LFB159:
+ 208:Core/Src/boot.c **** 
+ 209:Core/Src/boot.c **** // error in transfer, not handled, never happened, might happen if more bus traffic, idk
+ 210:Core/Src/boot.c **** int boot_can_errcallback(void* unused)
+ 211:Core/Src/boot.c **** {
+ 726              		.loc 1 211 1 view -0
+ 727              		.cfi_startproc
+ 728              		@ args = 0, pretend = 0, frame = 0
+ 729              		@ frame_needed = 0, uses_anonymous_args = 0
+ 730              		.loc 1 211 1 is_stmt 0 view .LVU152
+ 731 0000 08B5     		push	{r3, lr}
+ 732              	.LCFI21:
+ 733              		.cfi_def_cfa_offset 8
+ 734              		.cfi_offset 3, -8
+ 735              		.cfi_offset 14, -4
+ 212:Core/Src/boot.c **** 	err(3);
+ 736              		.loc 1 212 2 is_stmt 1 view .LVU153
+ 737 0002 0320     		movs	r0, #3
+ 738              	.LVL42:
+ 739              		.loc 1 212 2 is_stmt 0 view .LVU154
+ 740 0004 FFF7FEFF 		bl	err
+ 741              	.LVL43:
+ 213:Core/Src/boot.c **** 	return 1;//HandleTransferError(0, 0);
+ 742              		.loc 1 213 2 is_stmt 1 view .LVU155
+ 214:Core/Src/boot.c **** }
+ 743              		.loc 1 214 1 is_stmt 0 view .LVU156
+ 744 0008 0120     		movs	r0, #1
+ 745 000a 08BD     		pop	{r3, pc}
+ 746              		.cfi_endproc
+ 747              	.LFE159:
+ 749              		.section	.text.boot_flash_erasedcallback,"ax",%progbits
+ 750              		.align	1
+ 751              		.global	boot_flash_erasedcallback
+ 752              		.syntax unified
+ 753              		.thumb
+ 754              		.thumb_func
+ 756              	boot_flash_erasedcallback:
+ 757              	.LVL44:
+ARM GAS  /tmp/ccJjao8i.s 			page 19
+
+
+ 758              	.LFB160:
+ 215:Core/Src/boot.c **** 
+ 216:Core/Src/boot.c **** // erased flashmem pages; // sectors;
+ 217:Core/Src/boot.c **** int boot_flash_erasedcallback(void* unused)
+ 218:Core/Src/boot.c **** {
+ 759              		.loc 1 218 1 is_stmt 1 view -0
+ 760              		.cfi_startproc
+ 761              		@ args = 0, pretend = 0, frame = 0
+ 762              		@ frame_needed = 0, uses_anonymous_args = 0
+ 763              		.loc 1 218 1 is_stmt 0 view .LVU158
+ 764 0000 08B5     		push	{r3, lr}
+ 765              	.LCFI22:
+ 766              		.cfi_def_cfa_offset 8
+ 767              		.cfi_offset 3, -8
+ 768              		.cfi_offset 14, -4
+ 219:Core/Src/boot.c **** //	can_senderror(erasesleft + 0xee0000);
+ 220:Core/Src/boot.c **** //	can_senderror(erasesdone + 0xdd0000);
+ 221:Core/Src/boot.c **** 	curaddr = FLASH_BASE + FLASH_SIZE/2;
+ 769              		.loc 1 221 2 is_stmt 1 view .LVU159
+ 770              		.loc 1 221 25 is_stmt 0 view .LVU160
+ 771 0002 0E4B     		ldr	r3, .L67
+ 772 0004 B3F88020 		ldrh	r2, [r3, #128]
+ 773              		.loc 1 221 23 view .LVU161
+ 774 0008 4FF6FF73 		movw	r3, #65535
+ 775 000c 9A42     		cmp	r2, r3
+ 776 000e 00D0     		beq	.L63
+ 777              		.loc 1 221 23 discriminator 1 view .LVU162
+ 778 0010 6AB9     		cbnz	r2, .L64
+ 779              	.L63:
+ 780              		.loc 1 221 23 discriminator 3 view .LVU163
+ 781 0012 4FF00163 		mov	r3, #135266304
+ 782              	.L65:
+ 783              		.loc 1 221 10 discriminator 5 view .LVU164
+ 784 0016 0A4A     		ldr	r2, .L67+4
+ 785 0018 1360     		str	r3, [r2]
+ 222:Core/Src/boot.c **** 	bootstate = BOOTSTATE_ERASE_DONE;
+ 786              		.loc 1 222 2 is_stmt 1 view .LVU165
+ 787              		.loc 1 222 12 is_stmt 0 view .LVU166
+ 788 001a 0A4B     		ldr	r3, .L67+8
+ 789 001c 0222     		movs	r2, #2
+ 790 001e 1A70     		strb	r2, [r3]
+ 223:Core/Src/boot.c **** 	can_senddata((uint8_t*)&erasesleft, 8, BOOT_SEND_READY);
+ 791              		.loc 1 223 2 is_stmt 1 view .LVU167
+ 792 0020 4522     		movs	r2, #69
+ 793 0022 0821     		movs	r1, #8
+ 794 0024 0848     		ldr	r0, .L67+12
+ 795              	.LVL45:
+ 796              		.loc 1 223 2 is_stmt 0 view .LVU168
+ 797 0026 FFF7FEFF 		bl	can_senddata
+ 798              	.LVL46:
+ 224:Core/Src/boot.c **** //	noerr(2);
+ 225:Core/Src/boot.c **** 	return 0;
+ 799              		.loc 1 225 2 is_stmt 1 view .LVU169
+ 226:Core/Src/boot.c **** }
+ 800              		.loc 1 226 1 is_stmt 0 view .LVU170
+ 801 002a 0020     		movs	r0, #0
+ 802 002c 08BD     		pop	{r3, pc}
+ARM GAS  /tmp/ccJjao8i.s 			page 20
+
+
+ 803              	.LVL47:
+ 804              	.L64:
+ 221:Core/Src/boot.c **** 	bootstate = BOOTSTATE_ERASE_DONE;
+ 805              		.loc 1 221 35 discriminator 2 view .LVU171
+ 806 002e 074B     		ldr	r3, .L67+16
+ 807 0030 03EA4223 		and	r3, r3, r2, lsl #9
+ 221:Core/Src/boot.c **** 	bootstate = BOOTSTATE_ERASE_DONE;
+ 808              		.loc 1 221 23 discriminator 2 view .LVU172
+ 809 0034 03F10063 		add	r3, r3, #134217728
+ 810 0038 EDE7     		b	.L65
+ 811              	.L68:
+ 812 003a 00BF     		.align	2
+ 813              	.L67:
+ 814 003c 00E8F11F 		.word	535947264
+ 815 0040 00000000 		.word	curaddr
+ 816 0044 00000000 		.word	bootstate
+ 817 0048 00000000 		.word	erasesleft
+ 818 004c 00FE1F00 		.word	2096640
+ 819              		.cfi_endproc
+ 820              	.LFE160:
+ 822              		.section	.text.boot_flash_progdcallback,"ax",%progbits
+ 823              		.align	1
+ 824              		.global	boot_flash_progdcallback
+ 825              		.syntax unified
+ 826              		.thumb
+ 827              		.thumb_func
+ 829              	boot_flash_progdcallback:
+ 830              	.LVL48:
+ 831              	.LFB161:
+ 227:Core/Src/boot.c **** 
+ 228:Core/Src/boot.c **** // wrote a page to flash; // flashword;
+ 229:Core/Src/boot.c **** int boot_flash_progdcallback(void* unused)
+ 230:Core/Src/boot.c **** {
+ 832              		.loc 1 230 1 is_stmt 1 view -0
+ 833              		.cfi_startproc
+ 834              		@ args = 0, pretend = 0, frame = 8
+ 835              		@ frame_needed = 0, uses_anonymous_args = 0
+ 836              		.loc 1 230 1 is_stmt 0 view .LVU174
+ 837 0000 00B5     		push	{lr}
+ 838              	.LCFI23:
+ 839              		.cfi_def_cfa_offset 4
+ 840              		.cfi_offset 14, -4
+ 841 0002 83B0     		sub	sp, sp, #12
+ 842              	.LCFI24:
+ 843              		.cfi_def_cfa_offset 16
+ 231:Core/Src/boot.c **** 	memcpy(progbuf, &progbuf[NUMBER_OF_BYTES_PER_FLASHWORD], NUMBER_OF_BYTES_PER_FLASHWORD_AND_THEN_SO
+ 844              		.loc 1 231 2 is_stmt 1 view .LVU175
+ 845 0004 104B     		ldr	r3, .L74
+ 846 0006 03F12002 		add	r2, r3, #32
+ 847 000a 92E80300 		ldm	r2, {r0, r1}
+ 848              	.LVL49:
+ 849              		.loc 1 231 2 is_stmt 0 view .LVU176
+ 850 000e 1860     		str	r0, [r3]
+ 851 0010 9980     		strh	r1, [r3, #4]	@ movhi
+ 232:Core/Src/boot.c **** 	--progsleft;
+ 852              		.loc 1 232 2 is_stmt 1 view .LVU177
+ 853 0012 0E4A     		ldr	r2, .L74+4
+ARM GAS  /tmp/ccJjao8i.s 			page 21
+
+
+ 854 0014 1368     		ldr	r3, [r2]
+ 855 0016 013B     		subs	r3, r3, #1
+ 856 0018 1360     		str	r3, [r2]
+ 233:Core/Src/boot.c **** 	if(!progsleft)
+ 857              		.loc 1 233 2 view .LVU178
+ 858              		.loc 1 233 4 is_stmt 0 view .LVU179
+ 859 001a 5BB1     		cbz	r3, .L73
+ 860              	.LBB3:
+ 234:Core/Src/boot.c **** 	{
+ 235:Core/Src/boot.c **** 		can_senddata((uint8_t*)&getsleft, 8, BOOT_SEND_FINISH);
+ 236:Core/Src/boot.c **** 		bootstate = BOOTSTATE_PROGGED;
+ 237:Core/Src/boot.c **** 		return 0;
+ 238:Core/Src/boot.c **** 	}
+ 239:Core/Src/boot.c **** 	else
+ 240:Core/Src/boot.c **** 	{
+ 241:Core/Src/boot.c **** 		uint64_t status = 0x67; // just a status code;
+ 861              		.loc 1 241 3 is_stmt 1 view .LVU180
+ 862              		.loc 1 241 12 is_stmt 0 view .LVU181
+ 863 001c 6722     		movs	r2, #103
+ 864 001e 0023     		movs	r3, #0
+ 865 0020 CDE90023 		strd	r2, [sp]
+ 242:Core/Src/boot.c **** 		can_senddata((uint8_t*)&status, 8, BOOT_SEND_READY);
+ 866              		.loc 1 242 3 is_stmt 1 view .LVU182
+ 867 0024 4522     		movs	r2, #69
+ 868 0026 0821     		movs	r1, #8
+ 869 0028 6846     		mov	r0, sp
+ 870 002a FFF7FEFF 		bl	can_senddata
+ 871              	.LVL50:
+ 872              	.LBE3:
+ 243:Core/Src/boot.c **** 	}
+ 244:Core/Src/boot.c **** //	noerr(1);
+ 245:Core/Src/boot.c **** //	noerr(*(char*)(FLASH_BASE + FLASH_SIZE - 0x2000));
+ 246:Core/Src/boot.c **** //	BufferA[0] = *(char*)(FLASH_BASE + FLASH_SIZE - 0x2000);
+ 247:Core/Src/boot.c **** //	can_senddata(BufferA, 8);
+ 248:Core/Src/boot.c **** 	return 0;
+ 873              		.loc 1 248 2 view .LVU183
+ 874              	.L71:
+ 249:Core/Src/boot.c **** }
+ 875              		.loc 1 249 1 is_stmt 0 view .LVU184
+ 876 002e 0020     		movs	r0, #0
+ 877 0030 03B0     		add	sp, sp, #12
+ 878              	.LCFI25:
+ 879              		.cfi_remember_state
+ 880              		.cfi_def_cfa_offset 4
+ 881              		@ sp needed
+ 882 0032 00BD     		pop	{pc}
+ 883              	.L73:
+ 884              	.LCFI26:
+ 885              		.cfi_restore_state
+ 235:Core/Src/boot.c **** 		bootstate = BOOTSTATE_PROGGED;
+ 886              		.loc 1 235 3 is_stmt 1 view .LVU185
+ 887 0034 4722     		movs	r2, #71
+ 888 0036 0821     		movs	r1, #8
+ 889 0038 0548     		ldr	r0, .L74+8
+ 890 003a FFF7FEFF 		bl	can_senddata
+ 891              	.LVL51:
+ 236:Core/Src/boot.c **** 		return 0;
+ARM GAS  /tmp/ccJjao8i.s 			page 22
+
+
+ 892              		.loc 1 236 3 view .LVU186
+ 236:Core/Src/boot.c **** 		return 0;
+ 893              		.loc 1 236 13 is_stmt 0 view .LVU187
+ 894 003e 054B     		ldr	r3, .L74+12
+ 895 0040 0322     		movs	r2, #3
+ 896 0042 1A70     		strb	r2, [r3]
+ 237:Core/Src/boot.c **** 	}
+ 897              		.loc 1 237 3 is_stmt 1 view .LVU188
+ 237:Core/Src/boot.c **** 	}
+ 898              		.loc 1 237 10 is_stmt 0 view .LVU189
+ 899 0044 F3E7     		b	.L71
+ 900              	.L75:
+ 901 0046 00BF     		.align	2
+ 902              	.L74:
+ 903 0048 00000000 		.word	progbuf
+ 904 004c 00000000 		.word	progsleft
+ 905 0050 00000000 		.word	getsleft
+ 906 0054 00000000 		.word	bootstate
+ 907              		.cfi_endproc
+ 908              	.LFE161:
+ 910              		.section	.text.boot_flash_errcallback,"ax",%progbits
+ 911              		.align	1
+ 912              		.global	boot_flash_errcallback
+ 913              		.syntax unified
+ 914              		.thumb
+ 915              		.thumb_func
+ 917              	boot_flash_errcallback:
+ 918              	.LVL52:
+ 919              	.LFB162:
+ 250:Core/Src/boot.c **** 
+ 251:Core/Src/boot.c **** // error in flash, not handled, never happened
+ 252:Core/Src/boot.c **** int boot_flash_errcallback(void* unused)
+ 253:Core/Src/boot.c **** {
+ 920              		.loc 1 253 1 is_stmt 1 view -0
+ 921              		.cfi_startproc
+ 922              		@ args = 0, pretend = 0, frame = 0
+ 923              		@ frame_needed = 0, uses_anonymous_args = 0
+ 924              		.loc 1 253 1 is_stmt 0 view .LVU191
+ 925 0000 08B5     		push	{r3, lr}
+ 926              	.LCFI27:
+ 927              		.cfi_def_cfa_offset 8
+ 928              		.cfi_offset 3, -8
+ 929              		.cfi_offset 14, -4
+ 254:Core/Src/boot.c **** 	err(2);
+ 930              		.loc 1 254 2 is_stmt 1 view .LVU192
+ 931 0002 0220     		movs	r0, #2
+ 932              	.LVL53:
+ 933              		.loc 1 254 2 is_stmt 0 view .LVU193
+ 934 0004 FFF7FEFF 		bl	err
+ 935              	.LVL54:
+ 255:Core/Src/boot.c **** 	return 0;
+ 936              		.loc 1 255 2 is_stmt 1 view .LVU194
+ 256:Core/Src/boot.c **** }
+ 937              		.loc 1 256 1 is_stmt 0 view .LVU195
+ 938 0008 0020     		movs	r0, #0
+ 939 000a 08BD     		pop	{r3, pc}
+ 940              		.cfi_endproc
+ARM GAS  /tmp/ccJjao8i.s 			page 23
+
+
+ 941              	.LFE162:
+ 943              		.section	.bss.pageidx.0,"aw",%nobits
+ 944              		.align	2
+ 947              	pageidx.0:
+ 948 0000 00000000 		.space	4
+ 949              		.section	.data.lastidx.1,"aw"
+ 950              		.align	1
+ 953              	lastidx.1:
+ 954 0000 FFFF     		.short	-1
+ 955              		.global	progbuf
+ 956              		.section	.bss.progbuf,"aw",%nobits
+ 957              		.align	2
+ 960              	progbuf:
+ 961 0000 00000000 		.space	38
+ 961      00000000 
+ 961      00000000 
+ 961      00000000 
+ 961      00000000 
+ 962              		.global	getsleft
+ 963              		.section	.bss.getsleft,"aw",%nobits
+ 964              		.align	3
+ 967              	getsleft:
+ 968 0000 00000000 		.space	8
+ 968      00000000 
+ 969              		.global	progsleft
+ 970              		.section	.bss.progsleft,"aw",%nobits
+ 971              		.align	2
+ 974              	progsleft:
+ 975 0000 00000000 		.space	4
+ 976              		.global	erasesleft
+ 977              		.section	.bss.erasesleft,"aw",%nobits
+ 978              		.align	2
+ 981              	erasesleft:
+ 982 0000 00000000 		.space	4
+ 983              		.global	curaddr
+ 984              		.section	.data.curaddr,"aw"
+ 985              		.align	2
+ 988              	curaddr:
+ 989 0000 00001008 		.word	135266304
+ 990              		.global	bootstate
+ 991              		.section	.bss.bootstate,"aw",%nobits
+ 994              	bootstate:
+ 995 0000 00       		.space	1
+ 996              		.global	boot_recvfns
+ 997              		.section	.data.boot_recvfns,"aw"
+ 998              		.align	2
+ 1001              	boot_recvfns:
+ 1002 0000 00000000 		.word	boot_ping
+ 1003 0004 00000000 		.word	boot_init
+ 1004 0008 00000000 		.word	boot_reset
+ 1005 000c 00000000 		.word	boot_data
+ 1006              		.global	recvbuf
+ 1007              		.section	.bss.recvbuf,"aw",%nobits
+ 1008              		.align	2
+ 1011              	recvbuf:
+ 1012 0000 00000000 		.space	64
+ 1012      00000000 
+ARM GAS  /tmp/ccJjao8i.s 			page 24
+
+
+ 1012      00000000 
+ 1012      00000000 
+ 1012      00000000 
+ 1013              		.text
+ 1014              	.Letext0:
+ 1015              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 1016              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 1017              		.file 4 "Core/Inc/main.h"
+ 1018              		.file 5 "Core/Inc/flash.h"
+ 1019              		.file 6 "/usr/arm-none-eabi/include/string.h"
+ARM GAS  /tmp/ccJjao8i.s 			page 25
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 boot.c
+     /tmp/ccJjao8i.s:20     .text.boot_ping:00000000 $t
+     /tmp/ccJjao8i.s:26     .text.boot_ping:00000000 boot_ping
+     /tmp/ccJjao8i.s:72     .text.boot_ping:00000030 $d
+     /tmp/ccJjao8i.s:1011   .bss.recvbuf:00000000 recvbuf
+     /tmp/ccJjao8i.s:77     .text.boot_can_senderror:00000000 $t
+     /tmp/ccJjao8i.s:83     .text.boot_can_senderror:00000000 boot_can_senderror
+     /tmp/ccJjao8i.s:127    .text.boot_can_senderror:00000020 $d
+     /tmp/ccJjao8i.s:132    .text.boot_init:00000000 $t
+     /tmp/ccJjao8i.s:138    .text.boot_init:00000000 boot_init
+     /tmp/ccJjao8i.s:217    .text.boot_init:00000064 $d
+     /tmp/ccJjao8i.s:994    .bss.bootstate:00000000 bootstate
+     /tmp/ccJjao8i.s:967    .bss.getsleft:00000000 getsleft
+     /tmp/ccJjao8i.s:974    .bss.progsleft:00000000 progsleft
+     /tmp/ccJjao8i.s:981    .bss.erasesleft:00000000 erasesleft
+     /tmp/ccJjao8i.s:988    .data.curaddr:00000000 curaddr
+     /tmp/ccJjao8i.s:228    .text.boot_reset:00000000 $t
+     /tmp/ccJjao8i.s:234    .text.boot_reset:00000000 boot_reset
+     /tmp/ccJjao8i.s:282    .text.boot_reset:00000024 $d
+     /tmp/ccJjao8i.s:288    .text.boot_can_resendfrom:00000000 $t
+     /tmp/ccJjao8i.s:294    .text.boot_can_resendfrom:00000000 boot_can_resendfrom
+     /tmp/ccJjao8i.s:339    .text.boot_data:00000000 $t
+     /tmp/ccJjao8i.s:345    .text.boot_data:00000000 boot_data
+     /tmp/ccJjao8i.s:496    .text.boot_data:000000ac $d
+     /tmp/ccJjao8i.s:953    .data.lastidx.1:00000000 lastidx.1
+     /tmp/ccJjao8i.s:960    .bss.progbuf:00000000 progbuf
+     /tmp/ccJjao8i.s:947    .bss.pageidx.0:00000000 pageidx.0
+     /tmp/ccJjao8i.s:507    .text.boot_can_readyfor:00000000 $t
+     /tmp/ccJjao8i.s:513    .text.boot_can_readyfor:00000000 boot_can_readyfor
+     /tmp/ccJjao8i.s:554    .text.boot_send_init:00000000 $t
+     /tmp/ccJjao8i.s:560    .text.boot_send_init:00000000 boot_send_init
+     /tmp/ccJjao8i.s:584    .text.boot_can_recvdcallback:00000000 $t
+     /tmp/ccJjao8i.s:590    .text.boot_can_recvdcallback:00000000 boot_can_recvdcallback
+     /tmp/ccJjao8i.s:659    .text.boot_can_recvdcallback:00000040 $d
+     /tmp/ccJjao8i.s:1001   .data.boot_recvfns:00000000 boot_recvfns
+     /tmp/ccJjao8i.s:665    .text.boot_can_sentcallback:00000000 $t
+     /tmp/ccJjao8i.s:671    .text.boot_can_sentcallback:00000000 boot_can_sentcallback
+     /tmp/ccJjao8i.s:712    .text.boot_can_sentcallback:0000001c $d
+     /tmp/ccJjao8i.s:717    .text.boot_can_errcallback:00000000 $t
+     /tmp/ccJjao8i.s:723    .text.boot_can_errcallback:00000000 boot_can_errcallback
+     /tmp/ccJjao8i.s:750    .text.boot_flash_erasedcallback:00000000 $t
+     /tmp/ccJjao8i.s:756    .text.boot_flash_erasedcallback:00000000 boot_flash_erasedcallback
+     /tmp/ccJjao8i.s:814    .text.boot_flash_erasedcallback:0000003c $d
+     /tmp/ccJjao8i.s:823    .text.boot_flash_progdcallback:00000000 $t
+     /tmp/ccJjao8i.s:829    .text.boot_flash_progdcallback:00000000 boot_flash_progdcallback
+     /tmp/ccJjao8i.s:903    .text.boot_flash_progdcallback:00000048 $d
+     /tmp/ccJjao8i.s:911    .text.boot_flash_errcallback:00000000 $t
+     /tmp/ccJjao8i.s:917    .text.boot_flash_errcallback:00000000 boot_flash_errcallback
+     /tmp/ccJjao8i.s:944    .bss.pageidx.0:00000000 $d
+     /tmp/ccJjao8i.s:950    .data.lastidx.1:00000000 $d
+     /tmp/ccJjao8i.s:957    .bss.progbuf:00000000 $d
+     /tmp/ccJjao8i.s:964    .bss.getsleft:00000000 $d
+     /tmp/ccJjao8i.s:971    .bss.progsleft:00000000 $d
+     /tmp/ccJjao8i.s:978    .bss.erasesleft:00000000 $d
+     /tmp/ccJjao8i.s:985    .data.curaddr:00000000 $d
+     /tmp/ccJjao8i.s:995    .bss.bootstate:00000000 $d
+ARM GAS  /tmp/ccJjao8i.s 			page 26
+
+
+     /tmp/ccJjao8i.s:998    .data.boot_recvfns:00000000 $d
+     /tmp/ccJjao8i.s:1008   .bss.recvbuf:00000000 $d
+
+UNDEFINED SYMBOLS
+can_senddata
+err
+flash_erase_addr
+noerr
+flash_prog_addr
+can_getdata
+flash_swap_banks_and_die
