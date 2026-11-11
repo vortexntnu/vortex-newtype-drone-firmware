@@ -114,7 +114,7 @@ void USART3_IRQHandler(void)
 }
 
 
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+void Debug_HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance != USART3) return;
     HAL_UART_Receive_IT(huart, &received_byte, 1);
@@ -128,7 +128,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     received_head = (received_head + 1) % RECEIVED_BUFFER_SIZE;
 
 	HAL_UART_Receive_IT(huart, &received_byte, 1);   // re-arm
-	BSP_LED_Toggle(LED_RED);
 }
 
 
@@ -149,7 +148,7 @@ void debug_proccess_input_buffer()
 		uint8_t byte = received_buffer[received_tail];
 		received_tail = (received_tail + 1) % RECEIVED_BUFFER_SIZE;
 
-		switch(received_byte) {
+		switch(byte) {
 			case '\x7f':
 				command_remove_character();
 				break;
@@ -157,8 +156,8 @@ void debug_proccess_input_buffer()
 				command_enter();
 				break;
 			default:
-				bool normalCharacter = received_byte >= ' ' && received_byte <= '~';
-				if (normalCharacter) command_append_character(received_byte);
+				bool normalCharacter = byte >= ' ' && byte <= '~';
+				if (normalCharacter) command_append_character(byte);
 		}
 	}
 

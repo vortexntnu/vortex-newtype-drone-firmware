@@ -12,4 +12,6 @@ void debug_proccess_input_buffer();
 void debug_init();
 void debug_print(const char message[], ...);
 
+void Debug_HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
+
 #endif

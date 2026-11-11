@@ -17,11 +17,14 @@ typedef struct {
     uint32_t erpm;
 } EscTelemetry;
 
+#include <controller.h>
+
 
 //
 
 
 void esc_init(UART_HandleTypeDef *huart);
 EscTelemetry esc_fetch_latest_telemetry();
+void Esc_HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
 
 #endif

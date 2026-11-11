@@ -7,7 +7,6 @@
 #define FRAME_SIZE 10
 
 static UART_HandleTypeDef *uart;
-//static uint8_t telemetry_buffer[32] __attribute__((aligned(32)));  // 32 bytes for cache alignment
 static uint8_t telemetry_buffer[32];
 static volatile EscTelemetry latest;
 
@@ -22,7 +21,7 @@ static uint8_t crc8(const uint8_t *data, int len)
     return crc;
 }
 
-static uint16_t be16(const uint8_t *p) { return (p[0] << 8) | p[1]; }
+//static uint16_t be16(const uint8_t *p) { return (p[0] << 8) | p[1]; }
 
 
 //
@@ -43,19 +42,8 @@ static void listen()
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
-//    debug_print("Received new telemetry");
-
 	if (huart != uart) return;
-
-//    SCB_InvalidateDCache_by_Addr((uint32_t *)telemetry_buffer, sizeof(telemetry_buffer));
-
-//    if (size == FRAME_SIZE && crc8(telemetry_buffer, 9) == telemetry_buffer[9]) {
-//        latest.temperature    = telemetry_buffer[0];
-//        latest.voltage        = be16(&telemetry_buffer[1]) / 100.0f;
-//        latest.current        = be16(&telemetry_buffer[3]) / 100.0f;
-//        latest.consumption    = be16(&telemetry_buffer[5]);
-//        latest.erpm           = be16(&telemetry_buffer[7]) * 100;
-//    }
+//    if (size != FRAME_SIZE || crc8(telemetry_buffer, 9) != telemetry_buffer[9]) return;
 
 	latest.temperature = telemetry_buffer[0];
 	latest.voltage = (float)((uint16_t)(telemetry_buffer[1] << 8) | (telemetry_buffer[2])) / 100.0;
@@ -64,9 +52,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 	latest.erpm = (uint32_t)(telemetry_buffer[7] << 8) | (telemetry_buffer[8]) * 100;
 
     listen();
+    controller_new_telemetry(latest);
+
 }
 
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+void Esc_HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     if (huart == uart) listen();
 }
@@ -75,9 +65,4 @@ void esc_init(UART_HandleTypeDef *huart)
 {
 	uart = huart;
 	listen();
-}
-
-EscTelemetry esc_fetch_latest_telemetry()
-{
-	return latest;
 }

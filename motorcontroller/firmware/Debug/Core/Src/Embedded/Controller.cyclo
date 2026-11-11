@@ -1,5 +1,7 @@
 ../Core/Src/Embedded/controller.c:11:10:controller_weight	1
-../Core/Src/Embedded/controller.c:43:10:controller_dshot	1
-../Core/Src/Embedded/controller.c:49:10:controller_terminal	1
-../Core/Src/Embedded/controller.c:59:6:controller_init	1
-../Core/Src/Embedded/controller.c:66:10:controller_main	1
+../Core/Src/Embedded/controller.c:18:10:controller_dshot	1
+../Core/Src/Embedded/controller.c:24:10:controller_terminal	1
+../Core/Src/Embedded/controller.c:34:6:HAL_UART_ErrorCallback	1
+../Core/Src/Embedded/controller.c:44:6:controller_init	1
+../Core/Src/Embedded/controller.c:51:10:controller_main	1
+../Core/Src/Embedded/controller.c:57:6:controller_new_telemetry	1
