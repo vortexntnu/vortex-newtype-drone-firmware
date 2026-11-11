@@ -1,0 +1,826 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_i3c_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'I3C' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "I3C template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'handles' 'undefined'~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances~}}
+{{assign 'i3c_cxt' config~}}
+{{log "I3C template i3c_cxt:" (toJSON @root.i3c_cxt)~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.i3c_cxt.info.layer~}}
+{{log "I3C template current_resource:" @root.current_resource~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{assign 'handles' (helper_common_concatenate_elt_in_array @root.current_resource @root.handles)~}}
+{{/if}}
+{{/each}}
+{{#unless (eq @root.handles 'undefined')}}
+{{#each (unique @root.handles)}}static hal_i3c_handle_t h{{.}};{{/each}}
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.dma_resource strategy=@root.strategy}}
+{{/unless}}
+
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{#each @root.instances}}
+{{assign 'i3c_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'name' @root.i3c_cxt.name~}}
+{{assign 'current_layer' @root.i3c_cxt.info.layer~}}
+{{assign 'configs' @root.i3c_cxt~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~! Initialize the context for LL code optimization ~}}
+  {{~assign 'lut_table'   (helper_i3c_get_lut_table 'V1')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for I3C in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.configs}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index @root.current_function @root.from_where)~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{!Generation of initialization function used in HAL~}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_i3c_handle_t *{{@root.fct_name}}_init(void)
+{
+  if (HAL_I3C_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource}}
+
+{{#with basic}}
+{{assign 'clock_input' (append @root.current_resource '_Input_Clock')~}}
+{{assign 'input_frequency' (@root.clockAPI.getClockFrequency @root.clock_input)~}}
+{{#if (eq mode 'CTRL')}}{{!mode~}}
+{{~!}}
+  /**
+    * {{@root.current_resource}} timing_reg0 calculated by CubeMX2 with:
+{{#if ctrl_adv_timing_config}}
+    * - SDA rise time = {{ctrl_adv_timing_config.sda_rise_time}} ns
+{{else}}
+    * - SDA rise time = 350 ns
+{{/if}}{{!ctrl_adv_timing_config}}
+{{~!}}
+    * - Input frequency = {{divide @root.input_frequency 1000000}} MHz
+    * - Bus usage = {{bus_usage}}
+    * - I3C bus frequency = {{divide freq_i3c 1000}} MHz
+{{#if (eq bus_usage 'UTILS_I3C_I2C_MIXED_BUS')}}{{!bus_usage~}}
+{{~!}}
+    * - I2C bus frequency = {{freq_i2c}} KHz
+    * - I2C and I3C duty cycle = {{duty_cycle_i2c}} %
+{{else}}
+    * - I3C duty cycle = {{duty_cycle_i3c}} %
+{{/if}}{{!bus_usage~}}
+{{~!}}
+    * {{@root.current_resource}} timing_reg1 calculated by CubeMX2 with:
+{{#if ctrl_adv_timing_config}}
+    * - Wait time = {{ctrl_adv_timing_config.wait_time}}
+    * - SDA hold time = {{ctrl_adv_timing_config.sda_hold_time}}
+    * - Bus free duration = {{ctrl_adv_timing_config.bus_free_duration}} ns
+    * - Bus idle duration = {{ctrl_adv_timing_config.bus_idle_duration}} ns
+{{else}}
+    * - Wait time = LL_I3C_OWN_ACTIVITY_STATE_0
+{{/if}}{{!ctrl_adv_timing_config~}}
+{{~!}}
+    */
+  hal_i3c_ctrl_config_t i3c_ctrl_config;
+  i3c_ctrl_config.timing_reg0 = 0x{{#if (eq ctrl_timing_reg0 -1)}}FFFFFFFFUL{{else}}{{#if (eq ctrl_timing_reg0 0)}}00000000UL{{else}}{{uppercase (dec2hex ctrl_timing_reg0)}}UL{{/if}}{{/if}};
+{{#if ctrl_adv_timing_config}}
+  i3c_ctrl_config.timing_reg1 = 0x{{#if (eq ctrl_adv_timing_reg1 -1)}}FFFFFFFFUL{{else}}{{#if (eq ctrl_adv_timing_reg1 0)}}00000000UL{{else}}{{uppercase (dec2hex ctrl_adv_timing_reg1)}}UL{{/if}}{{/if}};
+{{else}}
+  i3c_ctrl_config.timing_reg1 = 0x{{#if (eq ctrl_timing_reg1 -1)}}FFFFFFFFUL{{else}}{{#if (eq ctrl_timing_reg1 0)}}00000000UL{{else}}{{uppercase (dec2hex ctrl_timing_reg1)}}UL{{/if}}{{/if}};
+{{/if}}{{!ctrl_adv_timing_config~}}
+{{~!}}
+{{else}}{{!mode~}}
+{{~!}}
+  /**
+    * {{@root.current_resource}} timing_reg1 calculated by CubeMX2 with:
+{{#if tgt_adv_timing_config}}
+    * - Bus available duration = {{tgt_adv_timing_config.bus_available_duration}} ns
+{{else}}
+    * - Bus available duration = 1000 ns
+{{/if}}{{!tgt_adv_timing_config~}}
+{{~!}}
+    */
+  hal_i3c_tgt_config_t i3c_tgt_config;
+{{#if tgt_adv_timing_config}}
+  i3c_tgt_config.timing_reg1 = 0x{{#if (eq tgt_adv_timing_reg1 -1)}}FFFFFFFFUL{{else}}{{#if (eq tgt_adv_timing_reg1 0)}}00000000UL{{else}}{{uppercase (dec2hex tgt_adv_timing_reg1)}}UL{{/if}}{{/if}};
+{{else}}
+  i3c_tgt_config.timing_reg1 = 0x{{#if (eq tgt_timing_reg1 -1)}}FFFFFFFFUL{{else}}{{#if (eq tgt_timing_reg1 0)}}00000000UL{{else}}{{uppercase (dec2hex tgt_timing_reg1)}}UL{{/if}}{{/if}};
+{{/if}}{{!tgt_adv_timing_config~}}
+{{~!}}
+{{/if}}{{!mode~}}
+{{~assign 'found_SetConfig' true~}}
+{{~!}}
+  if (HAL_I3C_{{mode}}_SetConfig(&h{{@root.current_resource}}, &i3c_{{lowercase mode}}_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}{{!basic~}}
+{{#with additional}}
+{{#if (eq ../basic.mode 'CTRL')}}
+{{#if ctrl_enable_own_dyn_addr}}
+{{#with own_dyn_addr_config}}
+  /* Configure the own dynamic address */
+  if (HAL_I3C_CTRL_SetConfigOwnDynamicAddress(&h{{@root.current_resource}}, {{own_dyn_addr}}U) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}{{!own_dyn_addr_config~}}
+{{/if}}{{!ctrl_enable_own_dyn_addr~}}
+{{#if ctrl_stall~}}
+{{~assign 'stall_enabled' (helper_i3c_stall_enable stall_config.ack
+                                                   stall_config.ccc_tbit
+                                                   stall_config.tx_parity
+                                                   stall_config.rx_parity
+                                                   stall_config.ack_i2c
+                                                   stall_config.tx_parity_i2c
+                                                   stall_config.rx_parity_i2c)~}}
+{{~assign 'stall_cycles' (concat (ceil (divide (multiply stall_config.stall_time @root.input_frequency) 1000000000)) 'U')~}}
+{{~!}}
+  /**
+    * Set the SCL clock stalling cycles (converted from nanoseconds to cycles using kernel clock frequency).
+    * stall_time_cycle = (stall_time_ns * input_frequency_hz / 1000000000), rounded up to the next integer
+    * stall_time_cycle = ({{stall_config.stall_time}} * {{@root.input_frequency}} / 1000000000), rounded up = {{@root.stall_cycles}}
+    */
+  if (HAL_I3C_CTRL_SetConfigStallTime(&h{{@root.current_resource}}, {{@root.stall_cycles}}, {{@root.stall_enabled}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!ctrl_stall~}}
+{{#if ctrl_hot_join}}
+  /* Enable the hot-join */
+  if (HAL_I3C_CTRL_EnableHotJoinAllowed(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!ctrl_hot_join~}}
+{{#if ctrl_sda_high_keeper}}
+  /* Enable the high keeper SDA */
+  if (HAL_I3C_CTRL_EnableHighKeeperSDA(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!ctrl_sda_high_keeper~}}
+{{#if ctrl_reset_pattern}}
+  /* Enable the insertion of a target reset pattern before the STOP of a transmitted frame containing a RSTACT CCC
+     command. */
+  if (HAL_I3C_CTRL_EnableResetPattern(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!ctrl_reset_pattern~}}
+{{#if (or (not (eq ctrl_fifo_config.rx_fifo_threshold "1_8"))
+          (not (eq ctrl_fifo_config.tx_fifo_threshold "1_8"))
+          (not (eq ctrl_fifo_config.ctrl_fifo "NONE")))}}
+  /* Set the FIFO configuration */
+  hal_i3c_ctrl_fifo_config_t i3c_ctrl_fifo_config;
+  i3c_ctrl_fifo_config.tx_fifo_threshold = HAL_I3C_TX_FIFO_THRESHOLD_{{ctrl_fifo_config.tx_fifo_threshold}};
+  i3c_ctrl_fifo_config.rx_fifo_threshold = HAL_I3C_RX_FIFO_THRESHOLD_{{ctrl_fifo_config.rx_fifo_threshold}};
+  i3c_ctrl_fifo_config.ctrl_fifo         = HAL_I3C_CTRL_FIFO_{{ctrl_fifo_config.ctrl_fifo}};
+  if (HAL_I3C_CTRL_SetConfigFifo(&h{{@root.current_resource}}, &i3c_ctrl_fifo_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!ctrl_fifo_config~}}
+{{else}}{{!eq ../basic.mode 'CTRL')}}
+{{#if (or (not (eq tgt_identifier 0))
+          (not (eq tgt_mipi_identifier 0))
+          tgt_ctrl_role
+          tgt_ibi
+          tgt_max_config.speed_limit)}}
+  /* Set the ENTDAA config */
+  hal_i3c_tgt_config_payload_entdaa_t i3c_tgt_config_payload_entdaa;
+  i3c_tgt_config_payload_entdaa.identifier           = {{tgt_identifier}}U;
+  i3c_tgt_config_payload_entdaa.mipi_identifier      = {{tgt_mipi_identifier}}U;
+  i3c_tgt_config_payload_entdaa.ctrl_role            = HAL_I3C_CTRL_ROLE_{{#if tgt_ctrl_role}}ENABLED{{else}}DISABLED{{/if}};
+{{#if tgt_ibi}}
+  i3c_tgt_config_payload_entdaa.ibi_payload          = HAL_I3C_IBI_PAYLOAD_{{#if (eq ibi_config.ibi_payload "EMPTY")}}DISABLED{{else}}ENABLED{{/if}};
+{{else}}
+  i3c_tgt_config_payload_entdaa.ibi_payload          = HAL_I3C_IBI_PAYLOAD_DISABLED;
+{{/if}}
+  i3c_tgt_config_payload_entdaa.max_data_speed_limitation = HAL_I3C_MAX_SPEED_LIMITATION_{{#if tgt_max_config.speed_limit}}ENABLED{{else}}DISABLED{{/if}};
+  if (HAL_I3C_TGT_SetPayloadENTDAAConfig(&h{{@root.current_resource}}, &i3c_tgt_config_payload_entdaa) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!tgt_identifier tgt_mipi_identifier etc~}}
+{{#if tgt_ibi}}
+{{#if (or (not (eq ibi_config.ibi_payload "EMPTY")) ibi_config.pending_read_mandatory_data_byte)}}
+  /* Configure the IBI request */
+  hal_i3c_tgt_ibi_config_t i3c_tgt_ibi_config;
+  i3c_tgt_ibi_config.ibi_payload_size_byte = HAL_I3C_TGT_PAYLOAD_{{ibi_config.ibi_payload}};
+  i3c_tgt_ibi_config.pending_read_mdb      = HAL_I3C_PENDING_READ_MDB_{{#if ibi_config.pending_read_mandatory_data_byte}}ENABLED{{else}}DISABLED{{/if}};
+  if (HAL_I3C_TGT_SetConfigIBI(&h{{@root.current_resource}}, &i3c_tgt_ibi_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}} {{! (or (not (eq ibi_config.ibi_payload "EMPTY")) ibi_config.pending_read_mandatory_data_byte)~}}
+  /* Enable the IBI request */
+  if (HAL_I3C_TGT_EnableIBI(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!tgt_ibi~}}
+{{#if tgt_hot_join}}
+{{~assign 'HAL_I3C_TGT_EnableHotJoinRequest' true~}}
+{{~!}}
+  /* Enable the hot-join request */
+  if (HAL_I3C_TGT_EnableHotJoinRequest(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!tgt_hot_join~}}
+{{#if tgt_ctrl_role}}
+  /* Enable controller-role request */
+  if (HAL_I3C_TGT_EnableCtrlRoleRequest(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if ctrl_role_config.group_address}}
+  /* Enable the group address capability */
+  if (HAL_I3C_TGT_EnableGroupAddrCapability(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!ctrl_role_config.group_address~}}
+{{/if}}{{!tgt_ctrl_role~}}
+{{#with tgt_max_config}}
+{{#if (or (not (eq read_data_size 0))
+          (not (eq write_data_size 0)))}}
+  /* Set the max data size configuration */
+  if (HAL_I3C_TGT_SetConfigMaxDataSize(&h{{@root.current_resource}}, {{read_data_size}}U, {{write_data_size}}U) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!read_data_size write_data_size~}}
+{{/with}}{{!tgt_max_config~}}
+
+{{~#if ../additional.ctrl_role_config.hand_off_activity_state~}}
+{{#if (not (eq ../additional.ctrl_role_config.hand_off_activity_state "0"))~}}{{assign 'hand_off_activity_state_found' true~}}{{/if~}}
+{{/if~}}
+{{#if tgt_max_config.speed_limit~}}{{#if (not (eq tgt_max_config.speed "1"))~}}{{assign 'speed_found' true~}}{{/if~}}{{/if~}}
+{{#if (not (eq tgt_turn_around.ta_duration "LESS_12NS"))~}}{{assign 'ta_duration_found' true~}}{{/if~}}
+{{#if (not (eq tgt_turn_around.ta_max_read 0))~}}{{assign 'ta_max_found' true~}}{{/if~}}
+
+{{~#if (or @root.hand_off_activity_state_found @root.speed_found @root.ta_duration_found @root.ta_max_found)}}
+  /* Set the response configuration for GET MaX Data Speed (GETMXDS) CCC */
+  hal_i3c_tgt_getmxds_config_t i3c_tgt_getmxds_config;
+{{#if @root.speed_found}}
+  i3c_tgt_getmxds_config.getmxds_format           = HAL_I3C_GETMXDS_FORMAT_{{tgt_max_config.speed}};
+{{else}}
+  i3c_tgt_getmxds_config.getmxds_format           = HAL_I3C_GETMXDS_FORMAT_1;
+{{/if}}
+{{#if @root.hand_off_activity_state_found}}
+  i3c_tgt_getmxds_config.ctrl_handoff_activity    = HAL_I3C_HANDOFF_ACTIVITY_STATE_{{../additional.ctrl_role_config.hand_off_activity_state}};
+{{else}}
+  i3c_tgt_getmxds_config.ctrl_handoff_activity    = HAL_I3C_HANDOFF_ACTIVITY_STATE_0;
+{{/if}}
+  i3c_tgt_getmxds_config.data_turnaround_duration = HAL_I3C_TURNAROUND_TIME_TSCO_{{tgt_turn_around.ta_duration}};
+  i3c_tgt_getmxds_config.max_read_turnaround      = {{tgt_turn_around.ta_max_read}}U;
+  if (HAL_I3C_TGT_SetConfigGETMXDS(&h{{@root.current_resource}}, &i3c_tgt_getmxds_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!hand_off_activity_state_found speed_found ta_duration_found ta_max_found~}}
+{{#if (or (not (eq tgt_fifo_config.rx_fifo_threshold "1_8"))
+          (not (eq tgt_fifo_config.tx_fifo_threshold "1_8")))}}
+  /* Set the FIFO configuration */
+  hal_i3c_tgt_fifo_config_t i3c_tgt_fifo_config;
+  i3c_tgt_fifo_config.tx_fifo_threshold = HAL_I3C_TX_FIFO_THRESHOLD_{{tgt_fifo_config.tx_fifo_threshold}};
+  i3c_tgt_fifo_config.rx_fifo_threshold = HAL_I3C_RX_FIFO_THRESHOLD_{{tgt_fifo_config.rx_fifo_threshold}};
+  if (HAL_I3C_TGT_SetConfigFifo(&h{{@root.current_resource}}, &i3c_tgt_fifo_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!tgt_fifo_config~}}
+{{/if}}{{!eq ../basic.mode 'CTRL')}}
+{{/with}}{{!additional~}}
+
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+
+{{#with system}}
+{{#with dma}}
+{{#if dma_config_tx}}
+  /* Configure the Tx DMA for 1-byte transfers (FIFO threshold = 1_8) */
+{{> DMA_HAL fct='init' needs=dma_config_tx.needs}}
+  /* Link the transmit DMA handle to the {{@root.current_resource}} handle */
+  if (HAL_I3C_SetTxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!dma_config_tx~}}
+{{~#if dma_config_tx_4bytes}}
+  /* Configure the TX DMA for 1-word (4-byte) transfers (FIFO threshold = 1_2) */
+{{> DMA_HAL fct='init' needs=dma_config_tx_4bytes.needs}}
+  /* Link the transmit DMA handle to the {{@root.current_resource}} handle */
+  if (HAL_I3C_SetTxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!dma_config_tx_4bytes~}}
+{{~#if dma_config_rx}}
+  /* Configure the RX DMA for 1-byte transfers (FIFO threshold = 1_8) */
+{{> DMA_HAL fct='init' needs=dma_config_rx.needs}}
+  /* Link the receive DMA handle to the {{@root.current_resource}} handle */
+  if (HAL_I3C_SetRxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!dma_config_rx~}}
+{{~#if dma_config_rx_4bytes}}
+  /* Configure the RX DMA for 1-word (4-byte) transfers (FIFO threshold = 1_2) */
+{{> DMA_HAL fct='init' needs=dma_config_rx_4bytes.needs}}
+  /* Link the receive DMA handle to the {{@root.current_resource}} handle */
+  if (HAL_I3C_SetRxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!dma_config_rx_4bytes~}}
+{{~#if enable_dma_tc}}
+  /* Configure the Transmit Control DMA for 1 word (4 bytes) transfers */
+{{> DMA_HAL fct='init' needs=dma_config_tc.needs}}
+  /* Link the transmit DMA handle to the {{@root.current_resource}} handle */
+  if (HAL_I3C_SetTcDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!enable_dma_tc~}}
+{{/with}}{{!dma~}}
+{{~!}}
+
+{{#with nvic}}
+{{~#if enable_event_interruption}}
+  /* Enable the Event interrupt for {{@root.current_resource}} */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic_config_event.needs @root.current_resource event_irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_event.needs}}
+{{/CORTEX}}
+
+{{/if}}{{!enable_event_interruption~}}
+{{~#if enable_error_interruption}}
+  /* Enable the Error interrupt for {{@root.current_resource}} */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic_config_error.needs @root.current_resource error_irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_error.needs}}
+{{/CORTEX}}
+
+{{/if}}{{!enable_error_interruption~}}
+{{/with}}{{!nvic~}}
+{{~!}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#with nvic}}
+{{#if enable_event_interruption}}
+  /* Disable the Event interrupt for {{@root.current_resource}} */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_event.needs}}
+{{/CORTEX}}
+
+{{/if}}
+{{#if enable_error_interruption}}
+  /* Disable the Error interrupt for {{@root.current_resource}} */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_error.needs}}
+{{/CORTEX}}
+{{/if}}
+{{/with}}{{!nvic}}
+  (void)HAL_I3C_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource}}
+{{#with dma}}
+{{#if dma_config_tx}}{{> DMA_HAL fct='deinit' needs=dma_config_tx.needs}}{{/if}}
+{{#if dma_config_tx_4bytes}}{{> DMA_HAL fct='deinit' needs=dma_config_tx_4bytes.needs}}{{/if}}
+{{#if dma_config_rx}}{{> DMA_HAL fct='deinit' needs=dma_config_rx.needs}}{{/if}}
+{{#if dma_config_rx_4bytes}}{{> DMA_HAL fct='deinit' needs=dma_config_rx_4bytes.needs}}{{/if}}
+{{#if enable_dma_tc}}{{> DMA_HAL fct='deinit' needs=dma_config_tc.needs}}{{/if}}
+{{/with}}{{!dma~}}
+{{/with}}{{!system~}}
+}
+
+{{else}}{{!HAL~}}
+I3C_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource}}
+
+{{#with basic}}
+{{assign 'clock_input' (append @root.current_resource '_Input_Clock')~}}
+{{assign 'input_frequency' (@root.clockAPI.getClockFrequency @root.clock_input)~}}
+{{#if (eq mode 'CTRL')}}{{!mode~}}
+{{~!}}
+  /* Set the controller mode */
+  {{~assign 'peripheral_mode' 'LL_I3C_MODE_CONTROLLER'}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetMode' @root.peripheral_mode}}
+
+  /**
+    * {{@root.current_resource}} timing_reg0 calculated by CubeMX2 with:
+{{#if ctrl_adv_timing_config}}
+    * - SDA rise time = {{ctrl_adv_timing_config.sda_rise_time}} ns
+{{else}}
+    * - SDA rise time = 350 ns
+{{/if}}{{!ctrl_adv_timing_config}}
+{{~!}}
+    * - Input frequency = {{divide @root.input_frequency 1000000}} MHz
+    * - Bus usage = {{bus_usage}}
+    * - I3C bus frequency = {{divide freq_i3c 1000}} MHz
+{{#if (eq bus_usage 'UTILS_I3C_I2C_MIXED_BUS')}}{{!bus_usage~}}
+{{~!}}
+    * - I2C bus frequency = {{freq_i2c}} KHz
+    * - I2C and I3C duty cycle = {{duty_cycle_i2c}} %
+{{else}}
+    * - I3C duty cycle = {{duty_cycle_i3c}} %
+{{/if}}{{!bus_usage~}}
+{{~!}}
+    * {{@root.current_resource}} timing_reg1 calculated by CubeMX2 with:
+{{#if ctrl_adv_timing_config}}
+    * - Wait time = {{ctrl_adv_timing_config.wait_time}}
+    * - SDA hold time = {{ctrl_adv_timing_config.sda_hold_time}}
+    * - Bus free duration = {{ctrl_adv_timing_config.bus_free_duration}} ns
+    * - Bus idle duration = {{ctrl_adv_timing_config.bus_idle_duration}} ns
+{{else}}
+    * - Wait time = LL_I3C_OWN_ACTIVITY_STATE_0
+{{/if}}{{!ctrl_adv_timing_config~}}
+{{~!}}
+    */
+  {{~#if (eq ctrl_timing_reg0 0)~}}
+    {{~assign 'clock_wave_form' '0x00000000U'~}}
+  {{~else~}}
+    {{~assign 'clock_wave_form' (concat '0x' (uppercase (dec2hex ctrl_timing_reg0)) 'U')~}}
+  {{~/if}}
+
+  {{helper_common_gen_ll_code 'LL_I3C_ConfigClockWaveForm' @root.clock_wave_form}}
+{{#if ctrl_adv_timing_config}}
+  {{~#if (eq ctrl_adv_timing_reg1 0)~}}
+    {{~assign 'ctrl_bus_characteristic' '0x00000000U'~}}
+  {{~else~}}
+    {{~assign 'ctrl_bus_characteristic' (concat '0x' (uppercase (dec2hex ctrl_adv_timing_reg1)) 'U')~}}
+  {{~/if}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetBusCharacteristic' @root.ctrl_bus_characteristic}}
+{{else}}
+  {{~#if (eq ctrl_timing_reg1 0)~}}
+    {{~assign 'ctrl_bus_characteristic' '0x00000000U'~}}
+  {{~else~}}
+    {{~assign 'ctrl_bus_characteristic' (concat '0x' (uppercase (dec2hex ctrl_timing_reg1)) 'U')~}}
+  {{~/if}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetBusCharacteristic' @root.ctrl_bus_characteristic}}
+{{/if}}{{!ctrl_adv_timing_config~}}
+{{~!}}
+{{else}}{{!mode~}}
+{{~!}}
+  /* Set the target mode */
+  {{~assign 'peripheral_mode' 'LL_I3C_MODE_TARGET'}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetMode' @root.peripheral_mode}}
+
+  /**
+    * {{@root.current_resource}} timing_reg1 calculated by CubeMX2 with:
+{{#if tgt_adv_timing_config}}
+    * Bus available duration = {{tgt_adv_timing_config.bus_available_duration}} ns
+{{else}}
+    * Bus available duration = 1000 ns
+{{/if}}{{!tgt_adv_timing_config~}}
+{{~!}}
+    */
+{{#if tgt_adv_timing_config}}
+  {{~#if (eq tgt_adv_timing_reg1 0)~}}
+    {{~assign 'ctrl_bus_characteristic' '0x00000000U'~}}
+  {{~else~}}
+    {{~assign 'ctrl_bus_characteristic' (concat '0x' (uppercase (dec2hex tgt_adv_timing_reg1)) 'U')~}}
+  {{~/if}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetBusCharacteristic' @root.ctrl_bus_characteristic}}
+{{else}}
+  {{~#if (eq tgt_timing_reg1 0)~}}
+    {{~assign 'ctrl_bus_characteristic' '0x00000000U'~}}
+  {{~else~}}
+    {{~assign 'ctrl_bus_characteristic' (concat '0x' (uppercase (dec2hex tgt_timing_reg1)) 'U')~}}
+  {{~/if}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetBusCharacteristic' @root.ctrl_bus_characteristic}}
+{{/if}}{{!tgt_adv_timing_config~}}
+{{~!}}
+{{/if}}{{!mode~}}
+{{~assign 'found_SetConfig' true~}}
+{{~!}}
+
+{{/with}}{{!basic~}}
+{{#with additional}}
+{{#if (eq ../basic.mode 'CTRL')}}
+{{#if ctrl_enable_own_dyn_addr}}
+{{#with own_dyn_addr_config}}
+  /* Configure the own dynamic address */
+  LL_I3C_SetAndEnableOwnDynamicAddress({{@root.current_resource}}, {{own_dyn_addr}}U);
+
+{{/with}}{{!own_dyn_addr_config~}}
+{{/if}}{{!ctrl_enable_own_dyn_addr~}}
+{{#if ctrl_stall~}}
+{{~assign 'stall_enabled_ll' (helper_i3c_stall_enable_ll stall_config.ack
+                                                         stall_config.ccc_tbit
+                                                         stall_config.tx_parity
+                                                         stall_config.rx_parity
+                                                         stall_config.ack_i2c
+                                                         stall_config.tx_parity_i2c
+                                                         stall_config.rx_parity_i2c)~}}
+{{~assign 'stall_cycles' (concat (ceil (divide (multiply stall_config.stall_time @root.input_frequency) 1000000000)) 'U')~}}
+{{~!}}
+  /**
+    * Set the SCL clock stalling cycles (converted from nanoseconds to cycles using kernel clock frequency).
+    * stall_time_cycle = (stall_time_ns * input_frequency_hz / 1000000000), rounded up to the next integer
+    * stall_time_cycle = ({{stall_config.stall_time}} * {{@root.input_frequency}} / 1000000000), rounded up = {{@root.stall_cycles}}
+    */
+  {{{helper_common_gen_ll_code 'LL_I3C_ConfigStallTime' @root.stall_cycles @root.stall_enabled_ll}}}
+
+{{/if}}{{!ctrl_stall~}}
+{{#if ctrl_hot_join}}
+  /* Enable the hot-join */
+  LL_I3C_EnableHJAck({{@root.current_resource}});
+
+{{/if}}{{!ctrl_hot_join~}}
+{{#if ctrl_sda_high_keeper}}
+  /* Enable the high keeper SDA */
+  LL_I3C_EnableHighKeeperSDA({{@root.current_resource}});
+
+{{/if}}{{!ctrl_sda_high_keeper~}}
+{{#if ctrl_reset_pattern}}
+  /* Enable the insertion of a target reset pattern before the STOP of a transmitted frame containing a RSTACT CCC
+     command. */
+  LL_I3C_EnableResetPattern({{@root.current_resource}});
+
+{{/if}}{{!ctrl_reset_pattern~}}
+{{~!}}
+  /* Set the FIFO configuration */
+  {{helper_common_gen_ll_code 'LL_I3C_ConfigCtrlFifo' (concat 'LL_I3C_RXFIFO_THRESHOLD_' ctrl_fifo_config.rx_fifo_threshold) (concat 'LL_I3C_TXFIFO_THRESHOLD_' ctrl_fifo_config.tx_fifo_threshold) (concat 'LL_I3C_CTRL_FIFO_' ctrl_fifo_config.ctrl_fifo)}}
+
+{{else}}{{!eq ../basic.mode 'CTRL')}}
+  /* Set the identifier value in DCR register */
+  {{~assign 'device_characteristics' (concat tgt_identifier 'U')}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetDeviceCharacteristics' @root.device_characteristics}}
+
+  /* Set the MIPI identifier value in EPIDR register */
+  {{~assign 'mipi_instance_id' (concat tgt_mipi_identifier 'U')}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetMIPIInstanceID' @root.mipi_instance_id}}
+
+  /* Set the control capability, IBI payload support and max speed limitation in BCR register */
+  {{~#if tgt_max_config.speed_limit}}{{assign 'll_max_speed_limitation' 'LL_I3C_MAX_DATA_SPEED_LIMITATION'}}{{else}}{{assign 'll_max_speed_limitation' 'LL_I3C_NO_DATA_SPEED_LIMITATION'}}{{/if}}
+  {{~#if tgt_ibi}}{{#if (eq ibi_config.ibi_payload "EMPTY")}}{{assign 'll_ibi_payload' 'LL_I3C_IBI_NO_ADDITIONAL_DATA'}}{{else}}{{assign 'll_ibi_payload' 'LL_I3C_IBI_ADDITIONAL_DATA'}}{{/if}}{{else}}{{assign 'll_ibi_payload' 'LL_I3C_IBI_NO_ADDITIONAL_DATA'}}{{/if}}
+  {{~#if tgt_ctrl_role}}{{assign 'll_ctrl_role' 'LL_I3C_DEVICE_ROLE_AS_CONTROLLER'}}{{else}}{{assign 'll_ctrl_role' 'LL_I3C_DEVICE_ROLE_AS_TARGET'}}{{/if}}
+  {{helper_common_gen_ll_code 'LL_I3C_ConfigPayloadEntDAA' @root.ll_max_speed_limitation @root.ll_ibi_payload @root.ll_ctrl_role}}
+
+{{#if tgt_ibi}}
+  /* Enable the IBI request */
+  LL_I3C_EnableIBI({{@root.current_resource}});
+
+  /* Set the number of additional Mandatory data Byte (MDB) sent to the controller after an acknowledge of the IBI */
+  {{~assign 'nb_ibi_add_data' (concat 'LL_I3C_PAYLOAD_' ibi_config.ibi_payload)}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetNbIBIAddData' @root.nb_ibi_add_data}}
+
+{{#if ibi_config.pending_read_mandatory_data_byte}}
+  /* Enable the IBI MDB support for pending read notification */
+  LL_I3C_EnablePendingReadMDB({{@root.current_resource}});
+
+{{/if}}{{!ibi_config.pending_read_mandatory_data_byte~}}
+{{/if}}{{!tgt_ibi~}}
+
+{{#if tgt_hot_join}}
+{{~assign 'HAL_I3C_TGT_EnableHotJoinRequest' true~}}
+{{~!}}
+  /* Enable the hot-join request */
+  LL_I3C_EnableHotJoin({{@root.current_resource}});
+
+{{/if}}{{!tgt_hot_join~}}
+{{#if tgt_ctrl_role}}
+  /* Enable the controller-role request */
+  LL_I3C_EnableControllerRoleReq({{@root.current_resource}});
+
+{{#if ctrl_role_config.group_address}}
+  /* Enable the group address capability */
+  LL_I3C_SetGrpAddrHandoffSupport({{@root.current_resource}}, LL_I3C_HANDOFF_GRP_ADDR_SUPPORTED);
+
+{{/if}}{{!ctrl_role_config.group_address~}}
+{{/if}}{{!tgt_ctrl_role~}}
+{{#with tgt_max_config}}
+  /* Set the maximum read length (target mode) */
+  {{~assign 'max_read_data_size_byte' (concat read_data_size 'U')}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetMaxReadLength' @root.max_read_data_size_byte}}
+
+  /* Set the maximum write length (target mode) */
+  {{~assign 'max_write_length_byte' (concat write_data_size 'U')}}
+  {{helper_common_gen_ll_code 'LL_I3C_SetMaxWriteLength' @root.max_write_length_byte}}
+
+{{/with}}{{!tgt_max_config~}}
+
+{{~#if ../additional.ctrl_role_config.hand_off_activity_state~}}
+{{#if (not (eq ../additional.ctrl_role_config.hand_off_activity_state "0"))~}}{{assign 'hand_off_activity_state_found' true~}}{{/if~}}
+{{/if~}}
+{{#if tgt_max_config.speed_limit~}}{{#if (not (eq tgt_max_config.speed "1"))~}}{{assign 'speed_found' true~}}{{/if~}}{{/if~}}
+{{#if (not (eq tgt_turn_around.ta_duration "LESS_12NS"))~}}{{assign 'ta_duration_found' true~}}{{/if~}}
+{{#if (not (eq tgt_turn_around.ta_max_read 0))~}}{{assign 'ta_max_found' true~}}{{/if~}}
+{{#if @root.hand_off_activity_state_found}}{{assign 'll_getmxds_handoff_activity' (concat 'LL_I3C_HANDOFF_ACTIVITY_STATE_' ctrl_role_config.hand_off_activity_state)}}{{else}}{{assign 'll_getmxds_handoff_activity' 'LL_I3C_HANDOFF_ACTIVITY_STATE_0'}}{{/if}}
+{{#if @root.speed_found}}{{assign 'll_getmxds_format' (concat 'LL_I3C_GETMXDS_FORMAT_' tgt_max_config.speed)}}{{else}}{{assign 'll_getmxds_format' 'LL_I3C_GETMXDS_FORMAT_1'}}{{/if}}
+{{assign 'll_getmxds_turnaround_duration' (concat 'LL_I3C_TURNAROUND_TIME_TSCO_' tgt_turn_around.ta_duration)}}
+{{assign 'll_getmxds_max_read_turnaround' (concat tgt_turn_around.ta_max_read 'U')}}
+  /* Set the response configuration for GET MaX Data Speed (GETMXDS) CCC */
+  {{helper_common_gen_ll_code 'LL_I3C_SetConfigGETMXDS' @root.ll_getmxds_handoff_activity @root.ll_getmxds_format @root.ll_getmxds_turnaround_duration @root.ll_getmxds_max_read_turnaround}}
+
+  /* Set the FIFO configuration */
+  {{helper_common_gen_ll_code 'LL_I3C_ConfigTgtFifo' (concat 'LL_I3C_RXFIFO_THRESHOLD_' tgt_fifo_config.rx_fifo_threshold) (concat 'LL_I3C_TXFIFO_THRESHOLD_' tgt_fifo_config.tx_fifo_threshold)}}
+
+{{/if}}{{!eq ../basic.mode 'CTRL')}}
+{{/with}}{{!additional}}
+
+  /* Enable the I3C peripheral */
+  LL_I3C_Enable({{@root.current_resource}});
+
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource return_if_failed='0'}}
+
+{{#with system}}
+{{#with dma}}
+{{~#if dma_config_tx}}
+  /* Configure the Tx DMA for 1-byte transfers (FIFO threshold = 1_8) */
+{{> DMA_LL fct='init' needs=dma_config_tx.needs}}
+
+{{/if}}{{!dma_config_tx~}}
+{{~#if dma_config_tx_4bytes}}
+  /* Configure the TX DMA for 1-word (4-byte) transfers (FIFO threshold = 1_2) */
+{{> DMA_LL fct='init' needs=dma_config_tx_4bytes.needs}}
+
+{{/if}}{{!dma_config_tx_4bytes~}}
+{{~#if dma_config_rx}}
+  /* Configure the RX DMA for 1-byte transfers (FIFO threshold = 1_8) */
+{{> DMA_LL fct='init' needs=dma_config_rx.needs}}
+
+{{/if}}{{!dma_config_rx~}}
+{{~#if dma_config_rx_4bytes}}
+  /* Configure the RX DMA for 1-word (4-byte) transfers (FIFO threshold = 1_2) */
+{{> DMA_LL fct='init' needs=dma_config_rx_4bytes.needs}}
+
+{{/if}}{{!dma_config_rx_4bytes~}}
+{{~#if enable_dma_tc}}
+  /* Configure the Transmit Control DMA for 1 word (4 bytes) transfers */
+{{> DMA_LL fct='init' needs=dma_config_tc.needs}}
+
+{{/if}}{{!enable_dma_tc~}}
+{{/with}}{{!dma~}}
+{{~!}}
+
+{{#with nvic}}
+{{~#if enable_event_interruption}}
+  /* Enable the Event interrupt for {{@root.current_resource}} */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic_config_event.needs @root.current_resource event_irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_event.needs}}
+{{/CORTEX}}
+
+{{/if}}{{!enable_event_interruption~}}
+{{~#if enable_error_interruption}}
+  /* Enable the Error interrupt for {{@root.current_resource}} */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic_config_error.needs @root.current_resource error_irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_error.needs}}
+{{/CORTEX}}
+
+{{/if}}{{!enable_error_interruption~}}
+{{/with}}{{!nvic~}}
+{{~!}}
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#with nvic}}
+{{#if enable_event_interruption}}
+  /* Disable the Event interrupt for {{@root.current_resource}} */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_event.needs}}
+{{/CORTEX}}
+
+{{/if}}
+{{#if enable_error_interruption}}
+  /* Disable the Error interrupt for {{@root.current_resource}} */
+{{#> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_error.needs}}
+{{/CORTEX}}
+{{/if}}
+{{/with}}{{!nvic}}
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource}}
+
+{{#with dma}}
+{{#if dma_config_tx}}{{> DMA_LL fct='deinit' needs=dma_config_tx.needs}}{{/if}}
+{{#if dma_config_tx_4bytes}}{{> DMA_LL fct='deinit' needs=dma_config_tx_4bytes.needs}}{{/if}}
+{{#if dma_config_rx}}{{> DMA_LL fct='deinit' needs=dma_config_rx.needs}}{{/if}}
+{{#if dma_config_rx_4bytes}}{{> DMA_LL fct='deinit' needs=dma_config_rx_4bytes.needs}}{{/if}}
+{{#if enable_dma_tc}}{{> DMA_LL fct='deinit' needs=dma_config_tc.needs}}{{/if}}
+{{/with}}{{!dma~}}
+{{/with}}{{!system~}}
+}
+
+{{/if}}
+{{/with}}
+{{/each}}
+{{#unless (eq @root.handles 'undefined')}}
+{{#each (unique @root.handles)}}
+{{~assign 'fct_name' (helper_common_get_generated_function_name . 'HAL' undefined)~}}
+hal_i3c_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{.}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+
+{{/each}}
+{{/unless}}
+
+{{#with @root.configs}}
+{{#with security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Enable clock for RIF/RCC peripherals
+    - Configure the security/privilege items for I3C peripheral
+    - other I3C systems security/privilege configuration if any (DMA/GPIO/EXTI)
+    */
+
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GTZC fct='gtzc_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/GTZC}}
+
+  {{#if (eq @root.current_layer 'HAL')~}}
+{{#> DMA_HAL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_HAL}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+  {{else}}
+{{#> DMA_LL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_LL}}
+{{#> GPIO_LL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_LL}}
+  {{/if}}
+
+  return SYSTEM_OK;
+}
+
+{{/with}}
+{{/with}}{{!root.configs~}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='I3C'}}
+{{/helper_common_beautifier}}

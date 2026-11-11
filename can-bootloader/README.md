@@ -10,22 +10,52 @@
 
 ## Overview
 
-Can-bootloader for stm32c5.
+Can-bootloader for stm32c5 and stm32h7.
 
-## IDK
+## Descriptions
 
+### STM32C5
+
+Exists in the bootload_make/ subdirectory.
 Currently configured to work on stm32c542RC, probably needs other ports on CC.
 
+The following assumes bootload_make/ as working directory.
 To build:
-Either use the IDE, configure it correctly, and press the build button.
-OR
-Use 'cmake --build build/debug_GCC_NUCLEO-C542RC'.
+~ make
+
+To flash:
+~ make flash
+
+To flash to secondary bank:
+~ make flash-secondary
+
+To flash to both banks (for when you don't know what bank you are on):
+~ make flash-both
+
+### STM32H7
+
+Exists in the bootload_h7_hal1/ subdirectory.
+
+The following assumes bootload_h7_hal1/ as working directory.
+To build:
+~ make
+
+To flash:
+~ cd build/
+~ make flash
+
+To flash to secondary bank:
+~ cd build/
+~ make flash-secondary
+
+To flash to both banks:
+~ cd build/
+~ make flash-both
 
 ## Libraries/Dependencies
 
 <ul>
-<li>CMake</li>
-<li>The correct version of arm-none-eabi-Everything-Basically</li>
+<li>A version of arm-none-eabi-gcc capable of compiling the programs, and arm-none-eabi-objcopy, probably bundled with the aforementioned gcc.</li>
 </ul>
 
 ## License

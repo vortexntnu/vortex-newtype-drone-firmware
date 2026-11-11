@@ -1,0 +1,133 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_usb_template.h.hbs
+  * @brief          : Header for mx_usb_template.c.cbs file.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{#if (eq @root.strategy "HW")}}
+  {{~assign "strategy" 'HW'~}}
+  {{~assign 'parent_resource' (get 'peripheral')~}}
+  {{~assign 'instances' (get 'context')~}}
+  {{~log "PCD template mapping_context:" (get '')~}}
+  {{#if (eq @root.parent_resource "USB_OTG_FS")}}
+    {{~assign "old_resource_name" 'OTG_FS'~}}
+  {{/if}}
+  {{#if (eq @root.parent_resource "USB_OTG_HS")}}
+    {{~assign "old_resource_name" 'OTG_HS'~}}
+  {{/if}}
+  {{#if (eq @root.parent_resource "USB_DRD_FS")}}
+    {{~assign "old_resource_name" 'USB'~}}
+  {{/if}}
+{{else}}
+#warning "To be implemented"
+{{/if}}
+{{#each @root.instances~}}
+  {{~assign 'sw_instance_ids' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+  {{~log "USB template sw_instance_ids:" (toJSON @root.sw_instance_ids)~}}
+{{/each}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.parent_resource}}.h
+  * @brief          : Header for mx_{{lowercase @root.parent_resource}}.c file.
+{{> LICENSE}}
+
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef MX_{{@root.parent_resource}}_H
+#define MX_{{@root.parent_resource}}_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Includes ------------------------------------------------------------------*/
+#include "stm32_hal.h"
+#include "mx_def.h"
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+{{helper_gpio_generate_aliases @root.pinoutAPI @root.old_resource_name @root.current_layer~}}
+
+/* Exported macro ------------------------------------------------------------*/
+/* Exported variables --------------------------------------------------------*/
+/* Exported functions ------------------------------------------------------- */
+{{assign 'nvic_context' 'undefined'~}}
+{{assign 'hal_handle_exist' 0~}}
+{{assign 'nvic_needs' 'undefined'~}}
+{{assign 'nvic_generate_handler' true~}}
+{{#each @root.instances~}}
+  {{~assign 'sw_instance_ids' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+  {{~assign 'current_resource' (replace (replace this @root.parent_resource '') '.' '')~}}
+  {{#each @root.sw_instance_ids}}
+    {{~assign 'usb_ctxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)~}}
+    {{~assign 'usb_mode' @root.usb_ctxt.info.usb_mode~}}
+    {{~assign 'mode' (lowercase @root.current_resource)~}}
+    {{~assign 'fct_name' (helper_common_get_generated_function_name @root.parent_resource  'HAL' undefined @root.mode)~}}    
+/******************************************************************************/
+/* Exported functions for {{@root.parent_resource}} {{@root.current_resource}} ({{@root.usb_mode}}) in HAL layer */
+/******************************************************************************/
+/**
+  * @brief {{@root.fct_name}} init function
+  * This function configures the hardware resources used in this example
+  * @retval pointer to handle or NULL in case of failure
+  */
+hal_{{lowercase @root.usb_mode}}_handle_t *{{@root.fct_name}}_init(void);
+
+/**
+  * @brief  De-initialize {{lowercase @root.parent_resource}} instance and return it.
+  */
+void {{@root.fct_name}}_deinit(void);
+
+/**
+  * @brief  Get the {{@root.parent_resource}} object.
+  * @retval Pointer on the {{@root.parent_resource}} Handle
+  */
+hal_{{lowercase @root.usb_mode}}_handle_t *{{@root.fct_name}}_gethandle(void);
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.old_resource_name type='prototype'}} 
+
+{{/each}}
+{{/each}}
+
+{{~assign 'usb_irq_handler_needed' 0}}
+{{#each @root.instances}}
+{{~assign 'sw_instance_ids' (@root.peripheralsResourceManagerAPI.getSoftwareInstancesBoundToPeripheral this)~}}
+  {{#each @root.sw_instance_ids}}
+  {{~assign 'usb_ctxt' (@root.SWConfigurationAPI.getSwInstanceConfiguration this)}}
+    {{#with @root.usb_ctxt.system.nvic}}
+      {{#if enable_interruption}}
+      {{! Check if interrupts generation is enabled or no!}}
+      {{#if irq_handler_generation}}
+        {{~assign 'usb_irq_handler_needed' 1}}
+      {{/if}}
+      {{/if}}
+    {{/with}}
+  {{/each}}
+{{/each}}
+
+{{#if (eq @root.usb_irq_handler_needed 1)}}
+/**
+  * @brief Handling USB event interrupt request
+  * @param None
+  * @retval None
+  */
+void {{@root.parent_resource}}_IRQHandler(void);
+{{/if}}
+{{> CORTEX fct='generate_irqhandler' type='prototype' component=@root.old_resource_name}}
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* MX_{{@root.parent_resource}}_H */
+{{/helper_common_beautifier}}

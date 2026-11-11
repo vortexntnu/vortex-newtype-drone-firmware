@@ -1,0 +1,79 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_tamp_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'TAMP' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "TAMP template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'hal_handle_exist' false~}}
+{{#each @root.instances~}}
+  {{~assign 'tamp_cxt' config~}}
+  {{~log "TAMP template tamp_cxt:" (toJSON @root.tamp_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.tamp_cxt.info.layer~}}
+  {{~log "TAMP template current_resource:" @root.current_resource~}}
+{{/each}}
+
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'tamp_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'name' @root.tamp_cxt.name~}}
+  {{~assign 'current_layer' @root.tamp_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~log "TAMP template instance:" (toJSON this)~}}
+{{! Initialize the context for LL code optimization ~}}
+{{!-- {{assign 'lut_table'   (helper_TAMP_get_lut_table 'V1')~}} --}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+{{assign 'current_index' (add @root.current_index 1)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+
+{{#with @root.tamp_cxt}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{> TAMP_HAL fct='exported_functions_init'}}
+{{else}}
+{{> TAMP_LL fct='exported_functions_init'}}
+{{/if}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='TAMP'}}
+{{/with}}
+
+{{/each}}
+{{/helper_common_beautifier}}

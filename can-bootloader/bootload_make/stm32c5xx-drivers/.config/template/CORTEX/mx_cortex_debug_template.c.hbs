@@ -1,0 +1,110 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_cortex_debug_template.c.hbs
+  * @brief          : {{uppercase @root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{assign 'current_component' (get 'component')~}}
+{{assign 'getConfigurablePeripheralsFromComponent' (@root.peripheralsResourceManagerAPI.getConfigurablePeripheralsFromComponent @root.current_component)}}
+{{assign "cortex_id" @root.getConfigurablePeripheralsFromComponent.[0].associatedIps.[0] ~}}
+{{!log "CORTEX template cortex :" @root.cortex_id ~}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'CORTEX_DEBUG' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "CORTEX_DEBUG template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{uppercase @root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'cortex_debug_cxt' config~}}
+    {{~log "CORTEX DEBUG template cortex_debug_cxt:" (toJSON @root.cortex_debug_cxt)~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_debug_cxt.info.layer~}}
+    {{~log "CORTEX DEBUG template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.cortex_id~}}
+  {{/if}}
+{{/each}}
+{{helper_common_initialize_index~}}
+{{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{~assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'cortex_debug_cxt' config~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_debug_cxt.info.layer~}}
+    {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{! Initialize the context for LL code optimization ~}}
+  {{!~assign 'lut_table' (helper_cortex_debug_get_lut_table 'CORTEX DEBUGV1')~}}
+  {{!~helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+  {{~log "CORTEX DEBUG template instance:" (toJSON this)}}
+
+/******************************************************************************/
+/* Exported functions for {{uppercase @root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+  {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+  {{~assign 'current_index' (helper_common_inc_index @root.current_resource)}}
+  {{#with @root.cortex_debug_cxt}}
+    {{#if (eq @root.current_layer 'HAL')}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+system_status_t mx_cortex_debug_init(void)
+{
+{{> GPIO_HAL fct='init_resource' resource=@root.cortex_id return_if_failed='NULL'}}
+
+  return SYSTEM_OK;
+}
+
+void mx_cortex_debug_deinit(void)
+{
+{{> GPIO_HAL fct='deinit_resource' needs=@root.gpio_needs resource=@root.cortex_id}}
+}
+
+    {{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+system_status_t mx_cortex_debug_init(void)
+{
+{{> GPIO_LL fct='init_resource' resource=@root.cortex_id}}
+
+  return SYSTEM_OK;
+}
+
+void mx_cortex_debug_deinit(void)
+{
+{{> GPIO_LL fct='deinit_resource' needs=@root.gpio_needs resource=@root.cortex_id}}
+}
+
+    {{/if}}
+  {{/with}}
+{{/each}}{{! instances~}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='CORTEX_DEBUG'}}
+{{/helper_common_beautifier}}

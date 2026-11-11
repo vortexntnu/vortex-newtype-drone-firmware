@@ -1,0 +1,65 @@
+!SESSION 2026-11-09 19:34:42.273 -----------------------------------------------
+eclipse.buildId=Version 2.2.0
+java.version=21.0.10
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=linux, ARCH=x86_64, WS=gtk, NL=en_US
+Command-line arguments:  -os linux -ws gtk -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-11-09 19:35:08.111
+!MESSAGE Log4j2 initialized with config file /home/elias-gravdal/STM32Cube/bootload/.metadata/.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-11-09 19:35:10.405
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.ui.ide 4 0 2026-11-09 19:35:52.069
+!MESSAGE Could not import project located at /home/elias-gravdal/STM32Cube/bootload
+!STACK 0
+org.eclipse.ui.internal.wizards.datatransfer.CouldNotImportProjectException: Could not import project located at /home/elias-gravdal/STM32Cube/bootload
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.toExistingOrNewProject(SmartImportJob.java:555)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.run(SmartImportJob.java:246)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.core.internal.resources.ResourceException: Invalid project description for project 'bootload' at 'file:/home/elias-gravdal/STM32Cube/bootload' 
+	at org.eclipse.core.internal.resources.Project.checkDescription(Project.java:219)
+	at org.eclipse.core.internal.resources.Project.assertCreateRequirements(Project.java:95)
+	at org.eclipse.core.internal.resources.Project.create(Project.java:316)
+	at org.eclipse.core.internal.resources.Project.create(Project.java:302)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.createOrImportProject(SmartImportJob.java:594)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.toExistingOrNewProject(SmartImportJob.java:542)
+	... 2 more
+
+!ENTRY org.eclipse.ui.ide 4 0 2026-11-09 19:38:49.153
+!MESSAGE Could not import project located at /home/elias-gravdal/STM32Cube/bootload
+!STACK 0
+org.eclipse.ui.internal.wizards.datatransfer.CouldNotImportProjectException: Could not import project located at /home/elias-gravdal/STM32Cube/bootload
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.toExistingOrNewProject(SmartImportJob.java:555)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.run(SmartImportJob.java:246)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.core.internal.resources.ResourceException: Invalid project description for project 'bootload' at 'file:/home/elias-gravdal/STM32Cube/bootload' 
+	at org.eclipse.core.internal.resources.Project.checkDescription(Project.java:219)
+	at org.eclipse.core.internal.resources.Project.assertCreateRequirements(Project.java:95)
+	at org.eclipse.core.internal.resources.Project.create(Project.java:316)
+	at org.eclipse.core.internal.resources.Project.create(Project.java:302)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.createOrImportProject(SmartImportJob.java:594)
+	at org.eclipse.ui.internal.wizards.datatransfer.SmartImportJob.toExistingOrNewProject(SmartImportJob.java:542)
+	... 2 more
+
+!ENTRY org.eclipse.core.resources 4 77 2026-11-09 19:41:27.397
+!MESSAGE Invalid project description for project 'bootload' at 'file:/home/elias-gravdal/STM32Cube/bootload' 
+!SUBENTRY 1 unknown 0 0 2026-11-09 19:41:27.397
+!MESSAGE OK
+!SUBENTRY 1 org.eclipse.core.resources 4 77 2026-11-09 19:41:27.397
+!MESSAGE /home/elias-gravdal/STM32Cube/bootload overlaps the workspace location: /home/elias-gravdal/STM32Cube/bootload
+
+!ENTRY org.eclipse.core.resources 4 77 2026-11-09 19:42:04.943
+!MESSAGE Invalid project description for project 'bootload' at 'file:/home/elias-gravdal/STM32Cube/bootload' 
+!SUBENTRY 1 unknown 0 0 2026-11-09 19:42:04.943
+!MESSAGE OK
+!SUBENTRY 1 org.eclipse.core.resources 4 77 2026-11-09 19:42:04.943
+!MESSAGE /home/elias-gravdal/STM32Cube/bootload overlaps the workspace location: /home/elias-gravdal/STM32Cube/bootload
+
+!ENTRY org.eclipse.core.resources 4 77 2026-11-09 19:43:23.243
+!MESSAGE Invalid project description for project 'bootload' at 'file:/home/elias-gravdal/STM32Cube/bootload' 
+!SUBENTRY 1 unknown 0 0 2026-11-09 19:43:23.243
+!MESSAGE OK
+!SUBENTRY 1 org.eclipse.core.resources 4 77 2026-11-09 19:43:23.243
+!MESSAGE /home/elias-gravdal/STM32Cube/bootload overlaps the workspace location: /home/elias-gravdal/STM32Cube/bootload

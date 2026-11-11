@@ -1,0 +1,209 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_crc_template.c.hbs
+  * @brief          : CRC Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'CRC' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "CRC template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{assign 'hal_handle_exist' 0~}}
+{{#each @root.instances~}}
+{{assign 'crc_cxt' config~}}
+{{log "CRC template crc_cxt:" (toJSON @root.crc_cxt)~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.crc_cxt.info.layer~}}
+{{log "CRC template current_resource:" @root.current_resource~}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if (eq @root.hal_handle_exist 0)}}
+static hal_crc_handle_t h{{uppercase @root.current_resource}};
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{/each}}
+
+{{assign 'hal_handle_exist' 0~}}
+{{assign 'nvic_needs' 'undefined'~}}
+{{assign 'nvic_generate_handler' true~}}
+{{#each @root.instances}}
+{{assign 'crc_cxt' config~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'name' @root.crc_cxt.name~}}
+{{assign 'current_layer' @root.crc_cxt.info.layer~}}
+{{assign 'configs' @root.crc_cxt~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.configs}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_crc_handle_t *{{@root.fct_name}}_init(void)
+{
+{{#with basic}}
+{{#if (not default_polynomial)}}
+  hal_crc_config_t crc_config;
+
+{{/if}}
+{{/with}}
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+  if (HAL_CRC_Init(&h{{uppercase @root.current_resource}}, HAL_CRC) != HAL_OK)
+  {
+    return NULL;
+  }
+{{#with basic}}
+{{#if (not default_polynomial)}}
+{{#with crc_polynomial}}
+  crc_config.polynomial_coefficient   = 0x{{uppercase (dec2hex value)}};
+  crc_config.polynomial_size          = HAL_CRC_POLY_SIZE_{{size}}B;
+{{/with}}
+  crc_config.crc_init_value           = 0x{{#if crc_init_value}}{{uppercase (dec2hex crc_init_value)}}{{else}}0{{/if}};
+  crc_config.output_data_reverse_mode = HAL_CRC_OUTDATA_REVERSE_{{#if output_data_reverse_mode}}{{output_data_reverse_mode}}{{else}}NONE{{/if}};
+  crc_config.input_data_reverse_mode  = HAL_CRC_INDATA_REVERSE_{{#if input_data_reverse_mode}}{{input_data_reverse_mode}}{{else}}NONE{{/if}};
+  HAL_CRC_SetConfig(&h{{uppercase @root.current_resource}}, &crc_config);
+{{else}}
+  /*
+    Default values are used for the polynomial and init values.
+    Equivalent HAL function has been commented:
+
+    hal_crc_config_t crc_config;
+    crc_config.polynomial_coefficient   = 0x04C11DB7;
+    crc_config.polynomial_size          = HAL_CRC_POLY_SIZE_32B;
+    crc_config.crc_init_value           = 0xFFFFFFFF;
+    crc_config.output_data_reverse_mode = HAL_CRC_OUTDATA_REVERSE_NONE;
+    crc_config.input_data_reverse_mode  = HAL_CRC_INDATA_REVERSE_NONE;
+    HAL_CRC_SetConfig(&h{{uppercase @root.current_resource}}, &crc_config);
+
+  */
+{{/if}}
+{{/with}}
+
+  return &h{{uppercase @root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+  (void)HAL_CRC_DeInit(&h{{uppercase @root.current_resource}});
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+}
+
+{{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+CRC_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource='CRC'~}}
+
+{{#with basic}}
+{{#if (not default_polynomial)}}
+{{#with crc_polynomial}}
+  /* CRC polynomial: Reset value is 0x04C11DB7 (32-bit polynomial) */
+  LL_CRC_SetPolynomialCoef(CRC, {{value}});
+
+  /* CRC polynomial size: reset value is 32-bit */
+  LL_CRC_SetPolynomialSize(CRC, LL_CRC_POLY_SIZE_{{size}}B);
+{{/with}}
+
+  /* CRC init value: Reset value is 0xFFFFFFFF */
+  LL_CRC_SetInitialData(CRC, 0x{{#if crc_init_value}}{{uppercase (dec2hex crc_init_value)}}{{else}}FFFFFFFF{{/if}});
+
+  /* Invert Input & Output Data: Reset values are LL_CRC_INDATA_REVERSE_NONE and LL_CRC_OUTDATA_REVERSE_NONE */
+  LL_CRC_SetDataReverseMode(CRC, LL_CRC_INDATA_REVERSE_{{#if input_data_reverse_mode}}{{input_data_reverse_mode}}{{else}}NONE{{/if}}, LL_CRC_OUTDATA_REVERSE_{{#if output_data_reverse_mode}}{{output_data_reverse_mode}}{{else}}NONE{{/if}});
+{{else}}
+  /*
+    Default values are used for the polynomial and init values.
+    Equivalent LL functions have been commented:
+
+    - CRC polynomial: Reset value is 0x04C11DB7 (32-bit polynomial)
+    LL_CRC_SetPolynomialCoef(CRC, 0x04C11DB7);
+    LL_CRC_SetPolynomialSize(CRC, LL_CRC_POLY_SIZE_32B);
+
+    - CRC init value: Reset value is 0xFFFFFFFF
+    LL_CRC_SetInitialData(CRC, 0xFFFFFFFF);
+
+    - Invert Input & Output Data: Reset values are LL_CRC_INDATA_REVERSE_NONE and LL_CRC_OUTDATA_REVERSE_NONE
+    LL_CRC_SetDataReverseMode(CRC, LL_CRC_INDATA_REVERSE_NONE, LL_CRC_OUTDATA_REVERSE_NONE);
+
+  */
+{{/if}}
+{{/with}}
+  return CRC;
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource='CRC'~}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource='CRC'~}}
+}
+
+{{/if}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{#if (eq @root.hal_handle_exist 0)}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_crc_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{uppercase @root.current_resource}};
+}
+
+{{assign 'hal_handle_exist' 1~}}
+{{/if}}
+{{/if}}
+{{#with security_privilege}}
+
+{{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+{{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+/******************************************************************************/
+/*                      Privileged attribute management                       */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_privilege(void)
+{{else}}
+/******************************************************************************/
+/*                Security and privileged attributes management               */
+/******************************************************************************/
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+{{/if}}
+{
+{{> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}
+
+  return SYSTEM_OK;
+}
+{{/with}}
+{{/with}}
+{{/each}}
+{{/helper_common_beautifier}}

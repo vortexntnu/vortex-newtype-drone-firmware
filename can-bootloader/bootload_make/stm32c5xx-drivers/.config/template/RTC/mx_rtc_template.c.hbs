@@ -1,0 +1,629 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_rtc_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'RTC' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "RTC template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{#> RCC fct='include_rcc'~}}
+{{/RCC}}
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'RTC_cxt' config~}}
+  {{~log "RTC template RTC_cxt:" (toJSON @root.RTC_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.RTC_cxt.info.layer~}}
+  {{~log "RTC template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+  {{/if}}
+{{/each}}
+
+{{assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'RTC_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'name' @root.RTC_cxt.name~}}
+  {{~assign 'current_layer' @root.RTC_cxt.info.layer~}}
+{{! Initialize the context for LL code optimization ~}}
+{{!-- {{assign 'lut_table'   (helper_RTC_get_lut_table 'V1')~}} --}}
+    {{~helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/** Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer            **/
+/******************************************************************************/
+  {{#with @root.RTC_cxt}}
+    {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+    {{#if (eq @root.current_layer 'HAL')}}
+      {{~assign 'found_rtc_out2'  'false'}}
+      {{~assign 'found_rtc_ref_in' 'false'}}
+system_status_t {{@root.fct_name}}_init(void)
+{
+      {{#with basic}}
+  {{#> PWR_HAL fct='generate_write_protection_disable'}}
+  {{/PWR_HAL}}
+
+  /* Clock configuration */
+  {{#> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='RTC'~}}
+  {{/RCC}}
+  {{#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource sw_resource='RTC'~}}
+  {{/RCC}}
+
+  /* Disable write protection */
+  if (HAL_RTC_DisableWriteProtection() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  /* Enter init mode */
+  if (HAL_RTC_EnterInitMode() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  /* Configure mode and RTC prescalers */
+  hal_rtc_config_t rtc_config;
+  rtc_config.mode = HAL_RTC_MODE_{{mode}};
+  rtc_config.asynch_prediv = {{asynchronous_predivider_value}} - 1;
+        {{#if (eq mode 'BCD')}}
+  rtc_config.synch_prediv = {{synchronous_predivider_value}} - 1;
+        {{else}}
+  rtc_config.bcd_update = HAL_RTC_BCD_UPDATE_{{bcd_seconds_increment}}BITS;
+        {{/if}}
+  if (HAL_RTC_SetConfig(&rtc_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+        {{#if low_power}}
+  if (HAL_RTC_EnableUltraLowPowerMode() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+        {{/if}}
+      {{/with}}
+      {{#if additional.calendar.enable_calendar}}
+        {{#if (not (eq basic.mode 'BINARY'))}}
+          {{#with additional.calendar}}
+  /* Configure calendar */
+  hal_rtc_calendar_config_t calendar_config;
+  calendar_config.hour_format = HAL_RTC_CALENDAR_HOUR_FORMAT_{{hour_format}};
+  calendar_config.bypass_shadow_register = HAL_RTC_CALENDAR_SHADOW_REG_{{shadow_register}};
+  if (HAL_RTC_CALENDAR_SetConfig(&calendar_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  hal_rtc_date_t calendar_date;
+  calendar_date.wday = HAL_RTC_WEEKDAY_{{calendar_date.week_day}};
+  calendar_date.mon = HAL_RTC_MONTH_{{calendar_date.month}};
+  calendar_date.mday = {{calendar_date.date}}U;
+  calendar_date.year = {{calendar_date.year}}U;
+
+  hal_rtc_time_t calendar_time;
+{{#if calendar_time.am_pm}}
+  calendar_time.am_pm = HAL_RTC_TIME_FORMAT_{{calendar_time.am_pm}};
+{{else}}
+  calendar_time.am_pm = HAL_RTC_TIME_FORMAT_AM_24H;
+{{/if}}
+{{#if (eq hour_format 'AMPM')}}
+  calendar_time.hour = {{calendar_time.hours_ampm}}U;
+{{else}}
+  calendar_time.hour = {{calendar_time.hours}}U;
+{{/if}}
+  calendar_time.min = {{calendar_time.minutes}}U;
+  calendar_time.sec = {{calendar_time.seconds}}U;
+  if (HAL_RTC_CALENDAR_SetDateTime(&calendar_date, &calendar_time) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/with}}
+          {{#if (not (eq basic.mode 'MIX'))}}
+            {{#if additional.calendar.reference_clock_detection}}
+  if (HAL_RTC_CALENDAR_EnableReferenceClock() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}} {{! additional.calendar.reference_clock_detection}}
+          {{/if}} {{! basic.mode 'MIX'}}
+        {{/if}} {{! basic.mode 'BINARY'}}
+      {{/if}} {{! additional.calendar.enable_calendar}}
+      {{#if basic}}
+  /* Exit init mode */
+  if (HAL_RTC_ExitInitMode() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+      {{/if}}
+      {{#if additional.alarm_a.enable_alarm_a}}
+
+  /* Configure alarm A */
+  hal_rtc_alarm_config_t alarm_a_config;
+        {{#if (eq basic.mode 'BINARY')}}
+  alarm_a_config.subsec_auto_reload = HAL_RTC_ALARM_SUBSECONDS_AUTO_RELOAD_{{#if additional.alarm_a.binary_auto_reload}}ENABLE{{else}}DISABLE{{/if}};
+        {{else}}
+  alarm_a_config.subsec_auto_reload = HAL_RTC_ALARM_SUBSECONDS_AUTO_RELOAD_DISABLE;
+        {{/if}}
+  alarm_a_config.auto_clear = HAL_ALARM_AUTO_CLEAR_{{#if additional.alarm_a.flag_auto_clear}}ENABLE{{else}}DISABLE{{/if}};
+  if (HAL_RTC_ALARM_SetConfig(HAL_RTC_ALARM_A, &alarm_a_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+        {{#if (eq basic.mode 'BINARY')}}
+          {{#with additional.alarm_a}}
+  if (HAL_RTC_ALARM_SetBinaryTime(HAL_RTC_ALARM_A, {{free_running_32_bits_value}}U) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  if (HAL_RTC_ALARM_SetBinarySubSecondMask(HAL_RTC_ALARM_A, {{free_running_32_bits_mask}}U) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/with}} {{! additional.alarm_a}}
+        {{else}} {{! basic.mode 'BINARY'}}
+          {{#with additional}}
+            {{#with alarm_a}}
+  hal_rtc_alarm_date_time_t alarm_a_date_time;
+  alarm_a_date_time.mday_wday_selection = HAL_RTC_ALARM_DAY_TYPE_SEL_{{alarm_date_week_day_sel}};
+              {{#if (eq alarm_date_week_day_sel 'WEEKDAY')}}
+  alarm_a_date_time.wday_mday.wday = HAL_RTC_WEEKDAY_{{alarm_week_day}};
+              {{else}}
+  alarm_a_date_time.wday_mday.mday = {{alarm_date}}U;
+              {{/if}}
+            {{/with}}
+            {{#if (eq calendar.hour_format 'AMPM')}}
+  alarm_a_date_time.time.am_pm = HAL_RTC_TIME_FORMAT_{{alarm_a.am_pm}};
+  alarm_a_date_time.time.hour = {{alarm_a.hours_ampm}}U;
+            {{else}}
+  alarm_a_date_time.time.am_pm = HAL_RTC_TIME_FORMAT_AM_24H;
+  alarm_a_date_time.time.hour = {{alarm_a.hours}}U;
+            {{/if}}
+            {{#with alarm_a}}
+  alarm_a_date_time.time.min = {{minutes}}U;
+  alarm_a_date_time.time.sec = {{seconds}}U;
+              {{#if (and (eq mask_date_week_day true)(eq mask_hours true)(eq mask_minutes true)(eq mask_seconds true))}}
+  alarm_a_date_time.mask = HAL_RTC_ALARM_MASK_ALL;
+              {{else}}
+  alarm_a_date_time.mask = HAL_RTC_ALARM_MASK_NONE;
+                {{#if mask_date_week_day}}
+  alarm_a_date_time.mask |= HAL_RTC_ALARM_MASK_DAY;
+                {{/if}}
+                {{#if mask_hours}}
+  alarm_a_date_time.mask |= HAL_RTC_ALARM_MASK_HOURS;
+                {{/if}}
+                {{#if mask_minutes}}
+  alarm_a_date_time.mask |= HAL_RTC_ALARM_MASK_MINUTES;
+                {{/if}}
+                {{#if mask_seconds}}
+  alarm_a_date_time.mask |= HAL_RTC_ALARM_MASK_SECONDS;
+                {{/if}}
+              {{/if}} {{! basic.mode 'BINARY'}}
+            {{/with}} {{! alarm_a }}
+          {{/with}}{{! additional }}
+          {{#if (eq basic.mode 'BCD')}}
+  alarm_a_date_time.time.subsec = {{additional.alarm_a.sub_seconds}}U;
+  alarm_a_date_time.subsec_mask = {{additional.alarm_a.mask_sub_seconds}}U;
+          {{else}}
+  alarm_a_date_time.time.subsec = {{additional.alarm_a.free_running_32_bits_value}}U;
+  alarm_a_date_time.subsec_mask = {{additional.alarm_a.free_running_32_bits_mask}}U;
+          {{/if}}
+          {{#with additional.alarm_a}}
+  if (HAL_RTC_ALARM_SetDateTime(HAL_RTC_ALARM_A, &alarm_a_date_time) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/with}}
+        {{/if}}
+      {{/if}}  {{! additional.alarm_a.enable_alarm_a'}}
+      {{#if additional.alarm_b.enable_alarm_b}}
+
+  /* Configure alarm B */
+  hal_rtc_alarm_config_t alarm_b_config;
+        {{#if (eq basic.mode 'BINARY')}}
+  alarm_b_config.subsec_auto_reload = HAL_RTC_ALARM_SUBSECONDS_AUTO_RELOAD_{{#if additional.alarm_b.binary_auto_reload}}ENABLE{{else}}DISABLE{{/if}};
+        {{else}}
+  alarm_b_config.subsec_auto_reload = HAL_RTC_ALARM_SUBSECONDS_AUTO_RELOAD_DISABLE;
+        {{/if}}
+  alarm_b_config.auto_clear = HAL_ALARM_AUTO_CLEAR_{{#if additional.alarm_b.flag_auto_clear}}ENABLE{{else}}DISABLE{{/if}};
+  if (HAL_RTC_ALARM_SetConfig(HAL_RTC_ALARM_B, &alarm_b_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+        {{#if (eq basic.mode 'BINARY')}}
+          {{#with additional.alarm_b}}
+  if (HAL_RTC_ALARM_SetBinaryTime(HAL_RTC_ALARM_B, {{free_running_32_bits_value}}U) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  if (HAL_RTC_ALARM_SetBinarySubSecondMask(HAL_RTC_ALARM_B, {{free_running_32_bits_mask}}U) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/with}} {{! additional.alarm_b}}
+        {{else}} {{! basic.mode 'BINARY'}}
+          {{#with additional}}
+            {{#with alarm_b}}
+  hal_rtc_alarm_date_time_t alarm_b_date_time;
+  alarm_b_date_time.mday_wday_selection = HAL_RTC_ALARM_DAY_TYPE_SEL_{{alarm_date_week_day_sel}};
+              {{#if (eq alarm_date_week_day_sel 'WEEKDAY')}}
+  alarm_b_date_time.wday_mday.wday = HAL_RTC_WEEKDAY_{{alarm_week_day}};
+              {{else}}
+  alarm_b_date_time.wday_mday.mday = {{alarm_date}}U;
+              {{/if}}
+            {{/with}}
+            {{#if (eq calendar.hour_format 'AMPM')}}
+  alarm_b_date_time.time.am_pm = HAL_RTC_TIME_FORMAT_{{alarm_b.am_pm}};
+  alarm_b_date_time.time.hour = {{alarm_b.hours_ampm}}U;
+            {{else}}
+  alarm_b_date_time.time.am_pm = HAL_RTC_TIME_FORMAT_AM_24H;
+  alarm_b_date_time.time.hour = {{alarm_b.hours}}U;
+            {{/if}}
+            {{#with alarm_b}}
+  alarm_b_date_time.time.min = {{minutes}}U;
+  alarm_b_date_time.time.sec = {{seconds}}U;
+              {{#if (and (eq mask_date_week_day true)(eq mask_hours true)(eq mask_minutes true)(eq mask_seconds true))}}
+  alarm_b_date_time.mask = HAL_RTC_ALARM_MASK_ALL;
+              {{else}}
+  alarm_b_date_time.mask = HAL_RTC_ALARM_MASK_NONE;
+                {{#if mask_date_week_day}}
+  alarm_b_date_time.mask |= HAL_RTC_ALARM_MASK_DAY;
+                {{/if}}
+                {{#if mask_hours}}
+  alarm_b_date_time.mask |= HAL_RTC_ALARM_MASK_HOURS;
+                {{/if}}
+                {{#if mask_minutes}}
+  alarm_b_date_time.mask |= HAL_RTC_ALARM_MASK_MINUTES;
+                {{/if}}
+                {{#if mask_seconds}}
+  alarm_b_date_time.mask |= HAL_RTC_ALARM_MASK_SECONDS;
+                {{/if}}
+              {{/if}} {{! basic.mode 'BINARY'}}
+            {{/with}} {{! alarm_b }}
+          {{/with}}{{! additional }}
+          {{#if (eq basic.mode 'BCD')}}
+  alarm_b_date_time.time.subsec = {{additional.alarm_b.sub_seconds}}U;
+  alarm_b_date_time.subsec_mask = {{additional.alarm_b.mask_sub_seconds}}U;
+          {{else}}
+  alarm_b_date_time.time.subsec = {{additional.alarm_b.free_running_32_bits_value}}U;
+  alarm_b_date_time.subsec_mask = {{additional.alarm_b.free_running_32_bits_mask}}U;
+          {{/if}}
+          {{#with additional.alarm_b}}
+  if (HAL_RTC_ALARM_SetDateTime(HAL_RTC_ALARM_B, &alarm_b_date_time) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/with}}
+        {{/if}}
+      {{/if}}
+      {{#with additional}}
+        {{#with wake_up}}
+          {{#if enable_wake_up}}
+
+  /* Configure wake-up timer */
+  hal_rtc_wakeup_config_t wakeup_config;
+  wakeup_config.clock = HAL_RTC_WAKEUP_TIMER_CLOCK_{{wake_up_divider}};
+  if (HAL_RTC_WAKEUP_SetConfig(&wakeup_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  uint32_t wakeup_reload_time = {{#if (eq wake_up_divider 'BCD_UPDATE_ADD_1BIT')}}{{wake_up_counter}} - 65536{{else}}{{wake_up_counter}}U{{/if}};
+              {{#if auto_clear}}
+  uint32_t wakeup_clear_time = {{#if (eq wake_up_divider 'BCD_UPDATE_ADD_1BIT')}}{{clear_flag_counter}} - 65536{{else}}{{clear_flag_counter}}U{{/if}};
+              {{else}}
+  uint32_t wakeup_clear_time = 0U;
+              {{/if}}
+  if (HAL_RTC_WAKEUP_SetAutoReloadAndAutoClear(wakeup_reload_time, wakeup_clear_time) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/if}} {{! enable_wake_up}}
+        {{/with}} {{! wake_up}}
+        {{#with timestamp}}
+          {{#if enable_timestamp}}
+  /* Configure timestamp */
+  hal_rtc_timestamp_config_t timestamp_config;
+  timestamp_config.input_edge_polarity = HAL_RTC_TIMESTAMP_EDGE_{{timestamp_pin_edge}};
+  if (HAL_RTC_TIMESTAMP_SetConfig(&timestamp_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{#if pin_source}}
+  if (HAL_RTC_TIMESTAMP_EnablePinSource() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}}
+            {{#if tamper_source_void}}
+  if (HAL_RTC_TIMESTAMP_EnableTamperSource() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}}
+            {{#if (or (eq tamper_source 'TAMP1')(eq tamper_source 'TAMP2')(eq tamper_source 'TAMP3')(eq tamper_source 'TAMP4')(eq tamper_source 'TAMP5')(eq tamper_source 'TAMP6')(eq tamper_source 'TAMP7')(eq tamper_source 'TAMP8'))}}
+  if (HAL_RTC_TIMESTAMP_EnableTamperSource(HAL_RTC_TIMESTAMP_{{tamper_source}}) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}}
+            {{#if internal_tamper_source}}
+  if (HAL_RTC_TIMESTAMP_EnableITamperSource() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}}
+            {{#if internal_timestamp}}
+  if (HAL_RTC_TIMESTAMP_EnableInternalSource() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}} {{! internal_timestamp}}
+          {{/if}} {{! enable_timestamp}}
+        {{/with}} {{! timestamp}}
+        {{#with calibration}}
+          {{#if enable_calibration}}
+  /* Configure smooth calibration */
+  if (HAL_RTC_EnableCalibration(HAL_RTC_CALIBRATION_PERIOD_{{calibration_period}}, HAL_RTC_CALIBRATION_PULSE_{{#if pulse}}INSERTED{{else}}NOT_INSERTED{{/if}}, {{minus_value}}U) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/if}} {{! enable_calibration}}
+        {{/with}} {{! calibration}}
+        {{#with outputs}}
+          {{#if (or (eq calibration_frequency 'SYNCHRONOUS')(eq calibration_frequency 'ASYNCHRONOUS_DIV64'))}}
+  /* Configure calibration output */
+  hal_rtc_output_calib_config_t calibration_config;
+  calibration_config.frequency = HAL_RTC_OUTPUT_CALIBRATION_{{calibration_frequency}};
+  if (HAL_RTC_OUTPUT_SetConfigCalib(&calibration_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{/if}}
+          {{#with output1}}
+            {{#if (and (not (eq signal 'NONE'))(not (eq signal 'OUT1_CALIB')))}}
+  /* Configure output 1 */
+  hal_rtc_output_tampalarm_config_t output_tampalarm_config;
+  output_tampalarm_config.polarity = HAL_RTC_OUTPUT_TAMPALARM_POLARITY_{{polarity}};
+  output_tampalarm_config.type = HAL_RTC_OUTPUT_TAMPALARM_TYPE_{{type}};
+  output_tampalarm_config.pullup = HAL_RTC_OUTPUT_TAMPALARM_PULLUP_{{#if pull_up}}ENABLE{{else}}DISABLE{{/if}};
+  if (HAL_RTC_OUTPUT_SetConfigTampalarm(&output_tampalarm_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}}
+          {{/with}} {{! output1}}
+          {{#with output2}}
+            {{#if (and (not (eq signal 'NONE'))(not (eq signal 'OUT2_CALIB')))}}
+  /* Configure output 2 */
+  hal_rtc_output_tampalarm_config_t output_tampalarm_config;
+  output_tampalarm_config.polarity = HAL_RTC_OUTPUT_TAMPALARM_POLARITY_{{polarity}};
+  output_tampalarm_config.type = HAL_RTC_OUTPUT_TAMPALARM_TYPE_{{type}};
+  output_tampalarm_config.pullup = HAL_RTC_OUTPUT_TAMPALARM_PULLUP_{{#if pull_up}}ENABLE{{else}}DISABLE{{/if}};;
+  if (HAL_RTC_OUTPUT_SetConfigTampalarm(&output_tampalarm_config) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+            {{/if}}
+          {{/with}} {{! output2}}
+          {{#if (and (not (eq output1.signal 'NONE'))(eq output2.signal 'NONE'))}}
+  if (HAL_RTC_OUTPUT_Enable(HAL_RTC_OUTPUT_{{output1.signal}}) != HAL_OK)
+          {{/if}}
+          {{#if (and (eq output1.signal 'NONE')(not (eq output2.signal 'NONE')))}}
+  if (HAL_RTC_OUTPUT_Enable(HAL_RTC_OUTPUT_{{output2.signal}}) != HAL_OK)
+          {{/if}}
+          {{#if (and (not (eq output1.signal 'NONE'))(not (eq output2.signal 'NONE')))}}
+  if (HAL_RTC_OUTPUT_Enable(HAL_RTC_OUTPUT_{{output1.signal}}_{{output2.signal}}) != HAL_OK)
+          {{/if}}
+          {{#if (or (not (eq output1.signal 'NONE'))(not (eq output2.signal 'NONE')))}}
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+          {{/if}} {{! enable_wake_up}}
+        {{/with}} {{! outputs}}
+      {{/with}} {{! additional}}
+      {{#if basic}}
+  /* Enable write protection */
+  if (HAL_RTC_EnableWriteProtection() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+      {{/if}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='SYSTEM_POWER_ERROR'}}
+      {{#with system}}
+        {{#with nvic}}
+          {{#if enable_interruption}}
+            {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context irq_line_priority.needs @root.current_resource irq_handler_generation)}}
+            {{#> CORTEX fct='init' layer=@root.current_layer needs=irq_line_priority.needs}}
+            {{/CORTEX}}
+          {{/if}}
+        {{/with}}
+      {{/with}}
+
+  return SYSTEM_OK;
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+      {{#with system}}
+        {{#with nvic}}
+          {{#if enable_interruption}}
+            {{#> CORTEX fct='deinit' layer=@root.current_layer}}
+            {{/CORTEX}}
+          {{/if}}
+        {{/with}}
+      {{/with}}
+}
+
+{{#with security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+   * Full access security path:
+   * Configure RTC resources security/privilege attributes
+   */
+
+  {{#> PWR_HAL fct='generate_write_protection_disable'}}
+{{/PWR_HAL}}
+
+ {{#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+ {{/RCC}}
+
+  /* Disable write protection */
+  if (HAL_RTC_DisableWriteProtection() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+{{#with security}}
+{{assign "access_levels_all_states" (helper_rtc_attribute_all_states access_levels)}}
+{{#unless  @root.access_levels_all_states.allNegative}}
+{{#if @root.access_levels_all_states.allPositive}}
+
+  /* Configure security attributes for RTC peripheral */
+  if (HAL_RTC_SetSecAttr(HAL_RTC_SEC_ITEM_ALL, HAL_RTC_SEC) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+{{else}}
+{{assign "security_items" (helper_rtc_get_attribute_items @root.current_layer 'SEC' access_levels)}}
+{{#unless (eq security_items '')}}
+
+  /* Configure security attributes for RTC peripheral */
+  if (HAL_RTC_SetSecAttr({{@root.security_items}}, HAL_RTC_SEC) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+{{else}}
+{{log "No specific security attributes require configuration for this RTC instance."}}
+{{/unless}}
+{{/if}}
+{{else}}
+{{log "No security attributes (all) require configuration for this RTC instance."}}
+{{/unless}}
+{{/with}}
+
+{{#with privilege}}
+{{assign "access_levels_all_states" (helper_rtc_attribute_all_states access_levels)}}
+{{#unless  @root.access_levels_all_states.allNegative}}
+{{#if @root.access_levels_all_states.allPositive}}
+
+  /* Configure privilege attributes for RTC peripheral */
+  if (HAL_RTC_SetPrivAttr(HAL_RTC_PRIV_ITEM_ALL, HAL_RTC_PRIV) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+{{else}}
+{{assign "privilege_items" (helper_rtc_get_attribute_items @root.current_layer 'PRIV' access_levels)}}
+{{#unless (eq privilege_items '')}}
+
+  /* Configure privilege attributes for RTC peripheral */
+  if (HAL_RTC_SetPrivAttr({{@root.privilege_items}}, HAL_RTC_PRIV) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+{{else}}
+{{log "No specific privilege attributes require configuration for this RTC instance."}}
+{{/unless}}
+{{/if}}
+{{else}}
+{{log "No privilege attributes (all) require configuration for this RTC instance."}}
+{{/unless}}
+{{/with}}
+
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+
+{{#if illegal_access}}
+  /* Enable HSEM IAC interrupt */
+  HAL_RIF_IAC_EnableIT(HAL_RIF_IAC_RTC);
+{{/if}}
+
+  /* Enable write protection */
+  if (HAL_RTC_EnableWriteProtection() != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  return SYSTEM_OK;
+}
+{{/with}}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+{{else}} {{! @root.current_layer 'HAL'}}
+{{#> RTC_LL fct='init'}}
+
+{{/RTC_LL}}
+{{#> RTC_LL fct='deinit'}}
+
+{{/RTC_LL}}
+{{#> RTC_LL fct='config_security_privilege'}}
+
+{{/RTC_LL}}
+{{/if}} {{! @root.current_layer 'HAL'}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='RTC'}}
+  {{/with}}
+{{/each}}
+{{/helper_common_beautifier}}

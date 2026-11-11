@@ -1,0 +1,103 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_cortex_systick_template.h.hbs
+  * @brief          : Header for mx_cortex_systick_template.c.cbs file.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'CORTEX_SYSTICK' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "CORTEX_SYSTICK template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.h
+  * @brief          : Header for mx_{{lowercase @root.current_resource}}.c file.
+{{> LICENSE}}
+
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef MX_{{uppercase @root.current_resource}}_H
+#define MX_{{uppercase @root.current_resource}}_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Includes ------------------------------------------------------------------*/
+{{~assign 'only_ll' true~}}
+{{#each @root.instances~}}
+  {{~assign 'cortex_systick_cxt' config~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_systick_cxt.info.layer~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+    {{~assign 'only_ll' false}}
+  {{/if}}
+{{/each}}
+{{#if @root.only_ll}}
+
+#include "stm32_ll.h"
+{{else}}
+
+#include "stm32_hal.h"
+{{/if}}
+#include "mx_def.h"
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+{{#each @root.instances}}
+  {{~assign 'cortex_systick_cxt' config~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_systick_cxt.info.layer~}}
+  {{#if (eq @root.current_layer 'LL')}}
+#define USE_{{uppercase @root.current_resource}}
+
+  {{/if}}
+{{/each}}
+/* Exported macros -----------------------------------------------------------*/
+/* Exported variables --------------------------------------------------------*/
+/* Exported functions ------------------------------------------------------- */
+{{helper_common_initialize_index~}}
+{{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{#each @root.instances}}
+  {{~assign 'cortex_systick_cxt' config~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_systick_cxt.info.layer~}}
+    {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+/******************************************************************************/
+/* Exported functions for {{uppercase @root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+  {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+  {{~assign 'current_index' (helper_common_inc_index @root.current_resource)}}
+/**
+  * @brief mx_cortex_systick init function
+  * This function configures the hardware resources used in this example
+  * @retval pointer to handle or NULL in case of failure
+  */
+system_status_t mx_cortex_systick_init(void);
+
+/**
+  * @brief  De-initialize {{lowercase @root.current_resource}} instance and return it.
+  */
+void mx_cortex_systick_deinit(void);
+
+{{/each}}
+
+{{> CORTEX fct='generate_handler' type='prototype' component='CORTEX_SYSTICK'}}
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* MX_{{uppercase @root.current_resource}}_H */
+{{/helper_common_beautifier}}

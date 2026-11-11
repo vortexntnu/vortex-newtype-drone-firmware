@@ -1,0 +1,1659 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_tim_template.c.hbs
+  * @brief          : Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'TIM' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "TIM template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{!
+    Generation of handle for each function defined in HAL layer
+    - save a variable to indicate if handle has been already created (only 1 handle by function)
+~}}
+{{#each @root.instances~}}
+  {{~assign 'tim_cxt' config~}}
+  {{~log "TIM template tim_cxt:" (toJSON @root.tim_cxt)~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.tim_cxt.info.layer~}}
+  {{~log "TIM template current_resource:" @root.current_resource~}}
+  {{#if (eq @root.current_layer 'HAL')}}
+static hal_tim_handle_t h{{@root.current_resource}};
+  {{/if}}
+{{/each}}
+{{#if (eq @root.current_layer 'HAL')}}
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.dma_resource strategy=@root.strategy}}
+{{else}}
+{{> DMA_LL fct='get_dma_lli_variables' resource=@root.dma_resource strategy=@root.strategy}}
+{{/if}}
+
+/* Exported function definition ----------------------------------------------*/
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{assign 'nvic_context' 'undefined'~}}
+{{assign 'nvic_generate_handler' true~}}
+{{#each @root.instances}}
+  {{~assign 'tim_cxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'name' @root.tim_cxt.name~}}
+  {{~assign 'current_layer' @root.tim_cxt.info.layer~}}
+  {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{~assign "periphHWDescription" (@root.peripheralsResourceManagerAPI.getHardwareIpDescription @root.current_resource)~}}
+  {{~log "TIM template instance:" (toJSON this)~}}
+{{! Initialize the context for LL code optimization ~}}
+{{assign 'lut_table' (helper_tim_get_lut_table @root.periphHWDescription.peripheralVersionNum)~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for {{@root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{assign 'IsEnableDithering' false~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#with @root.tim_cxt}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_tim_handle_t *{{@root.fct_name}}_init(void)
+{
+  if (HAL_TIM_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+{{#with basic}}
+{{#with time_base}}
+{{#unless (eq frequency undefined)}}
+  /* Timer configuration to reach the output frequency at {{frequency}} */
+{{else}}
+  /* Timer configuration with external clock */
+{{/unless}}
+  hal_tim_config_t config;
+  config.prescaler              = {{clock_source_configuration.prescaler}};
+  config.counter_mode           = HAL_TIM_COUNTER_{{counter.counter_mode}};
+  {{assign 'period_value_hex' (uppercase (dec2hex counter.period))~}}
+  config.period                 = 0x{{#if (eq counter.period 0)}}00000000{{else}}{{@root.period_value_hex}}{{/if}};
+{{#if counter.repetition_counter}}
+  config.repetition_counter     = {{counter.repetition_counter}};
+{{else}}
+  config.repetition_counter     = 0;
+{{/if}}
+{{#with clock_source_configuration}}
+{{#if (eq clock_source 'ENCODER_MODE')}}
+  config.clock_sel.clock_source = HAL_TIM_CLK_{{encoder_mode}};
+{{else}}
+  config.clock_sel.clock_source = HAL_TIM_CLK_{{clock_source}};
+{{/if}}
+{{#if (eq clock_source 'EXTERNAL_MODE1')}}
+{{#if (eq trigger_input 'ITR')}}
+  config.clock_sel.trigger      = HAL_TIM_TRIG_{{uppercase internal_trigger.ip_signal}};
+{{else}}
+  config.clock_sel.trigger      = HAL_TIM_TRIG_{{uppercase trigger_input}};
+{{/if}}
+{{/if}}
+  {{assign 'found_SetConfig' true~}}
+  if (HAL_TIM_SetConfig(&h{{@root.current_resource}}, &config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if external_trigger}}
+  /* Configure the external trigger input */
+  hal_tim_ext_trig_config_t ext_trig;
+  ext_trig.source         = HAL_TIM_EXT_TRIG_{{@root.current_resource}}_{{helper_tim_convert_etr external_trigger.source}};
+  ext_trig.polarity       = HAL_TIM_EXT_TRIG_{{clock_polarity}};
+  ext_trig.filter         = HAL_TIM_{{clock_filter}};
+  ext_trig.prescaler      = HAL_TIM_EXT_TRIG_DIV{{clock_prescaler}};
+{{#if clock_sync_prescaler}}
+  ext_trig.sync_prescaler = HAL_TIM_EXT_TRIG_SYNC_DIV{{clock_sync_prescaler}};
+{{/if}}
+  {{assign 'found_SetExternalTriggerInput_Clock' true~}}
+  HAL_TIM_SetExternalTriggerInput(&h{{@root.current_resource}}, &ext_trig);
+
+{{/if}}{{!external_trigger~}}
+{{/with}}{{!clock_source_configuration~}}
+{{#with counter}}
+{{#if one_pulse_mode}}
+  {{assign 'found_SetOnePulseMode' true~}}
+  if (HAL_TIM_EnableOnePulseMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!one_pulse_mode~}}
+{{#if dithering}}
+  {{assign 'IsEnableDithering' true~}}
+  {{assign 'found_EnableDithering' true~}}
+  if (HAL_TIM_EnableDithering(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+  if (HAL_TIM_SetDitheredPeriod(&h{{@root.current_resource}}, 0x{{#if (eq period 0)}}00000000{{else}}{{@root.period_value_hex}}{{/if}}, HAL_TIM_DITHERING_{{period_dithering_pattern}}_16) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!dithering~}}
+{{/with}}{{!counter~}}
+{{/with}}{{!time_base~}}
+{{#with sampling_clock}}
+  /* Sampling Clock */
+{{#if clock_division}}
+  if (HAL_TIM_SetDTSPrescaler(&h{{@root.current_resource}}, HAL_TIM_DTS_DIV{{clock_division}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}{{!clock_division~}}
+{{#if clock_division2}}
+  if (HAL_TIM_SetDTS2Prescaler(&h{{@root.current_resource}}, HAL_TIM_DTS2_DIV{{clock_division2}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}{{!clock_division2}}
+{{/with}}{{!sampling_clock~}}
+{{#if autoreload_preload}}
+  {{assign 'found_EnableAutoReloadPreload' true~}}
+  if (HAL_TIM_EnableAutoReloadPreload(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!autoreload_preload~}}
+{{/with}}{{!basic~}}
+{{assign 'found_output_channel' false~}}
+{{assign 'found_input_channel' false~}}
+{{assign 'found_output_compare_unit' false~}}
+{{assign 'found_input_compare_unit' false~}}
+{{#each channels}}
+{{#if (and (and (eq channel_direction 'Output') (or output_configuration.ocx_channel_configuration.use_channel output_configuration.ocxn_channel_configuration.use_complementary_channel))(not @root.found_output_channel))}}
+  {{assign 'found_output_channel' true~}}
+  hal_tim_oc_channel_config_t oc_config;
+
+{{/if}}
+{{#if (and (eq channel_direction 'Input')(not @root.found_input_channel))}}
+  {{assign 'found_input_channel' true~}}
+  hal_tim_ic_channel_config_t ic_config;
+
+{{/if}}
+{{#with output_configuration}}
+{{#with ocx_channel_configuration}}
+{{#if use_channel}}
+  oc_config.polarity       = HAL_TIM_OC_{{polarity}};
+{{#if idle_state}}
+  oc_config.idle_state     = HAL_TIM_OC_IDLE_STATE_{{idle_state}};
+{{/if}}
+{{#if output_override}}
+  oc_config.override_state = HAL_TIM_OC_OVERRIDE_{{output_override}};
+{{/if}}
+{{#if break_mode}}
+  oc_config.break_mode     = HAL_TIM_OC_BREAKMODE_{{break_mode}};
+{{/if}}
+  {{assign 'found_OC_SetConfigChannel' true~}}
+  if (HAL_TIM_OC_SetConfigChannel(&h{{@root.current_resource}}, HAL_TIM_CHANNEL_{{helper_tim_convert_channel ../../_foreignKey}}, &oc_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}{{!use_channel~}}
+{{/with}}{{!ocx_channel_configuration~}}
+{{#with ocxn_channel_configuration}}
+{{#if use_complementary_channel}}
+
+  oc_config.polarity       = HAL_TIM_OC_{{polarity}};
+{{#if idle_state}}
+  oc_config.idle_state     = HAL_TIM_OC_IDLE_STATE_{{idle_state}};
+{{/if}}
+{{#if output_override}}
+  oc_config.override_state = HAL_TIM_OC_OVERRIDE_{{output_override}};
+{{/if}}
+{{#if break_mode}}
+  oc_config.break_mode     = HAL_TIM_OC_BREAKMODE_{{break_mode}};
+{{/if}}
+  {{assign 'found_OCxN_SetConfigChannelMode' true~}}
+  if (HAL_TIM_OC_SetConfigChannel(&h{{@root.current_resource}}, HAL_TIM_CHANNEL_{{helper_tim_convert_channel ../../_foreignKey}}N, &oc_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}{{!use_complementary_channel~}}
+{{/with}}{{!ocxn_channel_configuration~}}
+
+{{#with combined_3phase_pwm}}
+{{assign 'group' ''~}}
+{{#if ch5_and_ch1}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_AND_OC1REFC')~}}
+{{/if}}
+{{#if ch5_and_ch2}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_AND_OC2REFC')~}}
+{{/if}}
+{{#if ch5_and_ch3}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_AND_OC3REFC')~}}
+{{/if}}
+{{#if ch5_and_ch4}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_AND_OC4REFC')~}}
+{{/if}}
+{{#if ch5_or_ch1}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_OR_OC1REFC')~}}
+{{/if}}
+{{#if ch5_or_ch2}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_OR_OC2REFC')~}}
+{{/if}}
+{{#if ch5_or_ch3}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_OR_OC3REFC')~}}
+{{/if}}
+{{#if ch5_or_ch4}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'HAL_TIM_GROUP_OR_OC4REFC')~}}
+{{/if}}
+{{#if (not (eq @root.group ''))}}
+  {{assign 'found_OC_SetGroupChannel' true~}}
+  if (HAL_TIM_OC_SetGroupChannel(&h{{@root.current_resource}}, {{@root.group}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}{{!combined_3phase_pwm~}}
+{{#with compare_unit_configuration}}
+{{#if (not @root.found_output_compare_unit)}}
+  {{assign 'found_output_compare_unit' true~}}
+  hal_tim_oc_compare_unit_config_t oc_compare_unit_config;
+
+{{/if}}
+  oc_compare_unit_config.mode  = HAL_TIM_OC_{{mode}};
+  {{assign 'pulse_value_hex' (uppercase (dec2hex pulse))~}}
+  oc_compare_unit_config.pulse = 0x{{#if (eq pulse 0)}}00000000{{else}}{{@root.pulse_value_hex}}{{/if}};
+  {{assign 'found_OC_SetConfigCompareUnit' true~}}
+  if (HAL_TIM_OC_SetConfigCompareUnit(&h{{@root.current_resource}}, HAL_TIM_OC_COMPARE_UNIT_{{helper_tim_convert_channel ../../_foreignKey}},
+                                      &oc_compare_unit_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if @root.IsEnableDithering}}
+  if (HAL_TIM_OC_SetCompareUnitDitheredPulse(&h{{@root.current_resource}}, HAL_TIM_OC_COMPARE_UNIT_{{helper_tim_convert_channel ../../_foreignKey}}, 0x{{#if (eq pulse 0)}}00000000{{else}}{{@root.pulse_value_hex}}{{/if}},
+                                             HAL_TIM_DITHERING_{{pulse_dithering_pattern}}_16) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if preload}}
+  {{assign 'found_OC_EnableChannelComparePreload' true~}}
+  if (HAL_TIM_OC_EnableComparePreload(&h{{@root.current_resource}}, HAL_TIM_OC_COMPARE_UNIT_{{helper_tim_convert_channel ../../_foreignKey}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if ocref_clear}}
+  {{assign 'found_EnableChannelOCRefClear' true~}}
+  if (HAL_TIM_EnableCompareUnitOCRefClear(&h{{@root.current_resource}}, HAL_TIM_OC_COMPARE_UNIT_{{helper_tim_convert_channel ../../_foreignKey}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if fast_mode}}
+  {{assign 'found_OC_EnableChannelFastMode' true~}}
+  if (HAL_TIM_OC_EnableCompareFastMode(&h{{@root.current_resource}}, HAL_TIM_OC_COMPARE_UNIT_{{helper_tim_convert_channel ../../_foreignKey}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}{{!compare_unit_configuration~}}
+{{/with}}{{!output_configuration~}}
+{{#with input_configuration}}
+{{assign 'found_input_channel' true~}}
+{{#with icx_channel_configuration}}
+{{assign 'ic_clock_source' (helper_tim_input_channel_clock_source ../../_foreignKey ../../../basic/clock_source_configuration.trigger_input)~}}
+{{#if (eq @root.ic_clock_source "PF")}}
+{{assign 'input_polarity' ../../../basic/clock_source_configuration.clock_polarity~}}
+{{assign 'input_filter' ../../../basic/clock_source_configuration.clock_filter~}}
+{{else if (eq @root.ic_clock_source "F")}}
+{{assign 'input_polarity' polarity~}}
+{{assign 'input_filter' ../../../basic/clock_source_configuration.clock_filter~}}
+{{else}}
+{{assign 'input_polarity' polarity~}}
+{{assign 'input_filter' filter_ic~}}
+{{/if}}
+{{#if use_channel}}
+{{#if input_selection.source}}
+  ic_config.source    = HAL_TIM_INPUT_{{@root.current_resource}}_{{helper_tim_convert_input_src ../../_foreignKey input_selection.source}};
+{{/if}}
+  ic_config.polarity  = HAL_TIM_IC_{{@root.input_polarity}};
+{{#if (not (eq capture_unit_configuration.source 'INDIRECT'))}}
+  ic_config.filter    = HAL_TIM_{{@root.input_filter}};
+{{/if}}
+  {{assign 'found_IC_SetConfigChannel' true~}}
+  if (HAL_TIM_IC_SetConfigChannel(&h{{@root.current_resource}}, HAL_TIM_CHANNEL_{{helper_tim_convert_channel ../../_foreignKey}}, &ic_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!use_channel~}}
+{{/with}}{{!icx_channel_configuration~}}
+{{#with capture_unit_configuration}}
+{{#if (not @root.found_input_compare_unit)}}
+  {{assign 'found_input_compare_unit' true~}}
+  hal_tim_ic_capture_unit_config_t ic_capture_unit_config;
+
+{{/if}}
+{{#if (eq source 'INDIRECT')}}
+  ic_capture_unit_config.source     = HAL_TIM_IC_{{uppercase source}}_{{@root.input_polarity}};
+{{else}}
+  ic_capture_unit_config.source     = HAL_TIM_IC_{{uppercase source}};
+{{/if}}
+  ic_capture_unit_config.prescaler  = HAL_TIM_IC_DIV{{prescaler}};
+  {{assign 'found_IC_SetConfigCaptureUnit' true~}}
+  if (HAL_TIM_IC_SetConfigCaptureUnit(&h{{@root.current_resource}}, HAL_TIM_IC_CAPTURE_UNIT_{{helper_tim_convert_channel ../../_foreignKey}}, &ic_capture_unit_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/with}}{{!capture_unit_configuration~}}
+{{/with}}{{!input_configuration~}}
+{{/each}}{{!channels~}}
+{{#with additional}}
+{{#with update_event}}
+  /* Update Event Management */
+{{#if update_event_generation}}
+  {{assign 'found_SetUpdateSource' true~}}
+  if (HAL_TIM_SetUpdateSource(&h{{@root.current_resource}}, HAL_TIM_UPDATE_{{update_event_source}}) != HAL_OK)
+  {
+    return NULL;
+  }
+  if (HAL_TIM_EnableUpdateGeneration(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{#if update_flag_remap}}
+  {{assign 'found_EnableUpdateFlagRemap' true~}}
+  if (HAL_TIM_EnableUpdateFlagRemap(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}{{!update_flag_remap~}}
+
+{{else}}
+  {{assign 'found_DisableUpdateGeneration' true~}}
+  if (HAL_TIM_DisableUpdateGeneration(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!update_event_generation~}}
+{{/with}}{{!update_event~}}
+{{#with external_trigger_configuration}}
+{{assign 'external_trigger_enable' false~}}
+{{#if (or (or (eq ../synchronization.slave_mode.trigger_input 'ETRF') ../output_stage.ocref_clear.ocref_clear_source_etr) ../encoder_interface.encoder_index)}}
+{{assign 'external_trigger_enable' true~}}
+{{/if}}
+{{#if (and use_external_trigger @root.external_trigger_enable)}}
+  /* External Trigger Configuration */
+  hal_tim_ext_trig_config_t ext_trig;
+  ext_trig.source     = HAL_TIM_EXT_TRIG_{{@root.current_resource}}_{{helper_tim_convert_etr external_trigger.source}};
+  ext_trig.polarity   = HAL_TIM_EXT_TRIG_{{polarity}};
+  ext_trig.filter     = HAL_TIM_{{filter_etr}};
+  ext_trig.prescaler  = HAL_TIM_EXT_TRIG_DIV{{prescaler}};
+{{#if sync_prescaler}}
+  ext_trig.sync_prescaler = HAL_TIM_EXT_TRIG_SYNC_DIV{{sync_prescaler}};
+{{/if}}
+  {{assign 'found_SetExternalTriggerInput' true~}}
+  if (HAL_TIM_SetExternalTriggerInput(&h{{@root.current_resource}}, &ext_trig) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}{{!external_trigger_configuration~}}
+{{#with synchronization}}
+{{#with slave_mode}}
+{{#unless (eq mode 'DISABLED')}}
+  /* Slave Mode Configuration */
+  hal_tim_slave_config_t slave_config;
+  slave_config.mode     = HAL_TIM_SLAVE_{{mode}};
+  slave_config.trigger  = HAL_TIM_TRIG_{{#if internal_trigger}}{{uppercase internal_trigger.ip_signal}}{{else}}{{uppercase trigger_input}}{{/if}};
+  {{assign 'found_SetSynchroSlave' true~}}
+  if (HAL_TIM_SetSynchroSlave(&h{{@root.current_resource}}, &slave_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/unless}}
+{{/with}}{{!slave_mode~}}
+{{#with master_mode}}
+{{#if (or (or (not (eq trigger_output_source 'DISABLED')) (not (eq trigger_output2_source 'DISABLED'))) master_slave_mode)}}
+  /* Master Mode Configuration */
+{{/if}}{{!check for comment generation~}}
+{{#if (and trigger_output_source (not (eq trigger_output_source 'DISABLED')))}}
+  {{assign 'found_SetTriggerOutput' true~}}
+  if (HAL_TIM_SetTriggerOutput(&h{{@root.current_resource}}, HAL_TIM_TRGO_{{trigger_output_source}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!trigger_output_source~}}
+{{#if (and trigger_output2_source (not (eq trigger_output2_source 'DISABLED')))}}
+{{assign 'found_SetTriggerOutput2' true~}}
+{{#unless (eq trigger_output2_postscaler undefined)}}
+  hal_tim_trigger_output2_config_t trigger_output2_config;
+  trigger_output2_config.trgo2_src  = HAL_TIM_TRGO2_{{trigger_output2_source}};
+  trigger_output2_config.postscaler = {{trigger_output2_postscaler}};
+  if (HAL_TIM_SetConfigTriggerOutput2(&h{{@root.current_resource}}, &trigger_output2_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else}}
+  if (HAL_TIM_SetTriggerOutput2(&h{{@root.current_resource}}, HAL_TIM_TRGO2_{{trigger_output2_source}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/unless}}{{!trigger_output2_postscaler~}}
+
+{{/if}}{{!trigger_output2_source~}}
+{{#if master_slave_mode}}
+  {{assign 'found_EnableMasterSlaveMode' true~}}
+  if (HAL_TIM_EnableMasterSlaveMode(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!master_slave_mode~}}
+{{/with}}{{!master_mode~}}
+{{/with}}{{!synchronization~}}
+{{#with encoder_interface}}
+{{#if (eq ../../basic/clock_source_configuration/clock_source 'ENCODER_MODE')}}
+  /* Encoder Interface Configuration */
+{{/if}}{{!check for comment generation~}}
+{{#if slave_mode_preload}}
+  {{assign 'found_EnableSlaveModePreload' true~}}
+  if (HAL_TIM_EnableSlaveModePreload(&h{{@root.current_resource}}, HAL_TIM_SLAVE_MODE_PRELOAD_{{slave_mode_preload_source}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if encoder_index}}
+{{#with encoder_index_configuration}}
+  /* Encoder Index Configuration */
+  hal_tim_encoder_index_config_t encoder_index;
+  encoder_index.dir       = HAL_TIM_ENCODER_INDEX_{{index_direction}};
+  encoder_index.pos       = HAL_TIM_ENCODER_INDEX_POS_{{index_positioning}};
+  encoder_index.blanking  = HAL_TIM_ENCODER_INDEX_BLANK_{{index_blanking}};
+  encoder_index.idx       = HAL_TIM_ENCODER_INDEX_{{counter_reset_trigger}};
+  {{assign 'found_SetConfigEncoderIndex' true~}}
+  if (HAL_TIM_SetConfigEncoderIndex(&h{{@root.current_resource}}, &encoder_index) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/with}}{{!encoder_index_configuration}}
+  {{assign 'found_EnableEncoderIndex' true~}}
+
+  if (HAL_TIM_EnableEncoderIndex(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}{{!encoder_interface~}}
+{{#with hall_sensor_interface}}
+{{#with xor_gate}}
+{{#if enable_xor_gate}}
+  {{assign 'found_EnableXORGate' true~}}
+  if (HAL_TIM_IC_EnableXORGate(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{#if xor_gate_position}}
+  if (HAL_TIM_IC_SetXORGatePosition(&h{{@root.current_resource}}, HAL_TIM_IC_XOR_GATE_POS_{{xor_gate_position}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{#if xor_input1_inversion}}
+  if (HAL_TIM_IC_EnableXORGateInputInversion(&h{{@root.current_resource}}, HAL_TIM_CHANNEL_1) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{#if xor_input2_inversion}}
+  if (HAL_TIM_IC_EnableXORGateInputInversion(&h{{@root.current_resource}}, HAL_TIM_CHANNEL_2) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{#if xor_input3_inversion}}
+  if (HAL_TIM_IC_EnableXORGateInputInversion(&h{{@root.current_resource}}, HAL_TIM_CHANNEL_3) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+
+{{/if}}
+{{/with}}
+{{#with commutation_event}}
+{{#if commutation}}
+  {{assign 'found_EnableCommutation' true~}}
+  if (HAL_TIM_EnableCommutation(&h{{@root.current_resource}}, HAL_TIM_COMMUTATION_{{commutation_source}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}{{!commutation_event~}}
+{{/with}}{{!hall_sensor_interface~}}
+{{#with output_stage}}
+{{#with pulse_generator_configuration}}
+{{#if (not (eq pulse_width 0))}}
+  /* Pulse Generator Configuration */
+  hal_tim_pulse_generator_config_t pulse_generator;
+  pulse_generator.pulse_width = {{pulse_width}};
+  pulse_generator.prescaler = HAL_TIM_PULSE_DIV{{prescaler}};
+  {{assign 'found_SetPulseGenerator' true~}}
+  if (HAL_TIM_OC_SetPulseGenerator(&h{{@root.current_resource}}, &pulse_generator) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!pulse_width~}}
+{{/with}}{{!pulse_generator_configuration~}}
+{{#with ocref_clear}}
+{{#if use_ocref_clear}}
+{{#if ocref_clear_source_etr}}
+  /* OCRef Clear Source Configuration */
+  {{assign 'found_SetOCRefClearSourceETR' true~}}
+  if (HAL_TIM_SetOCRefClearSource(&h{{@root.current_resource}}, HAL_TIM_OCREF_CLR_{{@root.current_resource}}_ETR) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{else}}
+{{#if ocref_clear_source}}
+  {{assign 'found_SetOCRefClearSource' true~}}
+  if (HAL_TIM_SetOCRefClearSource(&h{{@root.current_resource}}, HAL_TIM_OCREF_CLR_{{@root.current_resource}}_{{uppercase ocref_clear_source.source}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/if}}
+{{/if}}{{!use_ocref_clear~}}
+{{/with}}{{!ocref_clear~}}
+{{#with break_configuration}}
+{{#if use_break_function}}
+  /* Break Configuration */
+{{assign 'found_break_input' false~}}
+{{#if automatic_output}}
+  {{assign 'found_EnableAutomaticOutput' true~}}
+  if (HAL_TIM_BREAK_EnableAutomaticOutput(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!automatic_output}}
+  hal_tim_off_states_config_t off_states;
+
+  off_states.off_state_run  = HAL_TIM_OFF_STATE_RUN_{{#if off_state_run_mode}}ENABLE{{else}}DISABLE{{/if}};
+  off_states.off_state_idle = HAL_TIM_OFF_STATE_IDLE_{{#if off_state_idle_mode}}ENABLE{{else}}DISABLE{{/if}};
+  {{assign 'found_SetOutputOffStates' true~}}
+  if (HAL_TIM_BREAK_SetOutputOffStates(&h{{@root.current_resource}}, &off_states) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#each breaks}}
+{{#if use_break_line}}
+{{#if (eq _foreignKey 1)}}
+{{assign 'break_number' ''~}}
+{{else if (eq _foreignKey 2)}}
+{{assign 'break_number' '2'~}}
+{{/if}}
+  /* Break {{_foreignKey}} Configuration */
+{{#with break_input_configuration}}
+{{#if (not @root.found_break_input)}}
+  {{assign 'found_break_input' true~}}
+  hal_tim_break_input_config_t break_input;
+
+{{/if}}
+  break_input.polarity  = HAL_TIM_BREAK_INPUT_{{polarity}};
+{{#if filter_break}}
+  break_input.filter    = HAL_TIM_{{filter_break}};
+{{/if}}
+{{#if mode}}
+  break_input.mode      = HAL_TIM_BREAK_INPUT_MODE_{{mode}};
+{{/if}}
+  {{assign 'found_SetConfigInput' true~}}
+  if (HAL_TIM_BREAK_SetConfigInput(&h{{@root.current_resource}}, HAL_TIM_BREAK_INPUT_{{../_foreignKey}}, &break_input) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#unless (eq delayed_1_break_duration undefined)}}
+{{#if (helper_tim_check_if_channel_delayed_break 'DELAY1' ../../../../../channels)}}
+  if (HAL_TIM_BREAK_SetBreakDelay(&h{{@root.current_resource}}, HAL_TIM_BREAK_DELAY1, {{delayed_1_break_duration}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/unless}}{{!delayed_1_break_duration~}}
+{{#unless (eq delayed_2_break_duration undefined)}}
+{{#if (helper_tim_check_if_channel_delayed_break 'DELAY2' ../../../../../channels)}}
+  if (HAL_TIM_BREAK_SetBreakDelay(&h{{@root.current_resource}}, HAL_TIM_BREAK_DELAY2, {{delayed_2_break_duration}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/unless}}{{!delayed_2_break_duration~}}
+{{/with}}{{!break_input_configuration~}}
+{{#each break_input_sources_configuration}}
+{{assign 'found_SetInputSource' true~}}
+{{#if enable_break_input_source}}
+  /* {{helper_tim_convert_break_input _foreignKey}} Break{{../_foreignKey}} Input Source Configuration */
+{{#if polarity}}
+  if (HAL_TIM_BREAK_SetInputSourcePolarity(&h{{@root.current_resource}}, HAL_TIM_BREAK_INPUT_{{../_foreignKey}}, HAL_TIM_BRK{{@root.break_number}}_{{@root.current_resource}}_{{helper_tim_convert_break_input _foreignKey}},
+                                           HAL_TIM_BREAK_INPUT_SRC_{{polarity}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+  {{assign 'found_EnableInputSource' true~}}
+  if (HAL_TIM_BREAK_EnableInputSource(&h{{@root.current_resource}}, HAL_TIM_BREAK_INPUT_{{../_foreignKey}}, HAL_TIM_BRK{{@root.break_number}}_{{@root.current_resource}}_{{helper_tim_convert_break_input _foreignKey}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!enable_break_input_source~}}
+{{/each}}{{!break_input_sources_configuration~}}
+{{#if enable_break_input}}
+  {{assign 'found_EnableBreakInput' true~}}
+  if (HAL_TIM_BREAK_EnableInput(&h{{@root.current_resource}}, HAL_TIM_BREAK_INPUT_{{_foreignKey}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!enable_break_input~}}
+{{/if}}{{!use_break_line~}}
+{{/each}}{{!breaks~}}
+{{/if}}{{!use_break_function~}}
+{{/with}}{{!break_configuration~}}
+{{#with deadtime_configuration}}
+{{#if use_deadtime}}
+  /* Deadtime Configuration */
+{{#if deadtime_preload}}
+  {{assign 'found_EnableDeadtimePreload' true~}}
+  if (HAL_TIM_EnableDeadtimePreload(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if asymmetrical_deadtime}}
+  {{assign 'found_SetDeadtime' true~}}
+  if (HAL_TIM_SetDeadtime(&h{{@root.current_resource}}, {{deadtime_rising}}, {{deadtime_falling}}) != HAL_OK)
+  {
+    return NULL;
+  }
+  {{assign 'found_EnableAsymmetricalDeadtime' true~}}
+
+  if (HAL_TIM_EnableAsymmetricalDeadtime(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{else}}
+  {{assign 'found_SetDeadtime' true~}}
+  if (HAL_TIM_SetDeadtime(&h{{@root.current_resource}}, {{deadtime_rising}}, {{deadtime_rising}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!asymmetrical_deadtime~}}
+{{/if}}{{!use_deadtime~}}
+{{/with}}{{!deadtime_configuration~}}
+{{/with}}{{!output_stage~}}
+{{#with dma_burst_configuration}}
+{{#if use_dma_burst}}
+  /* DMA Burst Configuration */
+  hal_tim_dmaburst_config_t dmaburst;
+  dmaburst.address = HAL_TIM_DMABURST_BASE_ADDR_{{base_address}};
+{{#if burst_source}}
+  dmaburst.source = HAL_TIM_DMABURST_{{burst_source}};
+{{/if}}
+  dmaburst.length = HAL_TIM_DMABURST_{{burst_length}};
+  {{assign 'found_SetDmaBurst' true~}}
+  if (HAL_TIM_SetConfigDMABurst(&h{{@root.current_resource}}, &dmaburst) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}{{!dma_burst_configuration~}}
+{{#if (helper_tim_check_if_at_least_one_cc_dma_channel ../system/dma)}}
+  {{assign 'found_SetCaptureCompareDMAReqSource' true~}}
+  /* Capture/Compare DMA request selection */
+  if (HAL_TIM_SetCaptureCompareDMAReqSource(&h{{@root.current_resource}}, HAL_TIM_CC_DMAREQ_{{ccdma_request_selection}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{!helper_tim_check_if_at_least_one_cc_dma_channel~}}
+{{#if lock_level}}
+{{#unless (eq lock_level 'OFF')}}
+  {{assign 'found_SetLockLevel' true~}}
+  if (HAL_TIM_SetLockLevel(&h{{@root.current_resource}}, HAL_TIM_LOCK_{{lock_level}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/unless}}{{!lock_level OFF~}}
+{{/if}}{{!lock_level~}}
+{{/with}}{{!additional~}}
+{{#with system}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+{{#with nvic}}
+{{#if enable_interruption_global}}
+  /* Enable the Timer global interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_global.needs @root.current_resource irq_handler_generation_global)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_global.needs}}
+
+{{/if}}
+{{#if enable_interruption_upd}}
+  /* Enable Timer update interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_upd.needs @root.current_resource irq_handler_generation_upd)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_upd.needs}}
+
+{{/if}}
+{{#if enable_interruption_cc}}
+  /* Enable Timer Capture/Compare interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_cc.needs @root.current_resource irq_handler_generation_cc)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_cc.needs}}
+
+{{/if}}
+{{#if enable_interruption_brk_terr_ierr}}
+  /* Enable the Timer Break, Transition error and Index error interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_brk_terr_ierr.needs @root.current_resource irq_handler_generation_brk_terr_ierr)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_brk_terr_ierr.needs}}
+
+{{/if}}
+{{#if enable_interruption_trgi_com_dir_idx}}
+  /* Enable Timer Trigger, Commutation, Direction change and Index interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_trgi_com_dir_idx.needs @root.current_resource irq_handler_generation_trgi_com_dir_idx)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_trgi_com_dir_idx.needs}}
+
+{{/if}}
+{{/with}}{{! nvic ~}}
+{{#with dma}}
+{{#if enable_dma_upd}}
+  /* Timer Update DMA Request Configuration */
+{{> DMA_HAL fct='init' needs=dma_config_upd.needs}}
+  /* Link Update DMA request handle to the TIM handle */
+  {{assign 'found_dma_req_upd' true~}}
+  if (HAL_TIM_SetDMA(&h{{@root.current_resource}}, HAL_TIM_DMA_ID_UPD, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_dma_cc1}}
+  /* Timer Capture/Compare 1 DMA Request Configuration */
+{{> DMA_HAL fct='init' needs=dma_config_cc1.needs}}
+  /* Link Capture/Compare 1 DMA request handle to the TIM handle */
+  {{assign 'found_dma_req_cc1' true~}}
+  if (HAL_TIM_SetDMA(&h{{@root.current_resource}}, HAL_TIM_DMA_ID_CC1, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_dma_cc2}}
+  /* Timer Capture/Compare 2 DMA Request Configuration */
+{{> DMA_HAL fct='init' needs=dma_config_cc2.needs}}
+  /* Link Capture/Compare 2 DMA request handle to the TIM handle */
+  {{assign 'found_dma_req_cc2' true~}}
+  if (HAL_TIM_SetDMA(&h{{@root.current_resource}}, HAL_TIM_DMA_ID_CC2, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_dma_cc3}}
+  /* Timer Capture/Compare 3 DMA Request Configuration */
+{{> DMA_HAL fct='init' needs=dma_config_cc3.needs}}
+  /* Link Capture/Compare 3 DMA request handle to the TIM handle */
+  {{assign 'found_dma_req_cc3' true~}}
+  if (HAL_TIM_SetDMA(&h{{@root.current_resource}}, HAL_TIM_DMA_ID_CC3, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_dma_cc4}}
+  /* Timer Capture/Compare 4 DMA Request Configuration */
+{{> DMA_HAL fct='init' needs=dma_config_cc4.needs}}
+  /* Link Capture/Compare 4 DMA request handle to the TIM handle */
+  {{assign 'found_dma_req_cc4' true~}}
+  if (HAL_TIM_SetDMA(&h{{@root.current_resource}}, HAL_TIM_DMA_ID_CC4, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_dma_trgi}}
+  /* Timer Trigger DMA Request Configuration */
+{{> DMA_HAL fct='init' needs=dma_config_trgi.needs}}
+  /* Link Trigger DMA request handle to the TIM handle */
+  {{assign 'found_dma_req_trg' true~}}
+  if (HAL_TIM_SetDMA(&h{{@root.current_resource}}, HAL_TIM_DMA_ID_TRGI, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if enable_dma_com}}
+  /* Timer Commutation DMA Request Configuration */
+{{> DMA_HAL fct='init' needs=dma_config_com.needs}}
+  /* Link Commutation DMA request handle to the TIM handle */
+  {{assign 'found_dma_req_com' true~}}
+  if (HAL_TIM_SetDMA(&h{{@root.current_resource}}, HAL_TIM_DMA_ID_COM, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/with}}{{! dma ~}}
+{{/with}}{{! system}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+  (void)HAL_TIM_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{#with system}}
+
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource}}
+{{#with nvic}}
+{{#if enable_interruption_global}}
+  /* Disable Timer global interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_global.needs}}
+
+{{/if}}
+{{#if enable_interruption_upd}}
+  /* Disable Timer update interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_upd.needs}}
+
+{{/if}}
+{{#if enable_interruption_cc}}
+  /* Disable Timer Capture/Compare interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_cc.needs}}
+
+{{/if}}
+{{#if enable_interruption_brk_terr_ierr}}
+  /* Disable Timer Break, Transition error and Index error interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_brk_terr_ierr.needs}}
+
+{{/if}}
+{{#if enable_interruption_trgi_com_dir_idx}}
+  /* Disable Timer Trigger, Commutation, Direction change and Index interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_trgi_com_dir_idx.needs}}
+
+{{/if}}
+{{/with}}{{!nvic~}}
+{{#with dma}}
+
+{{#if enable_dma_upd}}
+{{> DMA_HAL fct='deinit' needs=dma_config_upd.needs}}
+{{/if}}
+{{#if enable_dma_cc1}}
+{{> DMA_HAL fct='deinit' needs=dma_config_cc1.needs}}
+{{/if}}
+{{#if enable_dma_cc2}}
+{{> DMA_HAL fct='deinit' needs=dma_config_cc2.needs}}
+{{/if}}
+{{#if enable_dma_cc3}}
+{{> DMA_HAL fct='deinit' needs=dma_config_cc3.needs}}
+{{/if}}
+{{#if enable_dma_cc4}}
+{{> DMA_HAL fct='deinit' needs=dma_config_cc4.needs}}
+{{/if}}
+{{#if enable_dma_trgi}}
+{{> DMA_HAL fct='deinit' needs=dma_config_trgi.needs}}
+{{/if}}
+{{#if enable_dma_com}}
+{{> DMA_HAL fct='deinit' needs=dma_config_com.needs}}
+{{/if}}
+{{/with}}{{!dma~}}
+{{/with}}{{!system}}
+}
+
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_tim_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+
+{{else}}{{!HAL}}
+{{assign 'nvic_generate_handler' false~}}
+{{!
+    Generation of initialization function used in LL
+~}}
+TIM_TypeDef *{{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+
+{{#with basic}}
+{{#with time_base}}
+{{#unless (eq frequency undefined)}}
+  /* Timer configuration to reach the output frequency at {{frequency}} */
+{{else}}
+  /* Timer configuration with external clock */
+{{/unless}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetPrescaler' clock_source_configuration.prescaler}}
+{{#with counter}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetCounterMode' (concat 'LL_TIM_COUNTERMODE_' counter_mode)}}
+{{#if dithering}}
+{{assign 'tim_period' (concat '(' period ' << 4U) | ' period_dithering_pattern)~}}
+{{else}}
+{{assign 'tim_period' period~}}
+{{/if}}
+{{#if (or (and (eq @root.periphHWDescription.features.cnt_width 16) (eq @root.tim_period 65535)) (and (eq @root.periphHWDescription.features.cnt_width 32) (eq @root.tim_period 4294967295)))}}
+  /* LL_TIM_SetAutoReload({{@root.current_resource}}, {{{@root.tim_period}}}); */ /* Configuration matches register reset state at startup. */
+{{else}}
+  LL_TIM_SetAutoReload({{@root.current_resource}}, {{{@root.tim_period}}});
+{{/if}}
+{{/with}}{{!counter~}}
+{{/with}}{{!time_base~}}
+{{#with sampling_clock}}
+{{#if clock_division}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetClockDivision' (concat 'LL_TIM_CLOCKDIVISION_DIV' clock_division)}}
+{{/if}}{{!clock_division~}}
+{{#if clock_division2}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetClockDivision2' (concat 'LL_TIM_CLOCKDIVISION2_DIV' clock_division2)}}
+{{/if}}{{!clock_division2~}}
+{{/with}}{{!sampling_clock~}}
+{{#with time_base}}
+{{#if counter.repetition_counter}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetRepetitionCounter' counter.repetition_counter}}
+{{/if}}
+{{#with clock_source_configuration}}
+  {{#if (eq clock_source 'ENCODER_MODE')}}{{assign 'tim_clock_source' encoder_mode}}{{else}}{{assign 'tim_clock_source' clock_source}}{{/if~}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetClockSource' (concat 'LL_TIM_CLK_' @root.tim_clock_source)}}
+{{#if (eq clock_source 'EXTERNAL_MODE1')}}
+  {{#if (eq trigger_input 'ITR')}}{{assign 'tim_trigger_input' internal_trigger.ip_signal}}{{else}}{{assign 'tim_trigger_input' trigger_input}}{{/if~}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetTriggerInput' (concat 'LL_TIM_TS_' (uppercase @root.tim_trigger_input))}}
+{{/if}}
+{{#if external_trigger}}
+
+
+  /* External Trigger Input Configuration */
+  {{helper_common_gen_ll_code 'LL_TIM_SetETRSource' (concat 'LL_TIM_' @root.current_resource '_ETR_IN_' (helper_tim_convert_etr external_trigger.source))}}
+{{#if clock_sync_prescaler}}
+{{assign 'clock_etr_prescaler' (concat 'LL_TIM_ETR_PRESCALER_DIV' clock_prescaler ' | LL_TIM_ETR_SYNC_PRESCALER_DIV' clock_sync_prescaler)~}}
+{{else}}
+{{assign 'clock_etr_prescaler' (concat 'LL_TIM_ETR_PRESCALER_DIV' clock_prescaler)~}}
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigETR' (concat 'LL_TIM_ETR_POLARITY_' clock_polarity) @root.clock_etr_prescaler (concat 'LL_TIM_ETR_FILTER_' clock_filter)}}
+{{/if}}{{!external_trigger~}}
+{{/with}}{{!clock_source_configuration~}}
+{{#with counter}}
+{{#if one_pulse_mode}}
+
+  {{helper_common_gen_ll_code 'LL_TIM_EnableOnePulseMode'}}
+{{/if}}{{!one_pulse_mode~}}
+{{#if dithering}}
+  {{assign 'IsEnableDithering' true~}}
+
+  {{helper_common_gen_ll_code 'LL_TIM_EnableDithering'}}
+{{/if}}{{!dithering~}}
+{{/with}}{{!counter~}}
+{{/with}}{{!time_base~}}
+{{#if autoreload_preload}}
+
+  {{helper_common_gen_ll_code 'LL_TIM_EnableARRPreload'}}
+{{/if}}{{!autoreload_preload~}}
+{{/with}}{{!basic~}}
+{{#each channels}}
+{{assign 'current_channel' (helper_tim_convert_channel _foreignKey)~}}
+{{~helper_common_gen_ll_code_add_subinst (concat 'LL_TIM_CHANNEL_CH' @root.current_channel)~}}
+{{#with output_configuration}}
+{{#with ocx_channel_configuration}}
+{{#if use_channel}}
+
+  /* Channel {{@root.current_channel}} Configuration */
+{{#if polarity}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetPolarity' (concat 'LL_TIM_OCPOLARITY_' polarity)}}
+{{/if}}{{!polarity~}}
+{{#if idle_state}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetIdleState' (concat 'LL_TIM_OCIDLESTATE_' idle_state)}}
+{{/if}}{{!idle_state~}}
+{{#if output_override}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetOverrideState' (concat 'LL_TIM_OCOVERRIDE_' output_override)}}
+{{/if}}
+{{#if break_mode}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetBreakMode' (concat 'LL_TIM_OCBREAKMODE_' break_mode)}}
+{{/if}}
+{{/if}}{{!use_channel~}}
+{{/with}}{{!ocx_channel_configuration~}}
+{{#with ocxn_channel_configuration}}
+{{#if use_complementary_channel}}
+
+  {{helper_common_gen_ll_code_add_subinst (concat 'LL_TIM_CHANNEL_CH' @root.current_channel 'N')~}}
+  /* Channel {{@root.current_channel}}N Configuration */
+{{#if polarity}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetPolarity' (concat 'LL_TIM_OCPOLARITY_' polarity)}}
+{{/if}}{{!polarity~}}
+{{#if idle_state}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetIdleState' (concat 'LL_TIM_OCIDLESTATE_' idle_state)}}
+{{/if}}{{!idle_state~}}
+{{#if output_override}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetOverrideState' (concat 'LL_TIM_OCOVERRIDE_' output_override)}}
+{{/if}}
+{{#if break_mode}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetBreakMode' (concat 'LL_TIM_OCBREAKMODE_' break_mode)}}
+{{/if}}
+{{/if}}{{!use_complementary_channel~}}
+{{/with}}{{!ocxn_channel_configuration~}}
+{{#with combined_3phase_pwm}}
+{{assign 'group' ''~}}
+{{#if ch5_and_ch1}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_AND_OC1REFC')~}}
+{{/if}}
+{{#if ch5_and_ch2}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_AND_OC2REFC')~}}
+{{/if}}
+{{#if ch5_and_ch3}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_AND_OC3REFC')~}}
+{{/if}}
+{{#if ch5_and_ch4}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_AND_OC4REFC')~}}
+{{/if}}
+{{#if ch5_or_ch1}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_OR_OC1REFC')~}}
+{{/if}}
+{{#if ch5_or_ch2}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_OR_OC2REFC')~}}
+{{/if}}
+{{#if ch5_or_ch3}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_OR_OC3REFC')~}}
+{{/if}}
+{{#if ch5_or_ch4}}
+{{#if (not (eq @root.group ''))~}}
+{{assign 'group' (append @root.group ' | ')~}}
+{{/if}}
+{{assign 'group' (append @root.group 'LL_TIM_GROUPCH5_OR_OC4REFC')~}}
+{{/if}}
+{{#if (not (eq @root.group ''))}}
+
+  /* Combined 3-phase PWM Configuration */
+  {{helper_common_gen_ll_code 'LL_TIM_SetCH5CombinedChannels' @root.group}}
+{{/if}}
+{{/with}}{{!combined_3phase_pwm~}}
+{{#with compare_unit_configuration}}
+
+  {{helper_common_gen_ll_code_add_subinst (concat 'LL_TIM_CHANNEL_CH' @root.current_channel)~}}
+  /* Compare Unit {{@root.current_channel}} Configuration */
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetMode' (concat 'LL_TIM_OCMODE_' mode)}}
+{{helper_common_gen_ll_code_add_subinst (concat 'LL_TIM_OC_COMPARE_UNIT_' @root.current_channel)~}}
+{{#if @root.IsEnableDithering}}
+{{assign 'tim_pulse' (concat '(' pulse ' << 4U) | ' pulse_dithering_pattern)~}}
+{{else}}
+{{assign 'tim_pulse' pulse~}}
+{{/if}}
+  {{{helper_common_gen_ll_code_subinst 'LL_TIM_OC_SetCompareValue' @root.tim_pulse}}}
+
+{{~helper_common_gen_ll_code_add_subinst (concat 'LL_TIM_CHANNEL_CH' @root.current_channel)~}}
+{{#if preload}}
+
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_EnablePreload'}}
+{{/if}}{{!preload~}}
+{{#if ocref_clear}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_EnableClear'}}
+{{/if}}{{!ocref_clear~}}
+{{#if fast_mode}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_OC_EnableFast'}}
+{{/if}}{{!fast_mode~}}
+{{/with}}{{!compare_unit_configuration~}}
+{{/with}}{{!output_configuration~}}
+{{#with input_configuration}}
+
+
+  /* Channel {{helper_tim_convert_channel ../_foreignKey}} Configuration */
+{{#with icx_channel_configuration}}
+{{#if use_channel}}
+{{#if input_selection.source}}
+  {{helper_common_gen_ll_code 'LL_TIM_IC_SetSource' (concat 'LL_TIM_' @root.current_resource '_' (helper_tim_convert_input_src ../../_foreignKey input_selection.source))}}
+{{#if (helper_tim_input_source_is_hse_div32 input_selection.source)}}
+  /* Enable HSE32 clock for TIM input */
+  {{helper_common_gen_ll_code 'LL_TIM_IC_EnableHSE32'}}
+{{/if}}{{!helper_tim_input_source_is_hse_div32~}}
+{{/if}}{{!input_selection.source~}}
+{{assign 'ic_clock_source' (helper_tim_input_channel_clock_source ../../_foreignKey ../../../basic/clock_source_configuration.trigger_input)~}}
+{{#if (eq @root.ic_clock_source "PF")}}
+{{assign 'input_polarity' ../../../basic/clock_source_configuration.clock_polarity~}}
+{{assign 'input_filter' ../../../basic/clock_source_configuration.clock_filter~}}
+{{else if (eq @root.ic_clock_source "F")}}
+{{assign 'input_polarity' polarity~}}
+{{assign 'input_filter' ../../../basic/clock_source_configuration.clock_filter~}}
+{{else}}
+{{assign 'input_polarity' polarity~}}
+{{assign 'input_filter' filter_ic~}}
+{{/if}}
+{{/if}}{{!use_channel~}}
+{{/with}}{{!icx_channel_configuration~}}
+{{#with capture_unit_configuration}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_IC_Config' (concat 'LL_TIM_ACTIVEINPUT_' source ' | LL_TIM_ICPSC_DIV' prescaler ' | LL_TIM_IC_FILTER_' @root.input_filter ' | LL_TIM_IC_POLARITY_' @root.input_polarity)}}
+{{/with}}{{!capture_unit_configuration~}}
+{{/with}}{{!input_configuration~}}
+{{/each}}{{!channels~}}
+{{#with additional}}
+{{#with update_event}}
+
+
+  /* Update Event Management */
+{{#if update_event_generation}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetUpdateSource' (concat 'LL_TIM_UPDATESOURCE_' update_event_source)}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableUpdateEvent'}}
+{{#if update_flag_remap}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableUIFRemap'}}
+{{/if}}{{!update_flag_remap~}}
+{{else}}
+  {{helper_common_gen_ll_code 'LL_TIM_DisableUpdateEvent'}}
+{{/if}}{{!update_event_generation~}}
+{{/with}}{{!update_event~}}
+{{#with external_trigger_configuration}}
+{{#if use_external_trigger}}
+
+
+  /* External Trigger Configuration */
+  {{helper_common_gen_ll_code 'LL_TIM_SetETRSource' (concat 'LL_TIM_' @root.current_resource '_ETR_IN_' (helper_tim_convert_etr external_trigger.source))}}
+{{#if sync_prescaler}}
+  {{~assign 'etr_prescaler' (concat 'LL_TIM_ETR_PRESCALER_DIV' prescaler ' | LL_TIM_ETR_SYNC_PRESCALER_DIV' sync_prescaler)~}}
+{{else}}
+  {{~assign 'etr_prescaler' (concat 'LL_TIM_ETR_PRESCALER_DIV' prescaler)~}}
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigETR' (concat 'LL_TIM_ETR_POLARITY_' polarity) @root.etr_prescaler (concat 'LL_TIM_ETR_FILTER_' filter_etr)}}
+{{/if}}{{!use_external_trigger~}}
+{{/with}}{{!external_trigger_configuration~}}
+{{#with synchronization}}
+{{#with slave_mode}}
+{{#unless (eq mode 'DISABLED')}}
+
+
+  /* Slave Mode Configuration */
+  {{helper_common_gen_ll_code 'LL_TIM_SetSlaveMode' (concat 'LL_TIM_SLAVEMODE_' mode)}}
+  {{#if internal_trigger}}{{assign 'itr' (uppercase internal_trigger.ip_signal)}}{{else}}{{assign 'itr' (uppercase trigger_input)}}{{/if~}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetTriggerInput' (concat 'LL_TIM_TS_' @root.itr)}}
+{{/unless}}{{!DISABLED~}}
+{{/with}}{{!slave_mode~}}
+{{#with master_mode}}
+{{#if (or (or (not (eq trigger_output_source 'DISABLED')) (not (eq trigger_output2_source 'DISABLED'))) master_slave_mode)}}
+
+
+  /* Master Mode Configuration */
+{{/if}}{{!check for comment generation~}}
+{{#if (and trigger_output_source (not (eq trigger_output_source 'DISABLED')))}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetTriggerOutput' (concat 'LL_TIM_TRGO_' trigger_output_source)}}
+{{/if}}{{!trigger_output_source~}}
+{{#if (and trigger_output2_source (not (eq trigger_output2_source 'DISABLED')))}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetTriggerOutput2' (concat 'LL_TIM_TRGO2_' trigger_output2_source)}}
+{{#unless (eq trigger_output2_postscaler undefined)}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetTriggerOutput2Postscaler' trigger_output2_postscaler}}
+{{/unless}}{{!trigger_output2_postscaler~}}
+{{/if}}{{!trigger_output2_source~}}
+{{#if master_slave_mode}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableMasterSlaveMode'}}
+{{/if}}{{!master_slave_mode~}}
+{{/with}}{{!master_mode~}}
+{{/with}}{{!synchronization~}}
+{{#with encoder_interface}}
+{{#if (eq ../../basic/clock_source_configuration/clock_source 'ENCODER_MODE')}}
+
+
+  /* Encoder Interface Configuration */
+{{/if}}{{!check for comment generation~}}
+{{#if slave_mode_preload}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetSMSPreloadSource' (concat 'LL_TIM_SLAVE_MODE_PRELOAD_' slave_mode_preload_source)}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableSMSPreload'}}
+{{/if}}{{!encoder_interface~}}
+{{#if encoder_index}}
+{{#with encoder_index_configuration}}
+
+  /* Encoder Index Configuration */
+{{#if index_blanking}}
+{{assign 'index_config' (concat 'LL_TIM_INDEX_' index_direction ' | LL_TIM_INDEX_BLANK_' index_blanking ' | LL_TIM_INDEX_' counter_reset_trigger ' | LL_TIM_INDEX_POSITION_'index_positioning)~}}
+{{else}}
+{{assign 'index_config' (concat 'LL_TIM_INDEX_' index_direction ' | LL_TIM_INDEX_' counter_reset_trigger ' | LL_TIM_INDEX_POSITION_'index_positioning)~}}
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigEncoderIndex' @root.index_config}}
+{{/with}}{{!encoder_index_configuration}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableEncoderIndex'}}
+{{/if}}{{!encoder_index~}}
+{{/with}}{{!encoder_interface~}}
+{{#with hall_sensor_interface}}
+{{#with xor_gate}}
+{{#if enable_xor_gate}}
+
+
+  /* XOR Gate Management */
+  {{helper_common_gen_ll_code 'LL_TIM_IC_EnableXORCombination'}}
+{{#if xor_gate_position}}
+  {{helper_common_gen_ll_code 'LL_TIM_IC_SetXORGatePosition' (concat 'LL_TIM_IC_XOR_GATE_POS_' xor_gate_position)}}
+{{/if}}{{!xor_gate_position~}}
+{{#if xor_input1_inversion}}
+  {{helper_common_gen_ll_code 'LL_TIM_IC_EnableXORGateInputInversion' 'LL_TIM_CHANNEL_CH1'}}
+{{/if}}{{!xor_input1_inversion~}}
+{{#if xor_input2_inversion}}
+  {{helper_common_gen_ll_code 'LL_TIM_IC_EnableXORGateInputInversion' 'LL_TIM_CHANNEL_CH2'}}
+{{/if}}{{!xor_input2_inversion~}}
+{{#if xor_input3_inversion}}
+  {{helper_common_gen_ll_code 'LL_TIM_IC_EnableXORGateInputInversion' 'LL_TIM_CHANNEL_CH3'}}
+{{/if}}{{!xor_input3_inversion~}}
+{{/if}}{{!enable_xor_gate~}}
+{{/with}}{{!xor_gate~}}
+{{#with commutation_event}}
+{{#if commutation}}
+
+
+  /* Commutation Event Configuration */
+  {{helper_common_gen_ll_code 'LL_TIM_CC_SetUpdate' (concat 'LL_TIM_CCUPDATESOURCE_' commutation_source)}}
+  {{helper_common_gen_ll_code 'LL_TIM_CC_EnablePreload'}}
+{{/if}}{{!commutation~}}
+{{/with}}{{!commutation_event~}}
+{{/with}}{{!hall_sensor_interface~}}
+{{#with output_stage}}
+{{#with pulse_generator_configuration}}
+{{#if (not (eq pulse_width 0))}}
+
+
+  /* Pulse Generator Configuration */
+  {{helper_common_gen_ll_code 'LL_TIM_OC_SetPulseWidth' pulse_width}}
+  {{helper_common_gen_ll_code 'LL_TIM_OC_SetPulseWidthPrescaler' (concat 'LL_TIM_PWPRSC_DIV' prescaler)}}
+{{/if}}{{!pulse_width~}}
+{{/with}}{{!pulse_generator_configuration~}}
+{{#with ocref_clear}}
+{{#if use_ocref_clear}}
+
+
+  /* OCRef Clear Source Configuration */
+{{#if ocref_clear_source_etr}}
+  {{~assign 'ocref_clear_input_source' (concat 'LL_TIM_' @root.current_resource '_OCREF_CLR_INT_ETR')~}}
+{{else}}
+  {{#if ocref_clear_source}}
+    {{~assign 'ocref_clear_input_source' (concat 'LL_TIM_' @root.current_resource '_OCREF_CLR_INT_' (uppercase ocref_clear_source.source))~}}
+  {{/if}}
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetOCRefClearInputSource' @root.ocref_clear_input_source}}
+{{/if}}{{!use_ocref_clear~}}
+{{/with}}{{!ocref_clear~}}
+{{#with break_configuration}}
+{{#if use_break_function}}
+
+
+  /* Break Configuration */
+{{#if automatic_output}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableAutomaticOutput'}}
+{{/if}}
+{{#if off_state_run_mode}}
+  {{~assign 'run_mode' 'ENABLE'}}
+{{else}}
+  {{~assign 'run_mode' 'DISABLE'}}
+{{/if}}
+{{#if off_state_idle_mode}}
+  {{~assign 'idle_mode' 'ENABLE'}}
+{{else}}
+  {{~assign 'idle_mode' 'DISABLE'}}
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetOffStates' (concat 'LL_TIM_OSSI_' @root.run_mode) (concat 'LL_TIM_OSSR_' @root.idle_mode)}}
+{{#each breaks}}
+{{#if use_break_line}}
+{{#if (eq _foreignKey 1)}}
+{{assign 'break_number' ''~}}
+{{else if (eq _foreignKey 2)}}
+{{assign 'break_number' '2'~}}
+{{/if}}
+
+  {{helper_common_gen_ll_code_add_subinst (concat 'LL_TIM_BREAK_INPUT_' _foreignKey)~}}
+  /* Break{{@root.break_number}} Configuration */
+{{#with break_input_configuration}}
+{{#if (eq ../_foreignKey 1)}}
+{{#if mode}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigBRK' (concat 'LL_TIM_BREAK_POLARITY_' polarity) (concat 'LL_TIM_BREAK_FILTER_' filter_break) (concat 'LL_TIM_BREAK_AFMODE_' mode)}}
+{{else if filter_break}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigBRK' (concat 'LL_TIM_BREAK_POLARITY_' polarity) (concat 'LL_TIM_BREAK_FILTER_' filter_break)}}
+{{else}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigBRK' (concat 'LL_TIM_BREAK_POLARITY_' polarity)}}
+{{/if}}{{!mode~}}
+{{else}}
+{{#if mode}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigBRK2' (concat 'LL_TIM_BREAK2_POLARITY_' polarity) (concat 'LL_TIM_BREAK2_FILTER_' filter_break) (concat 'LL_TIM_BREAK2_AFMODE_' mode)}}
+{{else if filter_break}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigBRK2' (concat 'LL_TIM_BREAK2_POLARITY_' polarity) (concat 'LL_TIM_BREAK2_FILTER_' filter_break)}}
+{{else}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigBRK2' (concat 'LL_TIM_BREAK2_POLARITY_' polarity)}}
+{{/if}}{{!mode~}}
+{{/if}}{{!_foreignKey~}}
+{{#unless (eq delayed_1_break_duration undefined)}}
+{{#if (helper_tim_check_if_channel_delayed_break 'DELAY1' ../../../../../channels)}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetBreakDelay' "LL_TIM_BREAK_DELAY1" delayed_1_break_duration}}
+{{/if}}
+{{/unless}}{{!delayed_1_break_duration~}}
+{{#unless (eq delayed_2_break_duration undefined)}}
+{{#if (helper_tim_check_if_channel_delayed_break 'DELAY2' ../../../../../channels)}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetBreakDelay' "LL_TIM_BREAK_DELAY2" delayed_2_break_duration}}
+{{/if}}
+{{/unless}}{{!delayed_2_break_duration~}}
+{{/with}}{{!break_input_configuration~}}
+{{assign 'break_input_sources_configuration_comment' false~}}
+{{assign 'en_brk_in_src' ''~}}
+{{#each break_input_sources_configuration}}
+{{#if enable_break_input_source~}}
+{{#unless @root.break_input_sources_configuration_comment}}
+
+  /* Break{{@root.break_number}} Input Sources Configuration */
+{{assign 'break_input_sources_configuration_comment' true~}}
+{{/unless}}
+{{#if polarity}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_SetBreakInputSourcePolarity' (concat 'LL_TIM_' @root.current_resource '_BRK' @root.break_number '_' (helper_tim_convert_break_input _foreignKey)) (concat 'LL_TIM_BREAK_INPUT_SRC_' polarity)}}
+{{/if}}{{!polarity~}}
+{{#unless (eq @root.en_brk_in_src '')}}
+  {{~assign 'en_brk_in_src' (append @root.en_brk_in_src ' | ')~}}
+{{/unless}}{{!en_brk_in_src~}}
+{{~assign 'en_brk_in_src' (append @root.en_brk_in_src (concat 'LL_TIM_' @root.current_resource '_BRK' @root.break_number '_' (helper_tim_convert_break_input _foreignKey)))~}}
+{{/if}}{{!enable_break_input_source~}}
+{{/each}}{{!break_input_sources_configuration~}}
+{{#unless (eq @root.en_brk_in_src '')}}
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_EnableBreakInputSource' @root.en_brk_in_src}}
+{{/unless}}{{!en_brk_in_src~}}
+{{#if enable_break_input}}
+
+  /* Enable Break {{_foreignKey}} Input */
+  {{helper_common_gen_ll_code_subinst 'LL_TIM_EnableBreakInput'}}
+{{/if}}{{!enable_break_input~}}
+{{/if}}{{!use_break_line~}}
+{{/each}}{{!breaks~}}
+{{/if}}{{!use_break_function~}}
+{{/with}}{{!break_configuration~}}
+{{#with deadtime_configuration}}
+{{#if use_deadtime}}
+
+
+  /* Deadtime Configuration */
+{{#if deadtime_preload}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableDeadTimePreload'}}
+{{/if}}
+  {{helper_common_gen_ll_code 'LL_TIM_OC_SetDeadTime' deadtime_rising}}
+{{#if asymmetrical_deadtime}}
+  {{helper_common_gen_ll_code 'LL_TIM_SetFallingDeadTime' deadtime_falling}}
+  {{helper_common_gen_ll_code 'LL_TIM_EnableAsymmetricalDeadTime'}}
+{{/if}}{{!asymmetrical_deadtime~}}
+{{/if}}{{!use_deadtime~}}
+{{/with}}{{!deadtime_configuration~}}
+{{/with}}{{!output_stage~}}
+{{#with dma_burst_configuration}}
+{{#if use_dma_burst}}
+
+
+  /* DMA Burst Configuration */
+{{#if burst_source}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigDMABurst' (concat 'LL_TIM_DMABURST_BASEADDR_' base_address) (concat 'LL_TIM_DMABURST_LENGTH_' burst_length) (concat 'LL_TIM_DMABURST_' burst_source)}}
+{{else}}
+  {{helper_common_gen_ll_code 'LL_TIM_ConfigDMABurst' (concat 'LL_TIM_DMABURST_BASEADDR_' base_address) (concat 'LL_TIM_DMABURST_LENGTH_' burst_length)}}
+{{/if}}{{!burst_source~}}
+{{/if}}{{!use_dma_burst~}}
+{{/with}}{{!dma_burst_configuration~}}
+{{#if (helper_tim_check_if_at_least_one_cc_dma_channel ../system/dma)}}
+
+
+  /* Capture/Compare DMA request selection */
+  {{helper_common_gen_ll_code 'LL_TIM_CC_SetDMAReqTrigger' (concat 'LL_TIM_CCDMAREQUEST_' ccdma_request_selection)}}
+{{/if}}{{!helper_tim_check_if_at_least_one_cc_dma_channel~}}
+{{#if lock_level}}
+{{#unless (eq lock_level 'OFF')}}
+
+
+  /* Lock Level Configuration */
+  {{helper_common_gen_ll_code 'LL_TIM_CC_SetLockLevel' (concat 'LL_TIM_LOCKLEVEL_' lock_level)}}
+{{/unless}}{{!lock_level OFF~}}
+{{/if}}{{!lock_level~}}
+{{/with}}{{!additional~}}
+{{#with system}}
+
+
+{{> GPIO_LL fct='init_resource' resource=@root.current_resource return_if_failed='0'}}
+{{#with nvic}}
+{{#if enable_interruption_global}}
+
+  /* Enable the Timer global interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_global.needs @root.current_resource irq_handler_generation_global)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_global.needs}}
+{{/if}}{{!enable_interruption_global~}}
+{{#if enable_interruption_upd}}
+
+  /* Enable Timer update interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_upd.needs @root.current_resource irq_handler_generation_upd)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_upd.needs}}
+{{/if}}{{!enable_interruption_upd~}}
+{{#if enable_interruption_cc}}
+
+  /* Enable Timer Capture/Compare interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_cc.needs @root.current_resource irq_handler_generation_cc)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_cc.needs}}
+{{/if}}{{!enable_interruption_cc~}}
+{{#if enable_interruption_brk_terr_ierr}}
+
+  /* Enable the Timer Break, Transition error and Index error interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_brk_terr_ierr.needs @root.current_resource irq_handler_generation_brk_terr_ierr)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_brk_terr_ierr.needs}}
+{{/if}}{{!enable_interruption_brk_terr_ierr~}}
+{{#if enable_interruption_trgi_com_dir_idx}}
+
+  /* Enable Timer Trigger, Commutation, Direction change and Index interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config_trgi_com_dir_idx.needs @root.current_resource irq_handler_generation_trgi_com_dir_idx)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config_trgi_com_dir_idx.needs}}
+{{/if}}{{!enable_interruption_trgi_com_dir_idx~}}
+{{/with}}{{!nvic~}}
+{{#with dma}}
+{{#if enable_dma_upd}}
+{{> DMA_LL fct='init' needs=dma_config_upd.needs}}
+{{/if}}{{!enable_dma_upd~}}
+{{#if enable_dma_cc1}}
+{{> DMA_LL fct='init' needs=dma_config_cc1.needs}}
+{{/if}}{{!enable_dma_cc1~}}
+{{#if enable_dma_cc2}}
+{{> DMA_LL fct='init' needs=dma_config_cc2.needs}}
+{{/if}}{{!enable_dma_cc2~}}
+{{#if enable_dma_cc3}}
+{{> DMA_LL fct='init' needs=dma_config_cc3.needs}}
+{{/if}}{{!enable_dma_cc3~}}
+{{#if enable_dma_cc4}}
+{{> DMA_LL fct='init' needs=dma_config_cc4.needs}}
+{{/if}}{{!enable_dma_cc4~}}
+{{#if enable_dma_trgi}}
+{{> DMA_LL fct='init' needs=dma_config_trgi.needs}}
+{{/if}}{{!enable_dma_trgi~}}
+{{#if enable_dma_com}}
+{{> DMA_LL fct='init' needs=dma_config_com.needs}}
+{{/if}}{{!enable_dma_com~}}
+{{/with}}{{!dma~}}
+{{/with}}{{!system}}
+
+  return {{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{#with system}}
+
+{{> GPIO_LL fct='deinit_resource' resource=@root.current_resource}}
+{{#with nvic}}
+{{#if enable_interruption_global}}
+
+  /* Disable Timer global interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_global.needs}}
+{{/if}}{{!enable_interruption_global~}}
+{{#if enable_interruption_upd}}
+
+  /* Disable Timer update interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_upd.needs}}
+{{/if}}{{!enable_interruption_upd~}}
+{{#if enable_interruption_cc}}
+
+  /* Disable Timer Capture/Compare interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_cc.needs}}
+{{/if}}{{!enable_interruption_cc~}}
+{{#if enable_interruption_brk_terr_ierr}}
+
+  /* Disable Timer Break, Transition error and Index error interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_brk_terr_ierr.needs}}
+{{/if}}{{!enable_interruption_brk_terr_ierr~}}
+{{#if enable_interruption_trgi_com_dir_idx}}
+
+  /* Disable Timer Trigger, Commutation, Direction change and Index interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=nvic_config_trgi_com_dir_idx.needs}}
+{{/if}}{{!enable_interruption_trgi_com_dir_idx~}}
+{{/with}}{{!nvic~}}
+{{#with dma}}
+{{#if enable_dma_upd}}
+{{> DMA_LL fct='deinit' needs=dma_config_upd.needs}}
+{{/if}}
+{{#if enable_dma_cc1}}
+{{> DMA_LL fct='deinit' needs=dma_config_cc1.needs}}
+{{/if}}
+{{#if enable_dma_cc2}}
+{{> DMA_LL fct='deinit' needs=dma_config_cc2.needs}}
+{{/if}}
+{{#if enable_dma_cc3}}
+{{> DMA_LL fct='deinit' needs=dma_config_cc3.needs}}
+{{/if}}
+{{#if enable_dma_cc4}}
+{{> DMA_LL fct='deinit' needs=dma_config_cc4.needs}}
+{{/if}}
+{{#if enable_dma_trgi}}
+{{> DMA_LL fct='deinit' needs=dma_config_trgi.needs}}
+{{/if}}
+{{#if enable_dma_com}}
+{{> DMA_LL fct='deinit' needs=dma_config_com.needs}}
+{{/if}}
+{{/with}}{{!dma~}}
+{{/with}}{{!system}}
+}
+
+{{> DMA_LL fct='get_dma_lli_reg' resource=@root.dma_resource strategy=@root.strategy type='implementation'}}
+{{/if}}{{!HAL}}
+{{#with security_privilege}}
+
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Enable clock for RIF/RCC peripherals
+    - Configure the security/privilege items for TIM peripheral
+    - other TIM systems security/privilege configuration if any (DMA/GPIO/EXTI)
+    */
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GTZC fct='gtzc_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/GTZC}}
+
+  {{#if (eq @root.current_layer 'HAL')~}}
+{{#> DMA_HAL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_HAL}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+  {{else}}
+{{#> DMA_LL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_LL}}
+{{#> GPIO_LL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_LL}}
+  {{/if}}
+  return SYSTEM_OK;
+}
+
+{{/with}}{{!security_privilege}}
+{{/with}}{{!@root.tim_cxt}}
+{{/each}}{{!@root.instances}}
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='TIM'}}
+{{/helper_common_beautifier}}

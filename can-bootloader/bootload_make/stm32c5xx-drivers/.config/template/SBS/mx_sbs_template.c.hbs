@@ -1,0 +1,230 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_sbs_template.c.hbs
+  * @brief          : SBS Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{helper_globalize_API @root~}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'SBS' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "SBS template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ----------------------------------------------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+
+/* Private typedef ---------------------------------------------------------------------------------------------------*/
+/* Private define ----------------------------------------------------------------------------------------------------*/
+/* Private macro -----------------------------------------------------------------------------------------------------*/
+/* Private variables -------------------------------------------------------------------------------------------------*/
+/* Private functions prototype----------------------------------------------------------------------------------------*/
+/* Exported variables by reference------------------------------------------------------------------------------------*/
+/* Exported function definition --------------------------------------------------------------------------------------*/
+{{!
+    Generation of handle for each function defined in HAL layer
+    - save a variable to indicate if handle has been already created (only 1 handle by function)
+~}}
+{{#each @root.instances}}
+  {{~assign 'sbs_ctxt' config~}}
+  {{~assign 'current_resource' current_resource~}}
+  {{~assign 'current_layer' @root.sbs_ctxt.info.layer~}}
+{{assign 'lut_table'   (helper_sbs_get_lut_table 'SBSV1')~}}
+{{helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+/******************************************************************************/
+/* Exported functions for SBS in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer '0')~}}
+  {{#with @root.sbs_ctxt}}
+system_status_t {{@root.fct_name}}_init(void)
+{
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{> SBS fct='set_analog_io_switch_supply' layer=@root.current_layer}}
+{{> SBS fct='fast_mode_plus_driving_capability' layer=@root.current_layer}}
+{{> SBS fct='i2c_smbus_selection' layer=@root.current_layer}}
+{{> SBS fct='enable_timer_connections' layer=@root.current_layer}}
+{{> SBS fct='configure_compensation_cells'}}
+{{> SBS fct='flash_eccnmi' layer=@root.current_layer}}
+{{> SBS fct='set_epoch_value' layer=@root.current_layer}}
+{{> SBS fct='set_ethernet_external_phy_interrupt_polarity' layer=@root.current_layer}}
+{{> SBS fct='set_ethernet_phy_interface' layer=@root.current_layer}}
+{{#with system}}
+  {{#if nvic.bridge_error_interruption}}
+
+  {{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic.irq_line_priority.needs @root.current_resource nvic.irq_handler_generation)~}}
+  {{assign 'bridge_error_interruption' nvic.bridge_error_interruption~}}
+  /* Set SBS Interrupt priority*/
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic.irq_line_priority.needs}}
+#warning "Partial CORTEX is not present"
+{{/CORTEX}}
+  {{/if}}
+{{/with}}
+
+  return SYSTEM_OK;
+}
+
+system_status_t {{@root.fct_name}}_deinit(void)
+{
+{{#if @root.bridge_error_interruption}}
+  /* Disable the SBS bridge interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer needs=System.nvic.irq_line_priority.needs}}
+
+{{/if}}
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+  return SYSTEM_OK;
+}
+
+{{#with security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t mx_sbs_config_privilege(void)
+  {{else}}
+system_status_t mx_sbs_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Configure SBS security/privilege/lock
+    - other SBS systems security/privilege configuration if any (DMA/GPIO/EXTI)
+    */
+
+  {{#> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+  {{/RCC}}
+
+  /* Configure security attributes for SBS peripheral */
+  {{#with security}}
+    {{~assign "access_levels_all_states" (helper_sbs_attribute_all_states access_levels)~}}
+    {{#unless @root.access_levels_all_states.allNegative}}
+      {{#if @root.access_levels_all_states.allPositive}}
+        {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_SBS_SetSecAttr(HAL_SBS_SEC_ITEM_ALL, HAL_SBS_SEC) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+        {{else}}
+  LL_SBS_SetSecAttr(LL_SBS_SEC_ITEM_ALL, LL_SBS_ATTR_SEC);
+
+        {{/if}}
+      {{else}}
+        {{~assign "security_items" (helper_sbs_get_attribute_items @root.current_layer 'SEC' access_levels)~}}
+        {{#unless (eq security_items '')}}
+          {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_SBS_SetSecAttr({{@root.security_items}}, HAL_SBS_SEC) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{else}}
+  LL_SBS_SetSecAttr({{@root.security_items}}, LL_SBS_ATTR_SEC);
+
+          {{/if}}
+        {{/unless}}
+      {{/if}}
+    {{/unless}}
+  {{/with}}
+  {{#with privilege}}
+    {{~assign "access_levels_all_states" (helper_sbs_attribute_all_states access_levels)~}}
+    {{#unless @root.access_levels_all_states.allNegative}}
+  /* Configure privilege attributes for SBS peripheral */
+      {{#if @root.access_levels_all_states.allPositive}}
+        {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_SBS_SetPrivAttr(HAL_SBS_PRIV_ITEM_ALL, HAL_SBS_PRIV) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+        {{else}}
+  LL_SBS_SetPrivAttr(LL_SBS_PRIV_ITEM_ALL, LL_SBS_ATTR_PRIV);
+
+        {{/if}}
+      {{else}}
+        {{~assign "privilege_items" (helper_sbs_get_attribute_items @root.current_layer 'PRIV' access_levels)~}}
+        {{#unless (eq privilege_items '')}}
+          {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_SBS_SetPrivAttr({{@root.privilege_items}}, HAL_SBS_PRIV) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{else}}
+  LL_SBS_SetPrivAttr({{@root.privilege_items}}, LL_SBS_ATTR_PRIV);
+
+          {{/if}}
+        {{/unless}}
+      {{/if}}
+    {{/unless}}
+  {{/with}}
+  {{#with lock}}
+    {{~assign "access_levels_all_states" (helper_sbs_attribute_all_states lock_items)~}}
+    {{#unless @root.access_levels_all_states.allNegative}}
+  /* Configure lock attributes for SBS peripheral */
+      {{#if @root.access_levels_all_states.allPositive}}
+        {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_SBS_LockAttr(HAL_SBS_LOCK_ITEM_ALL) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+        {{else}}
+  LL_SBS_LockAttr(LL_SBS_LOCK_ITEM_ALL);
+
+        {{/if}}
+      {{else}}
+        {{~assign "lock_items" (helper_sbs_get_attribute_items @root.current_layer 'LOCK' lock_items)~}}
+        {{#unless (eq lock_items '')}}
+          {{#if (eq @root.current_layer 'HAL')}}
+  if (HAL_SBS_LockAttr({{@root.lock_items}}) != HAL_OK)
+  {
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+          {{else}}
+  LL_SBS_LockAttr({{@root.lock_items}});
+
+          {{/if}}
+        {{/unless}}
+      {{/if}}
+    {{/unless}}
+  {{/with}}
+  {{#if illegal_access}}
+  /* Enable SBS IAC interrupt */
+    {{#if (eq @root.current_layer 'HAL')}}
+  HAL_RIF_IAC_EnableIT(HAL_RIF_IAC_SBS);
+
+    {{else}}
+  LL_RIF_IAC_EnableIT(LL_RIF_SBS);
+
+    {{/if}}
+  {{/if}}
+  {{#if clock}}
+  /* Disable SBS Clock */
+  {{#> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}{{/RCC}}
+  {{/if}}
+
+  return SYSTEM_OK;
+}
+    {{/with}}
+  {{/with}}
+{{/each}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='SBS_BridgeBusError'}}
+{{/helper_common_beautifier}}

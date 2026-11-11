@@ -1,0 +1,346 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_xspi_template.c.hbs
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'XSPI' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "XSPI template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{assign 'dma_resource' @root.codegen_ctxt.dma_resource~}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{@root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+{{> RCC fct='include_rcc'}}
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+{{assign 'xspi_cxt' config~}}
+{{log "XSPI template xspi_cxt:" (toJSON @root.xspi_cxt)~}}
+{{assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.xspi_cxt.info.layer~}}
+{{log "XSPI template current_resource:" @root.current_resource~}}
+{{#if (eq @root.current_layer 'HAL')}}
+static hal_xspi_handle_t h{{@root.current_resource}};
+{{/if}}
+{{/each}}
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.current_resource strategy=@root.codegen_ctxt.strategy}}
+{{assign 'nvic_context' 'undefined'~}}
+
+{{helper_common_initialize_index~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{#each @root.instances}}
+{{assign 'xspi_cxt' config~}}
+{{~assign 'current_resource' current_resource~}}
+{{assign 'current_layer' @root.xspi_cxt.info.layer~}}
+{{assign 'configs' @root.xspi_cxt~}}
+{{assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+/******************************************************************************/
+/* Exported functions for XSPI in {{@root.current_layer}} layer */
+/******************************************************************************/
+{{#with @root.configs}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+{{assign 'current_index' (helper_common_inc_index @root.current_resource)~}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+{{#if (eq @root.current_layer 'HAL')}}
+hal_xspi_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_xspi_config_t xspi_config;
+  hal_xspi_memory_config_t memory_config;
+  hal_xspi_timing_config_t timing_config;
+{{#if (eq basic.memory_config.memory_type 'HYPERBUS')}}
+  hal_xspi_hyperbus_config_t hyperbus_config;
+{{/if}}
+{{#with additional.delay_block_config}}
+{{#if (eq dlyb_state "ON")}}
+  uint32_t p_max_clock_phase;
+{{/if}}
+{{/with}}
+{{#with additional.hsic_configuration}}
+{{#if enable_hsic_config}}
+  hal_xspi_hsic_config_t hsic_config;
+{{/if}}
+{{/with}}
+
+  if (HAL_XSPI_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource~}}
+
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource~}}
+{{assign 'found_xspi_rcc_kernel' true~}}
+
+  /* Main peripheral configuration */
+  memory_config.mode = HAL_XSPI_MEMORY_{{#if additional.mode}}DUAL{{else}}SINGLE{{/if}};
+{{#with basic}}
+{{#with memory_config}}
+  memory_config.type = HAL_XSPI_MEMORY_TYPE_{{memory_type}};
+  memory_config.size_bit = HAL_XSPI_MEMORY_SIZE_{{size_bit}};
+{{#if (not (eq wrap_size_byte undefined))}}
+  memory_config.wrap_size_byte = HAL_XSPI_WRAP_{{wrap_size_byte}};
+{{/if}}
+{{#if (not (eq cs_boundary undefined))}}
+  memory_config.cs_boundary = HAL_XSPI_CS_BOUNDARY_{{cs_boundary}};
+{{/if}}
+{{/with}}
+
+{{#with timing_config}}
+  timing_config.clk_prescaler = {{clk_prescaler}}U;
+  timing_config.shift = HAL_XSPI_SAMPLE_SHIFT_{{#if shift}}HALFCYCLE{{else}}NONE{{/if}};
+{{#if (helper_common_is_defined hold)}}
+  timing_config.hold = HAL_XSPI_DELAY_HOLD_{{#if hold}}QUARTCYCLE{{else}}NONE{{/if}};
+{{/if}}
+{{/with}}
+  timing_config.cs_high_time_cycle = {{memory_config.cs_high_time_cycle}}U;
+{{#if (helper_common_is_defined ../additional.cs_release_time_cycle)}}
+  timing_config.cs_release_time_cycle = {{../additional.cs_release_time_cycle}}U;
+{{/if}}
+{{#if (not (eq memory_config.cs_refresh_time undefined))}}
+  timing_config.cs_refresh_time_cycle = {{memory_config.cs_refresh_time}}U;
+{{/if}}
+{{#if ../additional.delay_block_config.dlyb_state}}
+  timing_config.dlyb_state = HAL_XSPI_DLYB_{{#if (eq ../additional.delay_block_config.dlyb_state "ON")}}ON{{else}}BYPASS{{/if}};
+{{/if}}
+
+{{#if (eq memory_config.memory_type 'HYPERBUS')}}
+{{#with memory_config.hyperbus_config}}
+  hyperbus_config.rw_recovery_time_cycle = {{rw_recovery_time_cycle}}U;
+  hyperbus_config.access_time_cycle = {{access_time_cycle}}U;
+  hyperbus_config.write_zero_latency = HAL_XSPI_WRITE_ZERO_LATENCY_{{#if write_zero_latency}}ENABLED{{else}}DISABLED{{/if}};
+  hyperbus_config.latency_mode = HAL_XSPI_LATENCY_{{latency_mode}};
+{{/with}}
+{{/if}}
+
+  xspi_config.memory = memory_config;
+  xspi_config.timing = timing_config;
+{{#if (eq memory_config.memory_type 'HYPERBUS')}}
+  xspi_config.hyperbus = hyperbus_config;
+{{/if}}
+{{/with}}
+{{! In case hyperbus is selected, hal_xspi_hyperbus_config_t must be added in hal_xspi_memory_config_t structure}}
+
+  if (HAL_XSPI_SetConfig(&h{{@root.current_resource}}, &xspi_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if (not (eq additional.set_fifo_threshold 1))}}
+  if (HAL_XSPI_SetFifoThreshold(&h{{@root.current_resource}}, {{additional.set_fifo_threshold}}U) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if (not (eq additional.cssel undefined))}}
+  if (HAL_XSPI_SetMemorySelection(&h{{@root.current_resource}}, HAL_XSPI_MEMORY_SELECTION_{{additional.cssel}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if (not (eq additional.clock_polarity undefined))}}
+  if (HAL_XSPI_SetClockPolarity(&h{{@root.current_resource}}, HAL_XSPI_CLOCK_{{additional.clock_polarity}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{#if (not (eq additional.acaloff undefined))}}
+{{#if (eq additional.acaloff false)}}
+  if (HAL_XSPI_DisableAutoCalibration(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}
+{{/if}}
+{{#with additional.hsic_configuration}}
+{{#if enable_hsic_config}}
+  /* High-speed interface configuration*/
+  hsic_config.delay_value_type = HAL_XSPI_HSIC_DELAY_CAL_{{delay_value_type}};
+  hsic_config.fine_cal_unit = {{fine_cal_unit}}U;
+  hsic_config.coarse_cal_unit = {{coarse_cal_unit}}U;
+  hsic_config.max_cal = HAL_XSPI_HSIC_MAX_CAL_{{max_cal}};
+
+  if (HAL_XSPI_HSIC_SetConfigDelay(&h{{@root.current_resource}}, &hsic_config) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{/with}}
+
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'}}
+
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+  {{assign 'found_xspi_dma_tx' true~}}
+  /* Configure the DMA TX */
+{{#> DMA_HAL fct='init' needs=dma_config_tx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Transmit DMA handle to the XSPI handle */
+  if (HAL_XSPI_SetTxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! enable_dma_tx~}}
+
+{{#if enable_dma_rx}}
+  {{assign 'found_xspi_dma_rx' true~}}
+  /* Configure the DMA RX */
+{{#> DMA_HAL fct='init' needs=dma_config_rx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Receive DMA handle to the XSPI handle */
+  if (HAL_XSPI_SetRxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! enable_dma_rx~}}
+{{/with}}  {{! dma~}}
+
+{{#with nvic}}
+{{#if enable_interruption}}
+{{assign 'found_xspi_interrupt' true~}}
+  /* Enable the interrupt for XSPI */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context nvic_config.needs @root.current_resource irq_handler_generation)~}}
+{{#> CORTEX fct='init' layer=@root.current_layer needs=nvic_config.needs}}
+#warning "Partial HAL CORTEX is not present"
+{{/CORTEX}}
+{{/if}}{{! enable_interruption~}}
+{{/with}}  {{! nvic~}}
+{{/with}}  {{! system~}}
+
+{{#with additional.delay_block_config}}
+{{#if (eq dlyb_state "ON")}}
+  /* Delay block configuration */
+  if (HAL_XSPI_DLYB_Enable(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{#if auto_evaluate_delay}}
+  if (HAL_XSPI_DLYB_CalculateMaxClockPhase(&h{{@root.current_resource}}, &p_max_clock_phase) != HAL_OK)
+  {
+    return NULL;
+  }
+{{else}}
+  p_max_clock_phase = {{set_config_delay}}U;
+{{/if}}
+
+  if (HAL_XSPI_DLYB_SetConfigDelay(&h{{@root.current_resource}}, p_max_clock_phase) != HAL_OK)
+  {
+    return NULL;
+  }
+{{/if}}
+{{/with}}
+
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_interruption}}
+  /* Disable the interrupt for XSPI */
+{{#> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/CORTEX}}
+
+{{/if}}
+{{> RCC fct='kernel_clock_deinit' hw_resource=@root.current_resource}}
+  (void)HAL_XSPI_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource}}
+
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{#> DMA_HAL fct='deinit' needs=dma_config_tx.needs}}
+{{/DMA_HAL~}}
+{{/if}}
+
+{{#if enable_dma_rx}}
+{{#> DMA_HAL fct='deinit' needs=dma_config_rx.needs}}
+{{/DMA_HAL~}}
+{{/if}}
+{{/with}}  {{! dma~}}
+{{/with}}
+}
+
+{{else}}
+#warning there is no LL driver for this IP
+{{/if}}
+{{/with}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined)~}}
+{{!
+    Generation of getHandle functions used in HAL
+~}}
+hal_xspi_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+{{#with @root.configs}}
+{{#with security_privilege}}
+  {{~assign 'getCurrentEngine' (@root.SwComposerAPI.getCurrentEngine)~}}
+  {{#if (eq @root.getCurrentEngine.secure 'Non-secure')}}
+system_status_t {{@root.fct_name}}_config_privilege(void)
+  {{else}}
+system_status_t {{@root.fct_name}}_config_security_privilege(void)
+  {{/if}}
+{
+  /*
+    Full access security path:
+    - Enable clock for RIF/RCC peripherals
+    - Configure the security/privilege items for XSPI peripheral
+    - other XSPI systems security/privilege configuration if any (DMA/GPIO/EXTI)
+    */
+
+{{#> RIF fct='rif_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/RIF}}
+{{#> GTZC fct='gtzc_config_security' layer=@root.current_layer resource=@root.current_resource}}{{/GTZC}}
+
+{{#> DMA_HAL fct='dma_config_security' resource=@root.current_resource}}{{/DMA_HAL}}
+{{#> GPIO_HAL fct='gpio_config_security' resource=@root.current_resource}}{{/GPIO_HAL}}
+
+  return SYSTEM_OK;
+}
+
+{{/with}}
+{{/with}}{{!root.configs~}}
+{{/each}}
+
+{{> CORTEX fct='generate_irqhandler' type='implementation' component='XSPI'}}
+
+{{/helper_common_beautifier}}

@@ -1,0 +1,201 @@
+{{!
+ * @file Partial used to generate code for USART:
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+~}}
+{{!
+  Partial used for HAL USART:
+  how to use
+  > USART_HAL fct='xxxx' with xxxx:
+    * exported_variables
+    * exported_functions_init
+    * exported_functions_gethandle
+~}}
+{{#if (eq fct 'exported_variables')}}
+/* Handle for {{@root.current_function}} */
+static hal_usart_handle_t h{{@root.current_resource}};
+{{> GPIO_HAL fct='gpio_exti_get_variables' resource=@root.current_resource~}}
+{{> DMA_HAL fct='get_dma_handles' resource=@root.current_resource strategy=@root.strategy}}
+{{else if (eq fct 'exported_functions_init')}}
+hal_usart_handle_t *{{@root.fct_name}}_init(void)
+{
+  hal_usart_config_t usart_config;
+
+  if (HAL_USART_Init(&h{{@root.current_resource}}, HAL_{{uppercase @root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+{{#if basic.clock_last_bit}}
+{{assign 'clock_last_bit' 'ENABLED'}}
+{{else}}
+{{assign 'clock_last_bit' 'DISABLED'}}
+{{/if}}
+
+{{> RCC fct='generate_peripheral_clock_activation' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_kernel_clock' hw_resource=@root.current_resource sw_resource='USART'}}
+{{#with basic}}
+  usart_config.clock_prescaler = HAL_USART_PRESCALER_DIV{{clock_prescaler}};
+  usart_config.word_length = HAL_USART_WORD_LENGTH_{{word_length}}_BIT;
+  usart_config.stop_bits = HAL_USART_STOP_BIT_{{stop_bit}};
+  usart_config.parity = HAL_USART_PARITY_{{parity}};
+  usart_config.direction = HAL_USART_DIRECTION_{{direction}};
+  usart_config.clock_polarity = HAL_USART_CLOCK_POLARITY_{{clock_polarity}};
+  usart_config.clock_phase = HAL_USART_CLOCK_PHASE_{{clock_phase}}_EDGE;
+  usart_config.clock_last_bit = HAL_USART_CLOCK_LAST_BIT_{{@root.clock_last_bit}};
+  usart_config.mode = HAL_USART_MODE_{{mode}};
+  usart_config.baud_rate = {{baud_rate}}U;
+{{/with~}}{{!basic}}
+
+  if (HAL_USART_SetConfig(&h{{@root.current_resource}}, &usart_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#with additional}}
+{{#with autonomous_mode}}
+{{#if am_enable_packet_trigger}}
+  hal_usart_am_config_t usart_am_config;
+  usart_am_config.source = HAL_USART_AM_TRIG_{{source.source}};
+  usart_am_config.trigger_polarity = HAL_USART_AM_TRIG_{{trigger_polarity}};
+  usart_am_config.packet_size_byte = {{packet_size_byte}}U;
+
+  if (HAL_USART_AM_SetConfigPacketTrigger(&h{{@root.current_resource}}, &usart_am_config) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{#if am_enable_idle}}
+  if (HAL_USART_AM_EnableIdle(&h{{@root.current_resource}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if~}}{{!am_enable_idle}}
+{{/if~}}{{!am_enable_packet_trigger}}
+{{/with~}}{{!autonomous_mode}}
+{{#if slave_select}}
+ hal_usart_slave_select_config_t usart_slave_select_config;
+ usart_slave_select_config = HAL_USART_SLAVE_SELECT_PIN_USED;
+
+ if (HAL_USART_SetSlaveSelect(&h{{@root.current_resource}}, usart_slave_select_config) != HAL_OK)
+ {
+    return NULL;
+ }
+
+{{/if~}}{{!slave_select}}
+{{#if enable_fifo_mode}}
+ hal_usart_fifo_threshold_t tx_fifo_threshold;
+ tx_fifo_threshold = HAL_USART_FIFO_THRESHOLD_{{set_tx_fifo_threshold}};
+ if (HAL_USART_SetTxFifoThreshold(&h{{@root.current_resource}}, tx_fifo_threshold) != HAL_OK)
+ {
+    return NULL;
+ }
+
+ hal_usart_fifo_threshold_t rx_fifo_threshold;
+ rx_fifo_threshold = HAL_USART_FIFO_THRESHOLD_{{set_rx_fifo_threshold}};
+ if (HAL_USART_SetRxFifoThreshold(&h{{@root.current_resource}}, rx_fifo_threshold) != HAL_OK)
+ {
+    return NULL;
+ }
+
+ if(HAL_USART_EnableFifoMode(&h{{@root.current_resource}}) != HAL_OK)
+ {
+    return NULL;
+ }
+
+{{/if~}}{{!enable_fifo_mode}}
+{{/with~}}{{!additional}}
+{{> GPIO_HAL fct='init_resource' resource=@root.current_resource return_if_failed='NULL'~}}
+{{#with system}}
+{{#with nvic}}
+{{#if enable_interruption}}
+  /* Enable interrupt */
+{{assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context  @root.nvic_context nvic_config.needs @root.current_resource irq_handler_generation)~}}
+{{> CORTEX fct='init' layer=@root.current_layer needs=nvic_config.needs}}
+{{/if}}
+{{/with}}{{!nvic}}
+
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{assign 'found_usart_dma_tx' true~}}
+  /* Configure the DMA TX */
+{{#> DMA_HAL fct='init' needs=dma_config_tx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Transmit DMA handle to the USART handle */
+  if (HAL_USART_SetTxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! enable_dma_tx~}}
+{{#if enable_dma_rx}}
+{{assign 'found_usart_dma_rx' true~}}
+  /* Configure the DMA RX */
+{{#> DMA_HAL fct='init' needs=dma_config_rx.needs}}
+{{/DMA_HAL}}
+
+  /* Link the Receive DMA handle to the USART handle */
+  if (HAL_USART_SetRxDMA(&h{{@root.current_resource}}, &h{{@root.dma_channel_instance}}) != HAL_OK)
+  {
+    return NULL;
+  }
+
+{{/if}}{{! enable_dma_rx~}}
+{{/with}}{{!dma}}
+{{/with}}{{!system}}
+  return &h{{@root.current_resource}};
+}
+
+void {{@root.fct_name}}_deinit(void)
+{
+{{#if system.nvic.enable_interruption}}
+  /* Disable interrupt */
+{{> CORTEX fct='deinit' layer=@root.current_layer}}
+{{/if~}}
+  (void)HAL_USART_DeInit(&h{{@root.current_resource}});
+
+{{> RCC fct='generate_peripheral_clock_reset' hw_resource=@root.current_resource}}
+{{> RCC fct='generate_peripheral_clock_deactivation' hw_resource=@root.current_resource}}
+
+{{> GPIO_HAL fct='deinit_resource' resource=@root.current_resource~}}
+{{#with system}}
+{{#with dma}}
+{{#if enable_dma_tx}}
+{{> DMA_HAL fct='deinit' needs=dma_config_tx.needs~}}
+
+{{/if~}}
+{{#if enable_dma_rx}}
+{{> DMA_HAL fct='deinit' needs=dma_config_rx.needs~}}
+{{/if~}}
+{{/with}}{{! dma~}}
+{{/with}}{{! system~}}
+}
+
+{{else if (eq fct 'exported_functions_gethandle')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined @root.current_function)~}}
+hal_usart_handle_t *{{@root.fct_name}}_gethandle(void)
+{
+  return &h{{@root.current_resource}};
+}
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='implementation'}}
+
+{{else if (eq fct 'exported_functions_gethandle_prototype')}}
+{{assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer undefined @root.current_function)~}}
+/**
+  * @brief  Get the {{@root.current_resource}}{{addConfigLC @root.current_function}} object.
+  * @retval Pointer on the {{@root.current_resource}} Handle
+  */
+hal_usart_handle_t *{{@root.fct_name}}_gethandle(void);
+
+{{> GPIO_HAL fct='gpio_exti_gethandle' resource=@root.current_resource type='prototype'}}
+{{else}}
+#warning "step {{fct}} in partial USART_HAL not managed"
+{{/if}}

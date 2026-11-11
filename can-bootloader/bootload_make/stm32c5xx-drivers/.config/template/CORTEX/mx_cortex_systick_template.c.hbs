@@ -1,0 +1,180 @@
+{{!--
+  ******************************************************************************
+  * @file           : mx_cortex_systick_template.c.hbs
+  * @brief          : {{uppercase @root.current_resource}} Peripheral initialization
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2026 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  ~--}}
+{{#helper_common_beautifier}}
+{{assign "codegen_ctxt" (helper_common_get_codegen_context 'CORTEX_SYSTICK' (get '') @root.EnvVarAPI @root.peripheralsResourceManagerAPI @root.SWConfigurationAPI)~}}
+{{log "CORTEX_SYSTICK template codegen_ctxt:" @root.codegen_ctxt~}}
+{{assign 'strategy' @root.codegen_ctxt.strategy~}}
+{{assign 'current_resource' @root.codegen_ctxt.current_resource~}}
+{{assign 'instances' @root.codegen_ctxt.instances~}}
+{{> SYSTEM fct='system_check_ll_optim'}}
+/**
+  ******************************************************************************
+  * @file           : mx_{{lowercase @root.current_resource}}.c
+  * @brief          : {{uppercase @root.current_resource}} Peripheral initialization
+{{> LICENSE}}
+
+
+/* Includes ------------------------------------------------------------------*/
+#include "mx_{{lowercase @root.current_resource}}.h"
+
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+/* Private macro -------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
+/* Private functions prototype------------------------------------------------*/
+/* Exported variables by reference--------------------------------------------*/
+{{#each @root.instances~}}
+  {{~assign 'cortex_systick_cxt' config~}}
+    {{~log "CORTEX SYSTICK template cortex_systick_cxt:" (toJSON @root.cortex_systick_cxt)~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_systick_cxt.info.layer~}}
+    {{~log "CORTEX SYSTICK template current_resource:" @root.current_resource~}}
+{{/each}}
+{{helper_common_initialize_index~}}
+{{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+{{~assign 'nvic_context' 'undefined'~}}
+{{#each @root.instances}}
+  {{~assign 'cortex_systick_cxt' config~}}
+    {{~assign 'current_resource' current_resource~}}
+    {{~assign 'current_layer' @root.cortex_systick_cxt.info.layer~}}
+    {{~assign 'current_index' (helper_common_get_index @root.current_resource)~}}
+  {{! Initialize the context for LL code optimization ~}}
+  {{!~assign 'lut_table' (helper_cortex_systick_get_lut_table 'CORTEX SYSTICKV1')~}}
+  {{!~helper_common_initialize_ll_code @root.optim_enable @root.lut_table @root.current_resource~}}
+  {{~log "CORTEX SYSTICK template instance:" (toJSON this)~}}
+/******************************************************************************/
+/* Exported functions for {{uppercase @root.current_resource}} in {{@root.current_layer}} layer */
+/******************************************************************************/
+  {{~assign 'fct_name' (helper_common_get_generated_function_name @root.current_resource @root.current_layer @root.current_index)~}}
+  {{~assign 'current_index' (helper_common_inc_index @root.current_resource)}}
+  {{#with @root.cortex_systick_cxt}}
+    {{~assign 'get_timebase' (@root.EnvVarAPI.getVariableValue 'CORE_PROJECT_TIMEBASE')~}}
+    {{~log 'CORTEX_SYSTICK template: get_timebase=' @root.get_timebase~}}
+    {{#if (eq @root.current_layer 'HAL')}}
+{{!
+    Generation of initialization function used in HAL
+~}}
+system_status_t mx_cortex_systick_init(void)
+{
+  system_status_t status = SYSTEM_OK;
+
+  HAL_CORTEX_SYSTICK_Suspend();
+
+      {{~#with system.nvic}}
+        {{#if (and enable_interruption (eq enable_interruption true))}}
+
+
+{{> CORTEX fct='cortex_system_lines' system_line='SysTick'}}
+          {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context irq_config1.needs @root.current_resource irq_handler_generation)}}
+        {{~/if}}
+      {{~/with}}{{! system.nvic}}
+
+
+  HAL_CORTEX_SYSTICK_SetClkSource(HAL_CORTEX_SYSTICK_CLKSOURCE_{{basic.clock_source}});
+
+  if (HAL_CORTEX_SYSTICK_SetFreq(HAL_TICK_FREQ_{{basic.tick_frequency}}) != HAL_OK)
+  {
+    status = SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  {{#if (not (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true)))}}
+  /* Systick interruption is enabled during HAL_CORTEX_SYSTICK_SetFreq */
+  HAL_CORTEX_SYSTICK_Suspend();
+  {{/if}}
+
+  return status;
+}
+
+void mx_cortex_systick_deinit(void)
+{
+  {{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  HAL_CORTEX_SYSTICK_Suspend();
+  {{/if}}
+  SysTick_Disable();
+}
+
+    {{else}}
+{{!
+    Generation of initialization function used in LL
+~}}
+system_status_t mx_cortex_systick_init(void)
+{
+  uint32_t systick_frequency = 0U;
+
+  SysTick_DisableIT();
+
+      {{~#with system.nvic}}
+        {{#if (and enable_interruption (eq enable_interruption true))}}
+
+
+{{> CORTEX fct='cortex_system_lines' system_line='SysTick'}}
+          {{~assign 'nvic_context' (helper_cortex_nvic_concatenate_irq_context @root.nvic_context irq_config1.needs @root.current_resource false)}}
+        {{~/if}}
+      {{~/with}}{{! system.nvic}}
+
+      {{#if (eq basic.clock_source "INTERNAL")}}
+  /* Set the SysTick clock source to internal */
+  SysTick_SetClkSource(SysTick_CTRL_CLKSOURCE_Msk);
+
+  /* The SysTick clock source is the CPU clock, get the CPU clock frequency */
+  systick_frequency = {{> RCC fct='generate_systick_frequency_computation' external=false}};
+      {{else}}{{! external clock source }}
+  /* Set the SysTick clock source to external */
+  SysTick_SetClkSource(0);
+
+  /* The SysTick clock source is external (RCC). Get its frequency */
+  systick_frequency = {{> RCC fct='generate_systick_frequency_computation' external=true}};
+      {{/if}}{{! clock_source == INTERNAL }}
+
+  {{#if (eq basic.tick_frequency "10HZ")}}
+  systick_frequency /= 100U;
+  {{else if (eq basic.tick_frequency "100HZ")}}
+  systick_frequency /= 10U;
+  {{/if}}{{! tick_frequency == 10HZ}}
+
+  /* Set the SysTick reload counter according to the ticks frequency */
+  if (SysTick_SetReload(systick_frequency) == 1U)
+  {
+    /* Reload value impossible */
+    return SYSTEM_PERIPHERAL_ERROR;
+  }
+
+  /* Load the SysTick counter Value */
+  SysTick_SetCounter(0UL);
+
+  SysTick_Enable();
+  {{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  SysTick_EnableIT();
+  {{/if}}
+
+  return SYSTEM_OK;
+}
+
+void mx_cortex_systick_deinit(void)
+{
+  {{#if (and system.nvic.enable_interruption (eq system.nvic.enable_interruption true))}}
+  SysTick_DisableIT();
+  {{/if}}
+  SysTick_Disable();
+}
+
+    {{/if}}
+  {{/with}}
+{{/each}}{{! instances~}}
+
+{{> CORTEX fct='generate_handler' type='implementation' component='CORTEX_SYSTICK'}}
+{{/helper_common_beautifier}}

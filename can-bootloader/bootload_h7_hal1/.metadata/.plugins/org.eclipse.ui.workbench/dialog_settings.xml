@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="NewImportWizardAction">
+		<section name="STM32ProjectCreationImportWizard.dialogBounds">
+		</section>
+	</section>
+	<section name="ImportExportAction">
+		<item key="ImportExportPage.STORE_SELECTED_IMPORT_WIZARD_ID" value="org.eclipse.cdt.ui.wizards.NewMakeFromExisting"/>
+		<list key="ImportExportPage.STORE_EXPANDED_IMPORT_CATEGORIES">
+			<item value="com.st.stm32cube.ide.mcu.ide.category.import"/>
+		</list>
+		<section name="ImportExportWizard.dialogBounds">
+		</section>
+	</section>
+</section>

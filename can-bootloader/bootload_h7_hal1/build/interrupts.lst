@@ -1,0 +1,381 @@
+ARM GAS  /tmp/ccw9QUsw.s 			page 1
+
+
+   1              		.cpu cortex-m7
+   2              		.arch armv7e-m
+   3              		.fpu fpv5-d16
+   4              		.eabi_attribute 28, 1
+   5              		.eabi_attribute 20, 1
+   6              		.eabi_attribute 21, 1
+   7              		.eabi_attribute 23, 3
+   8              		.eabi_attribute 24, 1
+   9              		.eabi_attribute 25, 1
+  10              		.eabi_attribute 26, 1
+  11              		.eabi_attribute 30, 1
+  12              		.eabi_attribute 34, 1
+  13              		.eabi_attribute 18, 4
+  14              		.file	"interrupts.c"
+  15              		.text
+  16              	.Ltext0:
+  17              		.cfi_sections	.debug_frame
+  18              		.file 1 "Core/Src/interrupts.c"
+  19              		.section	.text.push_interrupt,"ax",%progbits
+  20              		.align	1
+  21              		.global	push_interrupt
+  22              		.syntax unified
+  23              		.thumb
+  24              		.thumb_func
+  26              	push_interrupt:
+  27              	.LVL0:
+  28              	.LFB149:
+   1:Core/Src/interrupts.c **** /*
+   2:Core/Src/interrupts.c ****  * interrupts.c
+   3:Core/Src/interrupts.c ****  *
+   4:Core/Src/interrupts.c ****  *  Created on: Sep 25, 2026
+   5:Core/Src/interrupts.c ****  *      Author: elias-gravdal
+   6:Core/Src/interrupts.c ****  */
+   7:Core/Src/interrupts.c **** 
+   8:Core/Src/interrupts.c **** #include <stdint.h>
+   9:Core/Src/interrupts.c **** #include "main.h"
+  10:Core/Src/interrupts.c **** #include "boot.h"
+  11:Core/Src/interrupts.c **** #include "interrupts.h"
+  12:Core/Src/interrupts.c **** 
+  13:Core/Src/interrupts.c **** int (*ifns[])(void* payload) =
+  14:Core/Src/interrupts.c **** {
+  15:Core/Src/interrupts.c **** 		[FI_SEND_INIT] = boot_send_init,
+  16:Core/Src/interrupts.c **** 		[FI_CAN_RECVD] = boot_can_recvdcallback,
+  17:Core/Src/interrupts.c **** 		[FI_CAN_SENT] = boot_can_sentcallback,
+  18:Core/Src/interrupts.c **** 		[FI_CAN_ERR] = boot_can_errcallback,
+  19:Core/Src/interrupts.c **** 		[FI_FLASH_ERASED] = boot_flash_erasedcallback,
+  20:Core/Src/interrupts.c **** 		[FI_FLASH_PROGD] = boot_flash_progdcallback,
+  21:Core/Src/interrupts.c **** 		[FI_FLASH_ERR] = boot_flash_errcallback,
+  22:Core/Src/interrupts.c **** };
+  23:Core/Src/interrupts.c **** int interrupted = 0; // 0 for no interrupt, n for interrupt vector, large n for break (over 0xffff)
+  24:Core/Src/interrupts.c **** uint8_t indices[256];
+  25:Core/Src/interrupts.c **** void* payloads[256];
+  26:Core/Src/interrupts.c **** uint8_t start = 0;
+  27:Core/Src/interrupts.c **** uint8_t end = 0;
+  28:Core/Src/interrupts.c **** uint8_t full = 0;
+  29:Core/Src/interrupts.c **** 
+  30:Core/Src/interrupts.c **** // they are chars, so will overflow on 256, this is intentional;
+ARM GAS  /tmp/ccw9QUsw.s 			page 2
+
+
+  31:Core/Src/interrupts.c **** int push_interrupt(uint8_t type, uint8_t index, void* payload)
+  32:Core/Src/interrupts.c **** {
+  29              		.loc 1 32 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  33:Core/Src/interrupts.c **** 	interrupted += type;
+  34              		.loc 1 33 2 view .LVU1
+  35              		.loc 1 33 14 is_stmt 0 view .LVU2
+  36 0000 DFF854C0 		ldr	ip, .L6+16
+  37 0004 DCF80030 		ldr	r3, [ip]
+  38 0008 0344     		add	r3, r3, r0
+  39 000a CCF80030 		str	r3, [ip]
+  34:Core/Src/interrupts.c **** 	if(full)
+  40              		.loc 1 34 2 is_stmt 1 view .LVU3
+  41              		.loc 1 34 5 is_stmt 0 view .LVU4
+  42 000e 0E4B     		ldr	r3, .L6
+  43 0010 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  44              		.loc 1 34 4 view .LVU5
+  45 0012 B3B9     		cbnz	r3, .L4
+  35:Core/Src/interrupts.c **** 	{
+  36:Core/Src/interrupts.c **** 		return -1;
+  37:Core/Src/interrupts.c **** 	}
+  38:Core/Src/interrupts.c **** 	indices[end] = index;
+  46              		.loc 1 38 2 is_stmt 1 view .LVU6
+  47              		.loc 1 38 9 is_stmt 0 view .LVU7
+  48 0014 DFF844C0 		ldr	ip, .L6+20
+  49 0018 9CF80000 		ldrb	r0, [ip]	@ zero_extendqisi2
+  50              	.LVL1:
+  51              		.loc 1 38 15 view .LVU8
+  52 001c 0B4B     		ldr	r3, .L6+4
+  53 001e 1954     		strb	r1, [r3, r0]
+  39:Core/Src/interrupts.c **** 	payloads[end++] = payload;
+  54              		.loc 1 39 2 is_stmt 1 view .LVU9
+  55              		.loc 1 39 14 is_stmt 0 view .LVU10
+  56 0020 431C     		adds	r3, r0, #1
+  57 0022 DBB2     		uxtb	r3, r3
+  58 0024 8CF80030 		strb	r3, [ip]
+  59              		.loc 1 39 18 view .LVU11
+  60 0028 0949     		ldr	r1, .L6+8
+  61              	.LVL2:
+  62              		.loc 1 39 18 view .LVU12
+  63 002a 41F82020 		str	r2, [r1, r0, lsl #2]
+  40:Core/Src/interrupts.c **** 	if(end == start)
+  64              		.loc 1 40 2 is_stmt 1 view .LVU13
+  65              		.loc 1 40 9 is_stmt 0 view .LVU14
+  66 002e 094A     		ldr	r2, .L6+12
+  67              	.LVL3:
+  68              		.loc 1 40 9 view .LVU15
+  69 0030 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+  70              		.loc 1 40 4 view .LVU16
+  71 0032 9342     		cmp	r3, r2
+  72 0034 01D0     		beq	.L5
+  73              	.L3:
+  41:Core/Src/interrupts.c **** 	{
+  42:Core/Src/interrupts.c **** 		full = 1;
+ARM GAS  /tmp/ccw9QUsw.s 			page 3
+
+
+  43:Core/Src/interrupts.c **** 	}
+  44:Core/Src/interrupts.c **** 	return 0;
+  74              		.loc 1 44 9 view .LVU17
+  75 0036 0020     		movs	r0, #0
+  76              	.LVL4:
+  77              		.loc 1 44 9 view .LVU18
+  78 0038 7047     		bx	lr
+  79              	.L5:
+  42:Core/Src/interrupts.c **** 	}
+  80              		.loc 1 42 3 is_stmt 1 view .LVU19
+  42:Core/Src/interrupts.c **** 	}
+  81              		.loc 1 42 8 is_stmt 0 view .LVU20
+  82 003a 034B     		ldr	r3, .L6
+  83 003c 0122     		movs	r2, #1
+  84 003e 1A70     		strb	r2, [r3]
+  85 0040 F9E7     		b	.L3
+  86              	.LVL5:
+  87              	.L4:
+  36:Core/Src/interrupts.c **** 	}
+  88              		.loc 1 36 10 view .LVU21
+  89 0042 4FF0FF30 		mov	r0, #-1
+  90              	.LVL6:
+  45:Core/Src/interrupts.c **** }
+  91              		.loc 1 45 1 view .LVU22
+  92 0046 7047     		bx	lr
+  93              	.L7:
+  94              		.align	2
+  95              	.L6:
+  96 0048 00000000 		.word	full
+  97 004c 00000000 		.word	indices
+  98 0050 00000000 		.word	payloads
+  99 0054 00000000 		.word	start
+ 100 0058 00000000 		.word	interrupted
+ 101 005c 00000000 		.word	end
+ 102              		.cfi_endproc
+ 103              	.LFE149:
+ 105              		.section	.text.interrupt_loop,"ax",%progbits
+ 106              		.align	1
+ 107              		.global	interrupt_loop
+ 108              		.syntax unified
+ 109              		.thumb
+ 110              		.thumb_func
+ 112              	interrupt_loop:
+ 113              	.LFB150:
+  46:Core/Src/interrupts.c **** 
+  47:Core/Src/interrupts.c **** int interrupt_loop(void)
+  48:Core/Src/interrupts.c **** {
+ 114              		.loc 1 48 1 is_stmt 1 view -0
+ 115              		.cfi_startproc
+ 116              		@ args = 0, pretend = 0, frame = 0
+ 117              		@ frame_needed = 0, uses_anonymous_args = 0
+ 118 0000 08B5     		push	{r3, lr}
+ 119              	.LCFI0:
+ 120              		.cfi_def_cfa_offset 8
+ 121              		.cfi_offset 3, -8
+ 122              		.cfi_offset 14, -4
+ 123 0002 16E0     		b	.L9
+ARM GAS  /tmp/ccw9QUsw.s 			page 4
+
+
+ 124              	.L13:
+  49:Core/Src/interrupts.c **** 	for(;1;)
+  50:Core/Src/interrupts.c **** 	{
+  51:Core/Src/interrupts.c **** 		__WFI();
+  52:Core/Src/interrupts.c **** 
+  53:Core/Src/interrupts.c **** 		if(!interrupted)
+  54:Core/Src/interrupts.c **** 		{
+  55:Core/Src/interrupts.c **** 			continue;
+  56:Core/Src/interrupts.c **** 		}
+  57:Core/Src/interrupts.c **** 		if(interrupted > 0xffff)
+  58:Core/Src/interrupts.c **** 			break;
+  59:Core/Src/interrupts.c **** 		for(; start != end || full; start++)
+  60:Core/Src/interrupts.c **** 		{
+  61:Core/Src/interrupts.c **** 			ifns[indices[start]](payloads[start]);
+ 125              		.loc 1 61 4 view .LVU24
+ 126              		.loc 1 61 16 is_stmt 0 view .LVU25
+ 127 0004 114A     		ldr	r2, .L15
+ 128 0006 D15C     		ldrb	r1, [r2, r3]	@ zero_extendqisi2
+ 129              		.loc 1 61 8 view .LVU26
+ 130 0008 114A     		ldr	r2, .L15+4
+ 131 000a 52F82120 		ldr	r2, [r2, r1, lsl #2]
+ 132              		.loc 1 61 4 view .LVU27
+ 133 000e 1149     		ldr	r1, .L15+8
+ 134 0010 51F82300 		ldr	r0, [r1, r3, lsl #2]
+ 135 0014 9047     		blx	r2
+ 136              	.LVL7:
+  59:Core/Src/interrupts.c **** 		{
+ 137              		.loc 1 59 36 is_stmt 1 discriminator 1 view .LVU28
+ 138 0016 104A     		ldr	r2, .L15+12
+ 139 0018 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
+ 140 001a 0133     		adds	r3, r3, #1
+ 141 001c 1370     		strb	r3, [r2]
+ 142              	.L12:
+  59:Core/Src/interrupts.c **** 		{
+ 143              		.loc 1 59 22 discriminator 2 view .LVU29
+  59:Core/Src/interrupts.c **** 		{
+ 144              		.loc 1 59 15 is_stmt 0 discriminator 2 view .LVU30
+ 145 001e 0E4B     		ldr	r3, .L15+12
+ 146 0020 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 147 0022 0E4A     		ldr	r2, .L15+16
+ 148 0024 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+  59:Core/Src/interrupts.c **** 		{
+ 149              		.loc 1 59 22 discriminator 2 view .LVU31
+ 150 0026 9342     		cmp	r3, r2
+ 151 0028 ECD1     		bne	.L13
+  59:Core/Src/interrupts.c **** 		{
+ 152              		.loc 1 59 22 discriminator 3 view .LVU32
+ 153 002a 0D4A     		ldr	r2, .L15+20
+ 154 002c 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 155 002e 002A     		cmp	r2, #0
+ 156 0030 E8D1     		bne	.L13
+ 157              	.L9:
+  49:Core/Src/interrupts.c **** 	for(;1;)
+ 158              		.loc 1 49 2 is_stmt 1 view .LVU33
+  51:Core/Src/interrupts.c **** 
+ 159              		.loc 1 51 3 view .LVU34
+ 160              		.syntax unified
+ARM GAS  /tmp/ccw9QUsw.s 			page 5
+
+
+ 161              	@ 51 "Core/Src/interrupts.c" 1
+ 162 0032 30BF     		wfi
+ 163              	@ 0 "" 2
+  53:Core/Src/interrupts.c **** 		{
+ 164              		.loc 1 53 3 view .LVU35
+  53:Core/Src/interrupts.c **** 		{
+ 165              		.loc 1 53 6 is_stmt 0 view .LVU36
+ 166              		.thumb
+ 167              		.syntax unified
+ 168 0034 0B4B     		ldr	r3, .L15+24
+ 169 0036 1B68     		ldr	r3, [r3]
+  53:Core/Src/interrupts.c **** 		{
+ 170              		.loc 1 53 5 view .LVU37
+ 171 0038 002B     		cmp	r3, #0
+ 172 003a FAD0     		beq	.L9
+  57:Core/Src/interrupts.c **** 			break;
+ 173              		.loc 1 57 3 is_stmt 1 view .LVU38
+  57:Core/Src/interrupts.c **** 			break;
+ 174              		.loc 1 57 5 is_stmt 0 view .LVU39
+ 175 003c B3F5803F 		cmp	r3, #65536
+ 176 0040 EDDB     		blt	.L12
+  62:Core/Src/interrupts.c **** 		}
+  63:Core/Src/interrupts.c **** 	}
+  64:Core/Src/interrupts.c **** 	err(2);
+ 177              		.loc 1 64 2 is_stmt 1 view .LVU40
+ 178 0042 0220     		movs	r0, #2
+ 179 0044 FFF7FEFF 		bl	err
+ 180              	.LVL8:
+  65:Core/Src/interrupts.c **** 
+  66:Core/Src/interrupts.c **** 	return 0;
+ 181              		.loc 1 66 2 view .LVU41
+  67:Core/Src/interrupts.c **** }
+ 182              		.loc 1 67 1 is_stmt 0 view .LVU42
+ 183 0048 0020     		movs	r0, #0
+ 184 004a 08BD     		pop	{r3, pc}
+ 185              	.L16:
+ 186              		.align	2
+ 187              	.L15:
+ 188 004c 00000000 		.word	indices
+ 189 0050 00000000 		.word	ifns
+ 190 0054 00000000 		.word	payloads
+ 191 0058 00000000 		.word	start
+ 192 005c 00000000 		.word	end
+ 193 0060 00000000 		.word	full
+ 194 0064 00000000 		.word	interrupted
+ 195              		.cfi_endproc
+ 196              	.LFE150:
+ 198              		.global	full
+ 199              		.section	.bss.full,"aw",%nobits
+ 202              	full:
+ 203 0000 00       		.space	1
+ 204              		.global	end
+ 205              		.section	.bss.end,"aw",%nobits
+ 208              	end:
+ 209 0000 00       		.space	1
+ 210              		.global	start
+ 211              		.section	.bss.start,"aw",%nobits
+ARM GAS  /tmp/ccw9QUsw.s 			page 6
+
+
+ 214              	start:
+ 215 0000 00       		.space	1
+ 216              		.global	payloads
+ 217              		.section	.bss.payloads,"aw",%nobits
+ 218              		.align	2
+ 221              	payloads:
+ 222 0000 00000000 		.space	1024
+ 222      00000000 
+ 222      00000000 
+ 222      00000000 
+ 222      00000000 
+ 223              		.global	indices
+ 224              		.section	.bss.indices,"aw",%nobits
+ 225              		.align	2
+ 228              	indices:
+ 229 0000 00000000 		.space	256
+ 229      00000000 
+ 229      00000000 
+ 229      00000000 
+ 229      00000000 
+ 230              		.global	interrupted
+ 231              		.section	.bss.interrupted,"aw",%nobits
+ 232              		.align	2
+ 235              	interrupted:
+ 236 0000 00000000 		.space	4
+ 237              		.global	ifns
+ 238              		.section	.data.ifns,"aw"
+ 239              		.align	2
+ 242              	ifns:
+ 243 0000 00000000 		.word	boot_send_init
+ 244 0004 00000000 		.word	boot_can_recvdcallback
+ 245 0008 00000000 		.word	boot_can_sentcallback
+ 246 000c 00000000 		.word	boot_can_errcallback
+ 247 0010 00000000 		.word	boot_flash_erasedcallback
+ 248 0014 00000000 		.word	boot_flash_progdcallback
+ 249 0018 00000000 		.word	boot_flash_errcallback
+ 250              		.text
+ 251              	.Letext0:
+ 252              		.file 2 "/usr/arm-none-eabi/include/machine/_default_types.h"
+ 253              		.file 3 "/usr/arm-none-eabi/include/sys/_stdint.h"
+ 254              		.file 4 "Core/Inc/boot.h"
+ 255              		.file 5 "Core/Inc/interrupts.h"
+ 256              		.file 6 "Core/Inc/main.h"
+ARM GAS  /tmp/ccw9QUsw.s 			page 7
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 interrupts.c
+     /tmp/ccw9QUsw.s:20     .text.push_interrupt:00000000 $t
+     /tmp/ccw9QUsw.s:26     .text.push_interrupt:00000000 push_interrupt
+     /tmp/ccw9QUsw.s:96     .text.push_interrupt:00000048 $d
+     /tmp/ccw9QUsw.s:202    .bss.full:00000000 full
+     /tmp/ccw9QUsw.s:228    .bss.indices:00000000 indices
+     /tmp/ccw9QUsw.s:221    .bss.payloads:00000000 payloads
+     /tmp/ccw9QUsw.s:214    .bss.start:00000000 start
+     /tmp/ccw9QUsw.s:235    .bss.interrupted:00000000 interrupted
+     /tmp/ccw9QUsw.s:208    .bss.end:00000000 end
+     /tmp/ccw9QUsw.s:106    .text.interrupt_loop:00000000 $t
+     /tmp/ccw9QUsw.s:112    .text.interrupt_loop:00000000 interrupt_loop
+     /tmp/ccw9QUsw.s:188    .text.interrupt_loop:0000004c $d
+     /tmp/ccw9QUsw.s:242    .data.ifns:00000000 ifns
+     /tmp/ccw9QUsw.s:203    .bss.full:00000000 $d
+     /tmp/ccw9QUsw.s:209    .bss.end:00000000 $d
+     /tmp/ccw9QUsw.s:215    .bss.start:00000000 $d
+     /tmp/ccw9QUsw.s:218    .bss.payloads:00000000 $d
+     /tmp/ccw9QUsw.s:225    .bss.indices:00000000 $d
+     /tmp/ccw9QUsw.s:232    .bss.interrupted:00000000 $d
+     /tmp/ccw9QUsw.s:239    .data.ifns:00000000 $d
+
+UNDEFINED SYMBOLS
+err
+boot_send_init
+boot_can_recvdcallback
+boot_can_sentcallback
+boot_can_errcallback
+boot_flash_erasedcallback
+boot_flash_progdcallback
+boot_flash_errcallback
