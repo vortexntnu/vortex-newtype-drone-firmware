@@ -15,8 +15,6 @@
 #include "can.h"
 
 #define TX_LEN 8
-/* Buffer used for reception */
-uint8_t RxBuffer[64]; // max fdcan size
 
 /* Private functions prototype -----------------------------------------------*/
 // uncomment this when needed

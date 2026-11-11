@@ -100,12 +100,13 @@ int spi_inm_init(void)
 	{
 		.mode = HAL_GPIO_MODE_ALTERNATE,
 		.output_type = HAL_GPIO_OUTPUT_PUSHPULL,
-		.pull = HAL_GPIO_PULL_NO,
-		.speed = HAL_GPIO_SPEED_FREQ_MEDIUM,
+		.pull = HAL_GPIO_PULL_DOWN, // pull At Least mosi down so it is always in a defined state,
+					    // indicator lights use fake spi without clock;
+		.speed = HAL_GPIO_SPEED_FREQ_MEDIUM, // whatever that means
 		.alternate = HAL_GPIO_AF_5, // alternate function 5 seems to be spi
 	};
-	HAL_GPIO_Init(HAL_GPIOC, HAL_GPIO_PIN_2 | HAL_GPIO_PIN_3, &gpioconf);
-	HAL_GPIO_Init(HAL_GPIOB, HAL_GPIO_PIN_13, &gpioconf);
+	HAL_GPIO_Init(HAL_GPIOC, HAL_GPIO_PIN_2 | HAL_GPIO_PIN_3, &gpioconf); // miso + mosi, pull low
+	HAL_GPIO_Init(HAL_GPIOB, HAL_GPIO_PIN_13, &gpioconf); // clock
 
 	HAL_CORTEX_NVIC_SetPriority(SPI2_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_0, HAL_CORTEX_NVIC_SUB_PRIORITY_0);
 	HAL_CORTEX_NVIC_EnableIRQ(SPI2_IRQn);
@@ -116,34 +117,17 @@ int spi_inm_init(void)
 	return 0;
 }
 
-char mrecvbuf[0x1000];
+char sdmrecvbuf[0x1000];
 int spi_sdm_send(char* data, int len)
 {
 	// if I understand correctly, data is copied in this function, so it doesen't matter if it goes out of scope
-	HAL_SPI_TransmitReceive_IT(psdspim, data, mrecvbuf, len);
+	HAL_SPI_TransmitReceive_IT(psdspim, data, sdmrecvbuf, len);
 	return 0;
 }
 char* spi_sdm_getdata(void)
 {
-	return mrecvbuf;
+	return sdmrecvbuf;
 }
-
-char ssendbuf[0x1000];
-char srecvbuf[0x1000];
-char* spi_inm_getgata()
-{
-	return srecvbuf;
-}
-int spi_inm_recv(int len)
-{
-	for(int i = 0; i < len; ++i)
-	{
-		ssendbuf[i] = 0x42;
-	}
-	HAL_SPI_TransmitReceive_IT(pinspim, ssendbuf, srecvbuf, len);
-	return 0;
-}
-
 
 static void spi_tx_rx_sdm_cplt_callback(hal_spi_handle_t *hspi)
 {

@@ -11,7 +11,7 @@
 #include "can.h"
 #include "interrupts.h"
 
-int (*ifns[])(void* payload) =
+static int (*ifns[])(void* payload) =
 {
 	[FI_CAN_RECVD] = power_can_recvdcallback,
 	[FI_CAN_SENT] = power_can_sentcallback,
@@ -22,12 +22,12 @@ int (*ifns[])(void* payload) =
 	[FI_SPI_ERR] = power_spi_errcallback,
 	[FI_STICK] = power_stick_callback,
 };
-int interrupted = 0; // 0 for no interrupt, n for interrupt vector, large n for break (over 0xffff);
-uint8_t indices[256];
-void* payloads[256];
-uint8_t start = 0;
-uint8_t end = 0;
-uint8_t full = 0;
+static int interrupted = 0; // 0 for no interrupt, n for interrupt vector, large n for break (over 0xffff);
+static uint8_t indices[256];
+static void* payloads[256];
+static uint8_t start = 0;
+static uint8_t end = 0;
+static uint8_t full = 0;
 
 // they are chars, so will overflow on 256, this is intentional;
 int push_interrupt(uint8_t type, uint8_t index, void* payload)

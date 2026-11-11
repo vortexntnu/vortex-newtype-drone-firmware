@@ -14,7 +14,7 @@
 // or 205.714285.. bytes in total
 // so let's round up to 206 since SPI uses whole bytes
 // of these, there are some constants:
-uint8_t buf[206] =
+static uint8_t buf[206] =
 {
 	0xFF, 0x80, 0x00, 0x3F, 0xC0, 0x00, 0x1F, 0xF0,
 	0x00, 0x07, 0xFC, 0x00, 0x01, 0xFF, 0x00, 0x00,
@@ -30,25 +30,23 @@ uint8_t buf[206] =
 // there are also some bit-indices and their sizes
 // these determine the position of the bit value
 // and the number of ones to be written
-uint16_t bit_indices[24] =
+static uint16_t bit_indices[24] =
 {
 	0x009, 0x022, 0x03C, 0x056, 0x070, 0x089, 0x0A3, 0x0BD,
 	0x0D6, 0x0F0, 0x10A, 0x124, 0x13D, 0x157, 0x171, 0x18A,
 	0x1A4, 0x1BE, 0x1D8, 0x1F1, 0x20B, 0x225, 0x23E, 0x258,
 };
-uint8_t sizes[24] =
+static uint8_t sizes[24] =
 {
 	8, 9, 8, 8, 8, 9, 8, 8,
 	9, 8, 8, 8, 9, 8, 8, 9,
 	8, 8, 8, 9, 8, 8, 9, 8,
 };
 // if it is currently sending
-int in_transmission = 0;
+static int in_transmission = 0;
 // if call was made while still sending another
-int pending = 0;
-uint8_t pending_r = 0, pending_g = 0, pending_b = 0;
-// is this neccesary or can I pass NULL to HAL_?
-uint8_t recvdummy[206];
+static int pending = 0;
+static uint8_t pending_r = 0, pending_g = 0, pending_b = 0;
 int indicator_send(uint8_t r, uint8_t g, uint8_t b)
 {
 	if(in_transmission)
@@ -69,7 +67,7 @@ int indicator_send(uint8_t r, uint8_t g, uint8_t b)
 			buf[(bit_indices[i] + j) >> 3] &= ~(!(v & 1) << (7 - ((bit_indices[i] + j) & 7))); // same here
 		}
 	}
-	HAL_SPI_TransmitReceive_IT(pinspim, buf, recvdummy, 206);
+	HAL_SPI_Transmit_IT(pinspim, buf, 206);
 	return 0;
 }
 

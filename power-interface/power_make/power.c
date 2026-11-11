@@ -10,6 +10,7 @@ enum canide
 	CAN_ID_BASE = 0x080,
 	CAN_PING = 0x080,
 	CAN_PONG = 0x081,
+	CAN_IND_LIGHT = 0x082,
 	CAN_ID_END,
 };
 enum sendide
@@ -50,10 +51,18 @@ int power_can_rping(int caninst)
 	return 0;
 }
 
+int power_can_ind_send(int caninst)
+{
+	uint8_t r = canrbuf[0], g = canrbuf[1], b = canrbuf[2];
+	indicator_send(r, g, b);
+	return 0;
+}
+
 int (*canrfns[])(int caninst) =
 {
 	[CAN_PING - CAN_ID_BASE] = power_can_rping,
 	[CAN_PONG - CAN_ID_BASE] = NULL,
+	[CAN_IND_LIGHT - CAN_ID_BASE] = power_can_ind_send,
 };
 
 int power_can_recvdcallback(void* canhan)
@@ -80,7 +89,7 @@ int power_can_sentcallback(void* unused)
 
 int power_can_errcallback(void* unused)
 {
-	power_can_senderror(0xf35);
+	power_can_senderror(0xf35); // does it make sense to send over can when can just errored? // might have been the other can
 	return 0;
 }
 
@@ -94,9 +103,9 @@ int power_spi_sdmcallback(void* unused)
 
 int power_spi_inmcallback(void* unused)
 {
-	int* c = (int*)spi_inm_getgata();
+//	int* c = (int*)spi_inm_getgata(); // can't do this, as not implemented, as not needed, as indicator lights are send-only;
 	indicator_send_done();
-	power_can_spong(1, c[0]);
+	power_can_spong(1, 0x43);// c[0]);
 
 	return 0;
 }

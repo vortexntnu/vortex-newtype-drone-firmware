@@ -1,6 +1,12 @@
+#include "main.h"
+#include "stm32c5xx_hal_rcc.h"
+#include "stm32c5xx_hal_cortex.h"
+#include "stm32c5xx_hal_gpio.h"
 #include "stm32c5xx_hal_i2c.h"
 
-#include "main.h"
+static void i2c_transfer_cplt_callback(hal_i2c_handle_t* pi2chan);
+static void i2c_receive_cplt_callback(hal_i2c_handle_t* pi2chan);
+static void i2c_error_callback(hal_i2c_handle_t* pi2chan);
 
 hal_i2c_handle_t i2chan;
 hal_i2c_handle_t* pi2chan;
@@ -25,7 +31,33 @@ int init_i2c(void)
 		.own_address1 = 93 << 1U // apparently, this is the first address of something,
 					 // a 7bit value in bit 7:1
 	};
-	HAL_I2C_SetConfig(pi2chan, &i2ccon);
+	parserr(HAL_I2C_SetConfig(pi2chan, &i2ccon));
+	// need to do this just because?
 	HAL_I2C_EnableAnalogFilter(pi2chan);
 
+	// this part is known
+	hal_gpio_config_t gpio_conf =
+	{
+		.mode = HAL_GPIO_MODE_ALTERNATE,
+		.output_type = HAL_GPIO_OUTPUT_OPENDRAIN,
+		.pull = HAL_GPIO_PULL_UP,
+		.speed = HAL_GPIO_SPEED_FREQ_LOW,
+		.alternate = HAL_GPIO_AF_4,
+	};
+	HAL_GPIO_Init(HAL_GPIOB, HAL_GPIO_PIN_10 | HAL_GPIO_PIN_12, &gpio_conf);
+
+	// this is also pretty self-explanatory
+	parserr(HAL_RCC_I2C1_SetKernelClkSource(HAL_RCC_I2C1_CLK_SRC_PSIK));
+
+	// Need to enable both event interrupts
+	HAL_CORTEX_NVIC_SetPriority(I2C1_EV_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_0, HAL_CORTEX_NVIC_SUB_PRIORITY_0);
+	HAL_CORTEX_NVIC_EnableIRQ(I2C1_EV_IRQn);
+	// and error interrupts?
+	HAL_CORTEX_NVIC_SetPriority(I2C1_ERR_IRQn, HAL_CORTEX_NVIC_PREEMP_PRIORITY_0, HAL_CORTEX_NVIC_SUB_PRIORITY_0);
+	HAL_CORTEX_NVIC_EnableIRQ(I2C1_ERR_IRQn);
+
+	// this is the interrupt callbacks for event and error
+	parserr(HAL_I2C_MASTER_RegisterTxCpltCallback(pi2chan, i2c_transfer_cplt_callback));
+	parserr(HAL_I2C_MASTER_RegisterRxCpltCallback(pi2chan, i2c_receive_cplt_callback));
+	parserr(HAL_I2C_MASTER_RegisterErrorCallback(pi2chan, i2c_error_callback));
 }
