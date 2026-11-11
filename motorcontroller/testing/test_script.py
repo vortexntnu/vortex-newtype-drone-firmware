@@ -45,8 +45,6 @@ WEIGHT_PIVOT_DISTANCE_M = 0.230
 
 WEIGHT_CALIBRATION_FACTOR = 587.0/1310.0  # Actual weight / measured weight in grams
 
-DEFAULT_CHARACTER_DELAY_S = 0.05
-MINIMUM_CHARACTER_DELAY_S = 0.05
 MINIMUM_THROTTLE_VALUE = 48
 MAXIMUM_DSHOT_VALUE = 2047
 DIRECTION_ONE_MAX_DSHOT = 1047
@@ -63,6 +61,7 @@ FIELD_ALIASES = {
     "thrust": ("thrust", "thrust_force", "force"),
     "weight1": ("weight1", "weight_1", "load1", "load_1"),
     "weight2": ("weight2", "weight_2", "load2", "load_2"),
+    "throttle": ("throttle", "dshot", "dshot_value"),
     "erpm": ("erpm", "e_rpm", "electrical_rpm"),
     "voltage": ("voltage", "esc_voltage", "bus_voltage"),
     "current_draw": ("current_draw", "current", "esc_current_draw"),
@@ -252,22 +251,14 @@ def serial_reader(
 def send_command(
     port: serial.Serial,
     command: str,
-    character_delay: float = DEFAULT_CHARACTER_DELAY_S,
 ) -> None:
-    """Send one command slowly enough for the STM32 command receiver."""
+    """Send one complete command to the STM32 command receiver."""
     if len(command) > 30:
         raise ValueError("Command exceeds the firmware's 30-character input limit")
-    if character_delay < MINIMUM_CHARACTER_DELAY_S:
-        raise ValueError(
-            f"Character delay must be at least {MINIMUM_CHARACTER_DELAY_S:.2f} seconds"
-        )
 
     command_line = command.rstrip("\r\n") + "\r"
-    for index, character in enumerate(command_line):
-        port.write(character.encode("ascii"))
-        port.flush()
-        if index < len(command_line) - 1:
-            time.sleep(character_delay)
+    port.write(command_line.encode("ascii"))
+    port.flush()
 
 
 def make_dshot_command(template: str, channel: int, dshot: int) -> str:
@@ -370,9 +361,15 @@ def build_data_row(
 ) -> dict[str, Any]:
     """Combine the requested DShot value with the latest telemetry sample."""
     values = telemetry.values if telemetry is not None else {}
+    reported_throttle = values.get("throttle")
+    actual_dshot = (
+        round(reported_throttle)
+        if reported_throttle is not None and math.isfinite(reported_throttle)
+        else dshot
+    )
     thrust = value_or_nan(values, "thrust")
     if not math.isfinite(thrust):
-        thrust = thrust_from_directional_weights(values, dshot)
+        thrust = thrust_from_directional_weights(values, actual_dshot)
     voltage = value_or_nan(values, "voltage")
     current_draw = value_or_nan(values, "current_draw")
     return {
@@ -380,7 +377,7 @@ def build_data_row(
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "elapsed_s": round(time.monotonic() - started_at, 3),
         "channel": channel,
-        "dshot_value": dshot,
+        "dshot_value": actual_dshot,
         "thrust": thrust,
         "erpm": value_or_nan(values, "erpm"),
         "voltage": voltage,
@@ -395,22 +392,46 @@ def build_data_row(
     }
 
 
+def telemetry_throttle(sample: Telemetry) -> int | None:
+    """Return a normalized reported throttle, if the sample contains one."""
+    throttle = sample.values.get("throttle")
+    if throttle is None or not math.isfinite(throttle):
+        return None
+    return round(throttle)
+
+
 def average_telemetry(samples: list[Telemetry]) -> Telemetry | None:
-    """Return the field-by-field average of all samples in one dwell period."""
+    """Average only samples belonging to the most represented throttle."""
     if not samples:
         return None
 
-    fields = set().union(*(sample.values for sample in samples))
+    groups: dict[int | None, tuple[list[Telemetry], int]] = {}
+    for index, sample in enumerate(samples):
+        throttle = telemetry_throttle(sample)
+        if throttle not in groups:
+            groups[throttle] = ([], index)
+        group, _ = groups[throttle]
+        group.append(sample)
+        groups[throttle] = (group, index)
+    selected_samples, _ = max(
+        groups.values(),
+        key=lambda group_and_index: (
+            len(group_and_index[0]),
+            group_and_index[1],
+        ),
+    )
+    fields = set().union(*(sample.values for sample in selected_samples))
     values = {
         field: sum(
-            sample.values[field]
-            for sample in samples
-            if field in sample.values
+            sample.values[field] for sample in selected_samples if field in sample.values
         )
-        / sum(field in sample.values for sample in samples)
+        / sum(field in sample.values for sample in selected_samples)
         for field in fields
     }
-    return Telemetry(values, samples[-1].raw)
+    selected_throttle = telemetry_throttle(selected_samples[-1])
+    if selected_throttle is not None:
+        values["throttle"] = selected_throttle
+    return Telemetry(values, selected_samples[-1].raw)
 
 
 def wait_for_telemetry(
@@ -446,6 +467,16 @@ def wait_for_telemetry(
                 low_voltage_count[0] = 0
         except queue.Empty:
             pass
+    throttle_values = {
+        throttle
+        for throttle in (telemetry_throttle(sample) for sample in samples)
+        if throttle is not None
+    }
+    if len(throttle_values) > 1:
+        print(
+            "Warning: telemetry dwell contained throttles "
+            f"{sorted(throttle_values)}; using the most represented throttle."
+        )
     return average_telemetry(samples), battery_cutoff, immediate_cutoff
 
 
@@ -462,16 +493,14 @@ def prepare_thruster_test(
     port: serial.Serial,
     channel: int,
     command_template: str,
-    character_delay: float,
 ) -> None:
     """Stop the thruster and tare both load cells before sweeping."""
     send_command(
         port,
         make_dshot_command(command_template, channel, 0),
-        character_delay,
     )
     time.sleep(THRUSTER_STOP_SETTLE_S)
-    send_command(port, "weight tareall", character_delay)
+    send_command(port, "weight tareall")
     time.sleep(TARE_SETTLE_S)
 
 
@@ -493,7 +522,6 @@ def test_metadata(args: argparse.Namespace) -> dict[str, object]:
         "step": args.step,
         "dwell": args.dwell,
         "cycles": args.cycles,
-        "character_delay": args.character_delay,
         "telemetry_format": args.telemetry_format,
         "validate_telemetry_crc": args.validate_telemetry_crc,
         "low_voltage_limit": args.low_voltage_limit,
@@ -510,12 +538,6 @@ def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", required=True, help="UART port, e.g. COM7 or /dev/ttyACM0")
     parser.add_argument("--baudrate", type=int, default=115200)
-    parser.add_argument(
-        "--character-delay",
-        type=float,
-        default=DEFAULT_CHARACTER_DELAY_S,
-        help="Seconds between command characters; minimum is 0.05 for this firmware",
-    )
     parser.add_argument(
         "--telemetry-format",
         choices=("text", "binary"),
@@ -642,7 +664,6 @@ def run(args: argparse.Namespace) -> None:
             port,
             args.channel,
             args.command_template,
-            args.character_delay,
         )
         reader = threading.Thread(
             target=serial_reader,
@@ -668,9 +689,9 @@ def run(args: argparse.Namespace) -> None:
                     else values[record_id % len(values)]
                 )
                 command = make_dshot_command(args.command_template, args.channel, dshot)
-                send_command(port, command, args.character_delay)
+                send_command(port, command)
                 if args.telemetry_command:
-                    send_command(port, args.telemetry_command, args.character_delay)
+                    send_command(port, args.telemetry_command)
 
                 average, battery_cutoff, immediate_cutoff = wait_for_telemetry(
                     telemetry_queue,
@@ -704,7 +725,6 @@ def run(args: argparse.Namespace) -> None:
             send_command(
                 port,
                 make_dshot_command(args.command_template, args.channel, 0),
-                args.character_delay,
             )
             logger.close()
             stop_event.set()

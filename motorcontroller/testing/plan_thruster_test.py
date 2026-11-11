@@ -330,7 +330,6 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dwell", type=float, default=1.0)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--baudrate", type=int, default=115200)
-    parser.add_argument("--character-delay", type=float, default=base.DEFAULT_CHARACTER_DELAY_S)
     parser.add_argument("--telemetry-format", choices=("text", "binary"), default="text")
     parser.add_argument("--validate-telemetry-crc", action="store_true")
     parser.add_argument("--telemetry-command")
@@ -405,7 +404,7 @@ def run(args: argparse.Namespace) -> None:
     record_id = 0
     consumed_mah = 0.0
     with base.serial.Serial(args.port, args.baudrate, timeout=0.1) as port:
-        base.prepare_thruster_test(port, args.channel, "dshot setthrottle {channel} {dshot}", args.character_delay)
+        base.prepare_thruster_test(port, args.channel, "dshot setthrottle {channel} {dshot}")
         reader = threading.Thread(
             target=base.serial_reader,
             args=(port, telemetry_queue, stop_event, args.telemetry_format, args.validate_telemetry_crc),
@@ -452,7 +451,6 @@ def run(args: argparse.Namespace) -> None:
                 base.send_command(
                     port,
                     base.make_dshot_command("dshot setthrottle {channel} {dshot}", args.channel, dshot),
-                    args.character_delay,
                 )
                 average, battery_cutoff, immediate_cutoff = base.wait_for_telemetry(
                     telemetry_queue,
@@ -474,7 +472,8 @@ def run(args: argparse.Namespace) -> None:
                 else:
                     consumed_mah += estimated_consumption
                 last_voltage = row["voltage"] if math.isfinite(row["voltage"]) else voltage
-                coverage.add(last_voltage, dshot)
+                actual_dshot = int(row["dshot_value"])
+                coverage.add(last_voltage, actual_dshot)
                 if plot is not None:
                     plot.update_plan(
                         last_voltage,
@@ -492,7 +491,7 @@ def run(args: argparse.Namespace) -> None:
                 )
                 base.print_data_row(row)
                 record_id += 1
-                previous_dshot = dshot
+                previous_dshot = actual_dshot
                 if battery_cutoff:
                     print("Battery safety cutoff reached; stopping.")
                     break
@@ -507,7 +506,7 @@ def run(args: argparse.Namespace) -> None:
                     f"Battery capacity limit of {args.battery_capacity:.0f}mAh reached; stopping."
                 )
         finally:
-            base.send_command(port, base.make_dshot_command("dshot setthrottle {channel} 0", args.channel, 0), args.character_delay)
+            base.send_command(port, base.make_dshot_command("dshot setthrottle {channel} 0", args.channel, 0))
             logger.close()
             stop_event.set()
 

@@ -1,7 +1,8 @@
 # Thruster testing tools
 
 These scripts run DShot thruster tests, record telemetry to CSV, and plot
-recorded measurements.
+recorded measurements. Commands are sent to the STM32 as complete UART
+messages; no delay between individual bytes is required.
 
 - `test_script.py` runs a test and saves measurements.
 - `plot_thruster_csv.py` creates a configurable 3D plot from one or more CSV
@@ -141,12 +142,18 @@ The default telemetry format is text. The STM32 should send JSON such as:
   "current": 5.00,
   "consumption": 12,
   "erpm": 4200,
+  "throttle": 512,
   "weight1": 300,
   "weight2": 238
 }
 ```
 
-The script also accepts terminal-wrapped JSON and `key=value` telemetry.
+The `throttle` value is the command currently applied by the microcontroller.
+It is used for the recorded `dshot_value` and for selecting the active weight
+cell, rather than the command requested by the PC. The script also accepts
+terminal-wrapped JSON and `key=value` telemetry.
+If a dwell window contains multiple reported throttle values, only samples
+from the most represented throttle are averaged, and a warning is printed.
 Select binary ESC frames with:
 
 ```powershell

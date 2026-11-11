@@ -1,0 +1,49 @@
+# planner=adaptive_coverage
+# data_folder=data
+# direction=-1
+# dwell=1.0
+# voltage_bin=0.05
+# dshot_step=8
+# estimated_k=3.6560278921470723e-09
+# estimated_seconds_per_sample=2.4770000000007713
+# estimated_consumption_per_second=0.5649717514126347
+# battery_capacity_mah=8500.0
+# battery_resistance_ohms=0.02100003614522269
+id,timestamp,elapsed_s,channel,dshot_value,thrust,erpm,voltage,current_draw,temperature,consumption,weight_difference,weight1,weight2,battery_voltage_estimate,raw_telemetry
+0,2026-11-11T21:19:30.691051+00:00,3.006,0,1048,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+1,2026-11-11T21:19:31.967329+00:00,4.283,0,1056,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+2,2026-11-11T21:19:33.156999+00:00,5.472,0,1064,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+3,2026-11-11T21:19:34.333133+00:00,6.648,0,1072,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+4,2026-11-11T21:19:35.547201+00:00,7.862,0,1080,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+5,2026-11-11T21:19:36.720659+00:00,9.036,0,1088,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+6,2026-11-11T21:19:37.895785+00:00,10.211,0,1096,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+7,2026-11-11T21:19:39.076244+00:00,11.392,0,1104,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+8,2026-11-11T21:19:40.248373+00:00,12.564,0,1112,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+9,2026-11-11T21:19:41.429261+00:00,13.745,0,1120,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+10,2026-11-11T21:19:42.602231+00:00,14.918,0,1128,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+11,2026-11-11T21:19:43.770137+00:00,16.085,0,1136,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+12,2026-11-11T21:19:44.939834+00:00,17.255,0,1144,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+13,2026-11-11T21:19:46.131441+00:00,18.447,0,1152,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+14,2026-11-11T21:19:47.302879+00:00,19.618,0,1160,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+15,2026-11-11T21:19:48.468304+00:00,20.784,0,1168,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+16,2026-11-11T21:19:49.639092+00:00,21.954,0,1176,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+17,2026-11-11T21:19:50.813840+00:00,23.129,0,1184,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+18,2026-11-11T21:19:51.988364+00:00,24.304,0,1192,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+19,2026-11-11T21:19:53.164241+00:00,25.48,0,1200,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+20,2026-11-11T21:19:54.340669+00:00,26.656,0,1208,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+21,2026-11-11T21:19:55.510256+00:00,27.826,0,1224,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+22,2026-11-11T21:19:56.748903+00:00,29.064,0,1232,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+23,2026-11-11T21:19:57.972228+00:00,30.288,0,1240,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+24,2026-11-11T21:19:59.164720+00:00,31.48,0,1248,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+25,2026-11-11T21:20:00.376292+00:00,32.692,0,1256,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+26,2026-11-11T21:20:01.588754+00:00,33.904,0,1264,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+27,2026-11-11T21:20:02.771088+00:00,35.086,0,1272,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+28,2026-11-11T21:20:03.959908+00:00,36.275,0,1280,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+29,2026-11-11T21:20:05.316506+00:00,37.632,0,1288,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+30,2026-11-11T21:20:06.629450+00:00,38.945,0,1296,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+31,2026-11-11T21:20:07.914855+00:00,40.23,0,1304,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+32,2026-11-11T21:20:09.108543+00:00,41.424,0,1312,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+33,2026-11-11T21:20:10.296867+00:00,42.612,0,1320,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+34,2026-11-11T21:20:11.561632+00:00,43.877,0,1328,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+35,2026-11-11T21:20:12.645516+00:00,44.961,0,1336,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+36,2026-11-11T21:20:13.721473+00:00,46.037,0,1344,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,

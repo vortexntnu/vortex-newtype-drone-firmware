@@ -1,0 +1,33 @@
+# planner=adaptive_coverage
+# data_folder=data
+# direction=-1
+# dwell=1.0
+# voltage_bin=0.05
+# dshot_step=8
+# estimated_k=3.6560278921470723e-09
+# estimated_seconds_per_sample=2.4770000000007713
+# estimated_consumption_per_second=0.5649717514126347
+# battery_capacity_mah=8500.0
+# battery_resistance_ohms=0.02100003614522269
+id,timestamp,elapsed_s,channel,dshot_value,thrust,erpm,voltage,current_draw,temperature,consumption,weight_difference,weight1,weight2,battery_voltage_estimate,raw_telemetry
+0,2026-11-11T21:17:23.038266+00:00,3.005,0,1048,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+1,2026-11-11T21:17:24.368845+00:00,4.336,0,1056,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+2,2026-11-11T21:17:25.544986+00:00,5.512,0,1064,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+3,2026-11-11T21:17:26.715386+00:00,6.682,0,1072,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+4,2026-11-11T21:17:27.785841+00:00,7.753,0,1080,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+5,2026-11-11T21:17:28.853078+00:00,8.82,0,1088,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+6,2026-11-11T21:17:29.920076+00:00,9.887,0,1096,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+7,2026-11-11T21:17:30.987146+00:00,10.954,0,1104,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+8,2026-11-11T21:17:32.054735+00:00,12.022,0,1112,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+9,2026-11-11T21:17:33.121445+00:00,13.088,0,1120,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+10,2026-11-11T21:17:34.188462+00:00,14.155,0,1128,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+11,2026-11-11T21:17:35.259020+00:00,15.226,0,1136,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+12,2026-11-11T21:17:36.327351+00:00,16.294,0,1144,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+13,2026-11-11T21:17:37.417408+00:00,17.384,0,1152,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+14,2026-11-11T21:17:38.484617+00:00,18.452,0,1160,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+15,2026-11-11T21:17:39.556767+00:00,19.524,0,1168,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+16,2026-11-11T21:17:40.644427+00:00,20.611,0,1176,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+17,2026-11-11T21:17:41.710488+00:00,21.677,0,1184,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+18,2026-11-11T21:17:42.776417+00:00,22.743,0,1192,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+19,2026-11-11T21:17:43.847793+00:00,23.815,0,1200,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
+20,2026-11-11T21:17:44.915260+00:00,24.882,0,1208,nan,nan,nan,nan,nan,nan,nan,nan,nan,nan,
