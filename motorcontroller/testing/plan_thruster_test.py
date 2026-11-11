@@ -1,4 +1,5 @@
-"""Adaptive thruster test that plans for unexplored voltage/DShot cells.
+"""
+Adaptive thruster test that plans for unexplored voltage/DShot cells.
 
 The planner uses historical CSV files as a coverage map. At each dwell it
 chooses the DShot value with the most expected new coverage per second, while
