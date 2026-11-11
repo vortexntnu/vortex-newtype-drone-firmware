@@ -1,6 +1,7 @@
 #include <controller.h>
 
 UART_HandleTypeDef *COMMUNICATION_PORT = &hcom_uart[COM1];
+int32_t weights[2] = {0};
 
 extern UART_HandleTypeDef huart4;
 
@@ -11,8 +12,9 @@ extern UART_HandleTypeDef huart4;
 uint32_t controller_weight()
 {
 	BSP_LED_Toggle(LED_YELLOW);
+	weight_read(weights);
 
-	return 500;
+	return 100;
 }
 
 uint32_t controller_dshot()
@@ -59,8 +61,6 @@ void controller_new_telemetry(EscTelemetry Telemetry)
 	BSP_LED_Toggle(LED_RED);
 
 	DShotChannel *DShot = dshot_get_channel(0);
-	int32_t weights[2] = {0};
-	weight_read(weights);
 
 	char first_weight_string[11];
 	char second_weight_string[11];

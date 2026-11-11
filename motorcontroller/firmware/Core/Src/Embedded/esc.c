@@ -66,3 +66,8 @@ void esc_init(UART_HandleTypeDef *huart)
 	uart = huart;
 	listen();
 }
+
+EscTelemetry esc_fetch_latest_telemetry()
+{
+	return latest;
+}

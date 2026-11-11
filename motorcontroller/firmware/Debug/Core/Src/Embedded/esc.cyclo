@@ -3,3 +3,4 @@
 ../Core/Src/Embedded/esc.c:43:6:HAL_UARTEx_RxEventCallback	2
 ../Core/Src/Embedded/esc.c:59:6:Esc_HAL_UART_ErrorCallback	2
 ../Core/Src/Embedded/esc.c:64:6:esc_init	1
+../Core/Src/Embedded/esc.c:70:14:esc_fetch_latest_telemetry	1
