@@ -35,8 +35,14 @@ DEFAULT_SLEW_TIME_FACTOR = 0.75
 DEFAULT_BATTERY_RESISTANCE = 0.02
 DEFAULT_MAX_DURATION = 14400.0
 DEFAULT_BATTERY_CAPACITY_MAH = 8500.0
-DEFAULT_COMMAND_INTERVAL = 0.5
+DEFAULT_COMMAND_INTERVAL = 0.1
 DEFAULT_MAX_DSHOT_CHANGE = 256
+DEFAULT_COMMAND_ACK_TIMEOUT = 1.0
+DEFAULT_COMMAND_RETRIES = 3
+DEFAULT_SHUTDOWN_TIMEOUT = 5.0
+DEFAULT_SHUTDOWN_CONFIRMATIONS = 3
+DEFAULT_STOP_CURRENT_A = 0.2
+DEFAULT_STOP_ERPM = 100.0
 
 
 def _style(text: str, code: str, enabled: bool) -> str:
@@ -95,6 +101,138 @@ def _print_measurement(
         f"T {_measurement_value(row['temperature'], 1)}C | "
         f"{budget} (+{_measurement_value(estimated_consumption, 1)}mAh)"
     )
+
+
+def _stop_thruster(
+    port: base.serial.Serial,
+    channel: int,
+    color: bool,
+    telemetry_queue: queue.Queue[base.Telemetry] | None = None,
+    timeout: float = DEFAULT_SHUTDOWN_TIMEOUT,
+    command_interval: float = DEFAULT_COMMAND_INTERVAL,
+) -> bool:
+    """Send zero throttle and confirm that telemetry reports the motor stopped."""
+    command = base.make_dshot_command(
+        "dshot setthrottle {channel} 0",
+        channel,
+        0,
+    )
+    deadline = time.monotonic() + timeout
+    stopped_samples = 0
+    saw_stop_metric = False
+    last_send = 0.0
+    attempt = 0
+    while time.monotonic() < deadline:
+        now = time.monotonic()
+        if attempt == 0 or now - last_send >= command_interval:
+            attempt += 1
+            last_send = now
+            try:
+                base.send_command(port, command)
+                print(
+                    _style(
+                        f"Shutdown: sent DShot 0 ({attempt})",
+                        "1;31",
+                        color,
+                    ),
+                    flush=True,
+                )
+            except (OSError, base.serial.SerialException) as exc:
+                print(
+                    _style(f"Shutdown command failed: {exc}", "1;31", color),
+                    flush=True,
+                )
+                return False
+        if telemetry_queue is None:
+            continue
+        try:
+            sample = telemetry_queue.get(timeout=0.05)
+        except queue.Empty:
+            continue
+        current = sample.values.get("current_draw")
+        erpm = sample.values.get("erpm")
+        metrics_present = False
+        motor_stopped = True
+        if current is not None and math.isfinite(current):
+            metrics_present = True
+            motor_stopped = (
+                motor_stopped
+                and 0.0 <= current <= DEFAULT_STOP_CURRENT_A
+            )
+        if erpm is not None and math.isfinite(erpm):
+            metrics_present = True
+            motor_stopped = motor_stopped and 0.0 <= erpm <= DEFAULT_STOP_ERPM
+        if not metrics_present:
+            continue
+        saw_stop_metric = True
+        if motor_stopped:
+            stopped_samples += 1
+            if stopped_samples >= DEFAULT_SHUTDOWN_CONFIRMATIONS:
+                print(
+                    _style(
+                        "Shutdown confirmed by consecutive low-current/eRPM telemetry.",
+                        "1;32",
+                        color,
+                    ),
+                    flush=True,
+                )
+                return True
+        else:
+            stopped_samples = 0
+    message = (
+        "Shutdown could not be confirmed from telemetry"
+        if saw_stop_metric
+        else "Shutdown could not be confirmed because telemetry had no current/eRPM"
+    )
+    print(_style(f"WARNING: {message}.", "1;31", color), flush=True)
+    return False
+
+
+class _SafeSerial:
+    """Keep the thruster stopped even when setup or planning is interrupted."""
+
+    def __init__(
+        self,
+        port_name: str,
+        baudrate: int,
+        channel: int,
+        color: bool,
+        telemetry_queue: queue.Queue[base.Telemetry],
+        stop_event: threading.Event,
+        shutdown_timeout: float,
+        command_interval: float,
+    ) -> None:
+        self.port_name = port_name
+        self.baudrate = baudrate
+        self.channel = channel
+        self.color = color
+        self.telemetry_queue = telemetry_queue
+        self.stop_event = stop_event
+        self.shutdown_timeout = shutdown_timeout
+        self.command_interval = command_interval
+        self.port: base.serial.Serial | None = None
+
+    def __enter__(self) -> base.serial.Serial:
+        self.port = base.serial.Serial(self.port_name, self.baudrate, timeout=0.1)
+        return self.port
+
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+        if self.port is not None:
+            while True:
+                try:
+                    self.telemetry_queue.get_nowait()
+                except queue.Empty:
+                    break
+            _stop_thruster(
+                self.port,
+                self.channel,
+                self.color,
+                self.telemetry_queue,
+                self.shutdown_timeout,
+                self.command_interval,
+            )
+            self.stop_event.set()
+            self.port.close()
 
 
 @dataclass(frozen=True)
@@ -265,13 +403,36 @@ class CoverageMap:
         return cloned
 
 
-def estimate_k(points: list[HistoricalPoint]) -> float:
+def _effective_dshot(dshot: int, direction: int) -> int:
+    minimum = (
+        base.MINIMUM_THROTTLE_VALUE
+        if direction > 0
+        else base.DIRECTION_TWO_MIN_DSHOT
+    )
+    return max(0, dshot - minimum)
+
+
+def estimate_k(points: list[HistoricalPoint], direction: int) -> float:
     """Estimate K in dV/dt ~= -K*u² from consecutive recorded samples."""
     estimates: list[float] = []
-    ordered = sorted(points, key=lambda point: (point.source, point.elapsed_s))
+    directional = [
+        point
+        for point in points
+        if (
+            (direction > 0 and point.dshot <= base.DIRECTION_ONE_MAX_DSHOT)
+            or (direction < 0 and point.dshot >= base.DIRECTION_TWO_MIN_DSHOT)
+        )
+    ]
+    ordered = sorted(
+        directional,
+        key=lambda point: (point.source, point.elapsed_s),
+    )
     for previous, current in zip(ordered, ordered[1:]):
         dt = current.elapsed_s - previous.elapsed_s
-        du = max(abs(previous.dshot), abs(current.dshot))
+        du = max(
+            _effective_dshot(previous.dshot, direction),
+            _effective_dshot(current.dshot, direction),
+        )
         drop = previous.voltage - current.voltage
         if dt > 0 and drop > 0 and du > 0:
             estimates.append(drop / (dt * du * du))
@@ -328,16 +489,32 @@ def estimate_timing(points: list[HistoricalPoint]) -> tuple[float, float]:
     )
 
 
-def estimate_current_model(points: list[HistoricalPoint]) -> tuple[float, float]:
-    """Estimate current = intercept + slope * |DShot| from historical data."""
-    mean_dshot = statistics.mean(abs(point.dshot) for point in points)
-    mean_current = statistics.mean(point.current for point in points)
-    denominator = sum((abs(point.dshot) - mean_dshot) ** 2 for point in points)
+def estimate_current_model(
+    points: list[HistoricalPoint],
+    direction: int,
+) -> tuple[float, float]:
+    """Estimate current from throttle above the selected direction's minimum."""
+    directional = [
+        point
+        for point in points
+        if (
+            (direction > 0 and point.dshot <= base.DIRECTION_ONE_MAX_DSHOT)
+            or (direction < 0 and point.dshot >= base.DIRECTION_TWO_MIN_DSHOT)
+        )
+    ]
+    if not directional:
+        return 0.0, 0.0
+    effective_dshots = [
+        _effective_dshot(point.dshot, direction) for point in directional
+    ]
+    mean_dshot = statistics.mean(effective_dshots)
+    mean_current = statistics.mean(point.current for point in directional)
+    denominator = sum((dshot - mean_dshot) ** 2 for dshot in effective_dshots)
     if denominator == 0:
         return 0.0, 0.0
     slope = sum(
-        (abs(point.dshot) - mean_dshot) * (point.current - mean_current)
-        for point in points
+        (dshot - mean_dshot) * (point.current - mean_current)
+        for dshot, point in zip(effective_dshots, directional)
     ) / denominator
     return max(0.0, mean_current - slope * mean_dshot), max(0.0, slope)
 
@@ -350,6 +527,18 @@ class BatteryVoltageEstimator:
 
     def estimate(self, esc_voltage: float, current: float) -> float:
         return esc_voltage + self.resistance_ohms * current
+
+
+class ExponentialMovingAverage:
+    """Low-pass filter for noisy telemetry values."""
+
+    def __init__(self, alpha: float, initial: float) -> None:
+        self.alpha = alpha
+        self.value = initial
+
+    def update(self, sample: float) -> float:
+        self.value += self.alpha * (sample - self.value)
+        return self.value
 
 
 def dshot_candidates(direction: int, step: int) -> list[int]:
@@ -404,14 +593,11 @@ class AdaptivePlanner:
         dshot: int,
         previous_dshot: int,
     ) -> float:
-        previous_current = self.current_intercept + self.current_slope * abs(previous_dshot)
-        target_current = self.current_intercept + self.current_slope * abs(dshot)
-        battery_voltage = voltage + self.battery_resistance * previous_current
-        return (
-            battery_voltage
-            - self.battery_resistance * target_current
-            - self.k * dshot * dshot * self.dwell
-        )
+        # ``voltage`` is the already-loaded ESC voltage. Applying modeled
+        # battery sag on top of it double-counts the load effect, especially
+        # when the historical current-vs-DShot fit is sparse or nonlinear.
+        effective_dshot = _effective_dshot(dshot, self.direction)
+        return voltage - self.k * effective_dshot * effective_dshot * self.dwell
 
     def choose(
         self,
@@ -431,7 +617,11 @@ class AdaptivePlanner:
             if predicted < base.IMMEDIATE_LOW_VOLTAGE_LIMIT_V:
                 continue
             novelty = self.coverage.novelty(predicted, dshot)
-            slew = abs(dshot - previous_dshot) / scale
+            slew = (
+                0.0
+                if previous_dshot == 0
+                else abs(dshot - previous_dshot) / scale
+            )
             estimated_seconds = self.sample_seconds * (
                 1.0 + DEFAULT_SLEW_TIME_FACTOR * slew
             )
@@ -455,6 +645,18 @@ class AdaptivePlanner:
             )
         _, selected, predicted, estimated_seconds, estimated_consumption = max(scores)
         return selected, predicted, estimated_seconds, estimated_consumption
+
+    def estimate_step(
+        self,
+        dshot: int,
+        previous_dshot: int,
+    ) -> tuple[float, float]:
+        if previous_dshot == 0:
+            return self.sample_seconds, self.consumption_rate * self.sample_seconds
+        scale = max(self.candidates)
+        slew = abs(dshot - previous_dshot) / scale
+        seconds = self.sample_seconds * (1.0 + DEFAULT_SLEW_TIME_FACTOR * slew)
+        return seconds, self.consumption_rate * seconds
 
     def precompute_path(
         self,
@@ -569,10 +771,34 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--channel", type=int, default=0)
     parser.add_argument("--dwell", type=float, default=1.0)
     parser.add_argument(
+        "--voltage-filter-alpha",
+        type=float,
+        default=0.2,
+        help="Telemetry low-pass factor for voltage values (0 < alpha <= 1)",
+    )
+    parser.add_argument(
         "--command-interval",
         type=float,
         default=DEFAULT_COMMAND_INTERVAL,
-        help="Minimum seconds between DShot commands",
+        help="Minimum seconds between DShot commands (default: 0.1)",
+    )
+    parser.add_argument(
+        "--command-ack-timeout",
+        type=float,
+        default=DEFAULT_COMMAND_ACK_TIMEOUT,
+        help="Seconds to wait for matching throttle telemetry",
+    )
+    parser.add_argument(
+        "--command-retries",
+        type=int,
+        default=DEFAULT_COMMAND_RETRIES,
+        help="Maximum command transmissions when throttle acknowledgement is missed",
+    )
+    parser.add_argument(
+        "--shutdown-timeout",
+        type=float,
+        default=DEFAULT_SHUTDOWN_TIMEOUT,
+        help="Maximum seconds to send zero and confirm stopped telemetry",
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--baudrate", type=int, default=115200)
@@ -619,7 +845,11 @@ def make_parser() -> argparse.ArgumentParser:
 def run(args: argparse.Namespace) -> None:
     if (
         args.dwell <= 0
+        or not 0 < args.voltage_filter_alpha <= 1
         or args.command_interval <= 0
+        or args.command_ack_timeout <= 0
+        or args.command_retries <= 0
+        or args.shutdown_timeout <= 0
         or args.max_dshot_change <= 0
         or args.voltage_bin <= 0
         or args.dshot_step <= 0
@@ -629,7 +859,10 @@ def run(args: argparse.Namespace) -> None:
         or args.initial_consumed_mah >= args.battery_capacity
     ):
         raise ValueError(
-            "dwell, command-interval, max-dshot-change, voltage-bin, dshot-step, and "
+            "dwell, voltage-filter-alpha, command-interval, "
+            "command-ack-timeout, command-retries, "
+            "shutdown-timeout, "
+            "max-dshot-change, voltage-bin, dshot-step, and "
             "battery-capacity must be positive; "
             "max-duration cannot be negative and initial-consumed-mah must be "
             "between zero and battery-capacity"
@@ -646,14 +879,17 @@ def run(args: argparse.Namespace) -> None:
     if resistance < 0:
         raise ValueError("battery-resistance cannot be negative")
     battery_estimator = BatteryVoltageEstimator(resistance)
-    current_intercept, current_slope = estimate_current_model(points)
+    current_intercept, current_slope = estimate_current_model(
+        points,
+        args.direction,
+    )
     planner = AdaptivePlanner(
         coverage,
         args.direction,
         args.dwell,
         args.dshot_step,
         args.slew_penalty,
-        estimate_k(points),
+        estimate_k(points, args.direction),
         step_seconds,
         consumption_rate,
         args.battery_capacity,
@@ -692,7 +928,16 @@ def run(args: argparse.Namespace) -> None:
         "  id   command/reported DShot | plan       | measured             | "
         "thrust    | eRPM   | current | temp   | battery"
     )
-    with base.serial.Serial(args.port, args.baudrate, timeout=0.1) as port:
+    with _SafeSerial(
+        args.port,
+        args.baudrate,
+        args.channel,
+        color_output,
+        telemetry_queue,
+        stop_event,
+        args.shutdown_timeout,
+        args.command_interval,
+    ) as port:
         base.prepare_thruster_test(port, args.channel, "dshot setthrottle {channel} {dshot}")
         print(
             _style(
@@ -717,22 +962,29 @@ def run(args: argparse.Namespace) -> None:
             args.low_voltage_limit,
             args.low_voltage_samples,
         )
-        initial_telemetry = base.average_telemetry(initial_samples)
+        startup_samples = [
+            sample
+            for sample in initial_samples
+            if (
+                base.telemetry_throttle(sample) is None
+                or base.telemetry_throttle(sample) == 0
+            )
+        ]
+        initial_telemetry = base.average_telemetry(startup_samples)
         if initial_cutoff:
-            stop_event.set()
+            stop_event.clear()
             raise RuntimeError(
                 "Battery voltage is already at the safety cutoff before testing starts."
             )
         if initial_telemetry is None:
-            stop_event.set()
             raise RuntimeError(
-                "No valid startup telemetry received at zero throttle. "
+                "No valid startup telemetry received with reported throttle 0. "
                 "Check the serial port, baud rate, telemetry format, "
-                "and firmware telemetry forwarding."
+                "firmware telemetry forwarding, and that the ESC accepted "
+                "the startup stop command."
             )
         initial_voltage = initial_telemetry.values.get("voltage", math.nan)
         if not math.isfinite(initial_voltage):
-            stop_event.set()
             raise RuntimeError(
                 "Startup telemetry did not contain a valid ESC voltage."
             )
@@ -742,6 +994,14 @@ def run(args: argparse.Namespace) -> None:
         initial_battery_voltage = battery_estimator.estimate(
             initial_voltage,
             initial_current,
+        )
+        esc_voltage_filter = ExponentialMovingAverage(
+            args.voltage_filter_alpha,
+            initial_voltage,
+        )
+        battery_voltage_filter = ExponentialMovingAverage(
+            args.voltage_filter_alpha,
+            initial_battery_voltage,
         )
         planning_started = time.monotonic()
         last_planning_update = planning_started
@@ -799,7 +1059,11 @@ def run(args: argparse.Namespace) -> None:
                 color_output,
             )
         )
-        plot = PlannerPlot(points, planned_path) if args.plot else None
+        plot = (
+            PlannerPlot(points, planned_path)
+            if args.plot
+            else None
+        )
         started = time.monotonic()
         print(
             _style(
@@ -836,7 +1100,11 @@ def run(args: argparse.Namespace) -> None:
                 "telemetry_format": args.telemetry_format,
                 "validate_telemetry_crc": args.validate_telemetry_crc,
                 "dwell": args.dwell,
+                "voltage_filter_alpha": args.voltage_filter_alpha,
                 "command_interval_s": args.command_interval,
+                "shutdown_timeout_s": args.shutdown_timeout,
+                "command_ack_timeout_s": args.command_ack_timeout,
+                "command_retries": args.command_retries,
                 "max_duration_s": args.max_duration,
                 "voltage_bin": args.voltage_bin,
                 "dshot_step": args.dshot_step,
@@ -851,6 +1119,10 @@ def run(args: argparse.Namespace) -> None:
                 "available_capacity_mah": available_capacity,
                 "estimated_planned_steps": len(planned_path),
                 "startup_esc_voltage": initial_voltage,
+                "startup_sample_count": len(startup_samples),
+                "startup_discarded_sample_count": (
+                    len(initial_samples) - len(startup_samples)
+                ),
                 "startup_current_a": initial_current,
                 "startup_temperature_c": initial_telemetry.values.get(
                     "temperature",
@@ -888,13 +1160,16 @@ def run(args: argparse.Namespace) -> None:
                         )
                     )
                     break
-                voltage = initial_voltage if record_id == 0 else last_voltage
+                voltage = (
+                    initial_voltage
+                    if record_id == 0
+                    else esc_voltage_filter.value
+                )
                 if command_id < len(planned_path):
                     dshot, predicted = planned_path[command_id]
-                    _, _, estimated_seconds, estimated_consumption = planner.choose(
-                        voltage,
+                    estimated_seconds, estimated_consumption = planner.estimate_step(
+                        dshot,
                         previous_dshot,
-                        consumed_mah,
                     )
                 else:
                     dshot, predicted, estimated_seconds, estimated_consumption = planner.choose(
@@ -914,29 +1189,92 @@ def run(args: argparse.Namespace) -> None:
                     )
                     if stop_event.wait(wait_seconds):
                         break
-                print(
-                    _style(
-                        f"Sending DShot {dshot} "
-                        f"(planned voltage {predicted:.2f} V); "
-                        f"collecting telemetry for {args.dwell:.1f}s...",
-                        "36",
-                        color_output,
-                    ),
-                    flush=True,
-                )
-                base.send_command(
-                    port,
-                    base.make_dshot_command("dshot setthrottle {channel} {dshot}", args.channel, dshot),
-                )
-                next_command_time = time.monotonic() + args.command_interval
-                print(
-                    _style(
-                        f"DShot {dshot} command sent; waiting for telemetry...",
-                        "36",
-                        color_output,
-                    ),
-                    flush=True,
-                )
+                attempts_remaining = args.command_retries
+                while True:
+                    try:
+                        while True:
+                            telemetry_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+                    print(
+                        _style(
+                            f"Sending DShot {dshot} "
+                            f"(planned voltage {predicted:.2f} V); "
+                            f"awaiting acknowledgement...",
+                            "36",
+                            color_output,
+                        ),
+                        flush=True,
+                    )
+                    base.send_command(
+                        port,
+                        base.make_dshot_command(
+                            "dshot setthrottle {channel} {dshot}",
+                            args.channel,
+                            dshot,
+                        ),
+                    )
+                    next_command_time = time.monotonic() + args.command_interval
+                    acknowledged = False
+                    acknowledgement_deadline = (
+                        time.monotonic() + args.command_ack_timeout
+                    )
+                    while time.monotonic() < acknowledgement_deadline:
+                        try:
+                            sample = telemetry_queue.get(timeout=0.1)
+                        except queue.Empty:
+                            continue
+                        reported_dshot = base.telemetry_throttle(sample)
+                        voltage_sample = sample.values.get("voltage")
+                        if (
+                            voltage_sample is not None
+                            and voltage_sample < base.IMMEDIATE_LOW_VOLTAGE_LIMIT_V
+                        ):
+                            raise RuntimeError(
+                                "Battery voltage crossed the immediate safety cutoff "
+                                "while waiting for DShot acknowledgement."
+                            )
+                        if reported_dshot == dshot:
+                            acknowledged = True
+                            break
+                    if acknowledged:
+                        print(
+                            _style(
+                                f"DShot {dshot} acknowledged; collecting telemetry "
+                                f"for {args.dwell:.1f}s...",
+                                "36",
+                                color_output,
+                            ),
+                            flush=True,
+                        )
+                        break
+                    attempts_remaining -= 1
+                    if attempts_remaining <= 0:
+                        raise RuntimeError(
+                            f"DShot {dshot} was not acknowledged after "
+                            f"{args.command_retries} attempts"
+                        )
+                    retry_wait = max(0.0, next_command_time - time.monotonic())
+                    if retry_wait > 0:
+                        print(
+                            _style(
+                                f"Waiting {retry_wait:.2f}s before acknowledgement retry...",
+                                "33",
+                                color_output,
+                            ),
+                            flush=True,
+                        )
+                        if stop_event.wait(retry_wait):
+                            break
+                    print(
+                        _style(
+                            f"DShot {dshot} was not acknowledged; retrying "
+                            f"({attempts_remaining} attempts left)...",
+                            "1;33",
+                            color_output,
+                        ),
+                        flush=True,
+                    )
                 samples, battery_cutoff, immediate_cutoff = base.collect_telemetry(
                     telemetry_queue,
                     args.dwell,
@@ -960,17 +1298,29 @@ def run(args: argparse.Namespace) -> None:
                         dshot,
                         sample,
                     )
-                    if math.isfinite(row["voltage"]) and math.isfinite(row["current_draw"]):
-                        row["battery_voltage_estimate"] = battery_estimator.estimate(
-                            row["voltage"],
-                            row["current_draw"],
+                    if math.isfinite(row["voltage"]):
+                        esc_voltage_filter.update(float(row["voltage"]))
+                    if (
+                        math.isfinite(row["voltage"])
+                        and math.isfinite(row["current_draw"])
+                    ):
+                        raw_battery_voltage = battery_estimator.estimate(
+                            float(row["voltage"]),
+                            float(row["current_draw"]),
+                        )
+                        row["battery_voltage_estimate"] = (
+                            battery_voltage_filter.update(raw_battery_voltage)
                         )
                     logger.append(row)
                     if math.isfinite(row["consumption"]):
                         consumed_mah = max(consumed_mah, row["consumption"])
                     else:
                         consumed_mah += estimated_consumption / len(samples)
-                    last_voltage = row["voltage"] if math.isfinite(row["voltage"]) else voltage
+                    last_voltage = (
+                        esc_voltage_filter.value
+                        if math.isfinite(row["voltage"])
+                        else voltage
+                    )
                     actual_dshot = int(row["dshot_value"])
                     coverage.add(last_voltage, actual_dshot)
                     if plot is not None and math.isfinite(row["battery_voltage_estimate"]):
@@ -997,6 +1347,7 @@ def run(args: argparse.Namespace) -> None:
                     )
                 command_id += 1
                 if battery_cutoff:
+                    stop_event.clear()
                     print(_style("Battery safety cutoff reached; stopping.", "1;31", color_output))
                     break
             if (
@@ -1021,9 +1372,7 @@ def run(args: argparse.Namespace) -> None:
                     )
                 )
         finally:
-            base.send_command(port, base.make_dshot_command("dshot setthrottle {channel} 0", args.channel, 0))
             logger.close()
-            stop_event.set()
 
 
 def main() -> None:

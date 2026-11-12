@@ -380,6 +380,12 @@ progress line is updated in place in an interactive terminal.
 The planner uses an indexed CPU coverage search rather than scanning every
 historical point for every candidate, so no GPU or CUDA installation is
 required.
+Voltage telemetry is low-pass filtered before it is used to replan. Startup
+planning now averages only samples whose reported throttle is zero, so stale
+telemetry from a previous command cannot become the initial voltage.
+estimated battery voltage is filtered with the same exponential moving
+average, using `--voltage-filter-alpha 0.2` by default; lower values smooth
+more aggressively.
 No nonzero DShot command is sent until startup telemetry has been collected
 and path planning has completed. The terminal then reports each DShot command
 as it is sent and indicates when it is waiting for telemetry.
@@ -395,8 +401,11 @@ python testing\plan_thruster_test.py `
   --command-interval 0.1
 ```
 
-This rate limit is enforced with a monotonic timer before every DShot command,
-while the final shutdown command is sent immediately for safety.
+This rate limit is enforced with a monotonic timer before every DShot command.
+The default is intentionally 100 ms rather than 500 ms: the planner still
+waits for the configured dwell and acknowledgement, while missed commands can
+be retried more frequently without making telemetry collection the command
+rate.
 The planner also applies a stronger quadratic cost to large DShot changes and
 adds more time cost to large slews. The defaults are equivalent to
 `--slew-penalty 1.0`; override this when deliberately testing more aggressive
@@ -405,10 +414,48 @@ default; change this with `--max-dshot-change` if the ESC supports larger
 steps. The initial command from stopped (`DShot 0`) is exempt so direction
 `-1` can enter its valid range starting at `1048`; the limit applies after
 that first command.
-All telemetry samples are still written to the CSV, but the terminal prints
-only one summary per command. This prevents terminal output from becoming a
-processing bottleneck and causing stale telemetry to accumulate in the queue.
-The summary shows both the commanded and firmware-reported DShot values.
+The initial transition also has no slew penalty or artificial extra dwell
+time. The coverage score may still select a value above `1048` when that
+candidate is more useful, but `1048` is eligible immediately.
+Current and voltage-drop models use throttle above the direction minimum:
+`1048` is zero relative throttle for direction `-1`, while `48` is zero
+relative throttle for direction `1`. This prevents the negative-direction
+minimum from being modeled as high-load operation.
+Telemetry collected during each acknowledged dwell is still written to the
+CSV, but the terminal prints only one summary per command. This prevents
+terminal output from becoming a processing bottleneck and causing stale
+telemetry to accumulate in the queue. The summary shows both the commanded
+and firmware-reported DShot values.
+
+The precomputed plot path contains only commanded DShot values; the startup
+DShot 0 state is not plotted. The green battery path uses the filtered
+battery-voltage estimate.
+
+Before each dwell, the script drains stale telemetry and waits for the
+firmware-reported throttle to match the requested DShot. Missing
+acknowledgements are retried up to three times by default:
+
+```powershell
+python testing\plan_thruster_test.py `
+  --port COM12 `
+  --direction -1 `
+  --command-ack-timeout 1.0 `
+  --command-retries 3
+```
+
+If the command is still not acknowledged, the test stops instead of recording
+measurements under the wrong throttle. The timeout and retry count can be
+adjusted when using firmware that reports throttle more slowly.
+
+Shutdown is also protected: the script repeatedly sends DShot `0` while
+telemetry is available, and only reports shutdown confirmed after three
+consecutive samples show every available stop signal at or below its
+threshold (current 0.2 A, eRPM 100).
+The default confirmation window is five seconds and can be changed with
+`--shutdown-timeout`. This also runs when setup/planning is interrupted with
+Ctrl+C or when a runtime error occurs. If telemetry lacks both current and
+eRPM, or never reaches the stop thresholds, the script prints a warning rather
+than claiming that the thruster is off.
 
 The CSV comment header records the run configuration and planning context,
 including the startup ESC/battery-voltage estimates, startup current and
