@@ -43,6 +43,7 @@ DEFAULT_SHUTDOWN_TIMEOUT = 5.0
 DEFAULT_SHUTDOWN_CONFIRMATIONS = 3
 DEFAULT_STOP_CURRENT_A = 0.2
 DEFAULT_STOP_ERPM = 100.0
+DEFAULT_MPC_HORIZON = 3
 
 
 def _style(text: str, code: str, enabled: bool) -> str:
@@ -465,10 +466,9 @@ def estimate_battery_resistance(points: list[HistoricalPoint]) -> float:
     return statistics.median(resistances) if resistances else DEFAULT_BATTERY_RESISTANCE
 
 
-def estimate_timing(points: list[HistoricalPoint]) -> tuple[float, float]:
-    """Estimate seconds and consumption units per recorded measurement."""
+def estimate_timing(points: list[HistoricalPoint]) -> float:
+    """Estimate the median telemetry interval from historical samples."""
     durations: list[float] = []
-    consumption_rates: list[float] = []
     for source in {point.source for point in points}:
         ordered = sorted(
             (point for point in points if point.source == source),
@@ -476,17 +476,51 @@ def estimate_timing(points: list[HistoricalPoint]) -> tuple[float, float]:
         )
         for previous, current in zip(ordered, ordered[1:]):
             duration = current.elapsed_s - previous.elapsed_s
-            consumption_delta = current.consumption - previous.consumption
             if duration > 0:
                 durations.append(duration)
-                if consumption_delta >= 0:
-                    consumption_rates.append(consumption_delta / duration)
     if not durations:
         raise ValueError("Historical data has no usable elapsed-time intervals")
-    return (
-        statistics.median(durations),
-        statistics.median(consumption_rates) if consumption_rates else 0.0,
-    )
+    return statistics.median(durations)
+
+
+def estimate_consumption_model(
+    points: list[HistoricalPoint],
+    direction: int,
+) -> tuple[float, float]:
+    """Fit battery drain in mAh/s against effective DShot from each file."""
+    rates: list[tuple[float, float]] = []
+    for source in {point.source for point in points}:
+        ordered = sorted(
+            (point for point in points if point.source == source),
+            key=lambda point: point.elapsed_s,
+        )
+        if len(ordered) < 2:
+            continue
+        start = ordered[0]
+        end = ordered[-1]
+        duration = end.elapsed_s - start.elapsed_s
+        consumed = end.consumption - start.consumption
+        if duration <= 0 or consumed < 0:
+            continue
+        effective_dshots = [
+            _effective_dshot(point.dshot, direction)
+            for point in ordered
+        ]
+        mean_dshot = statistics.mean(effective_dshots)
+        rates.append((mean_dshot, consumed / duration))
+    if not rates:
+        return 0.0, 0.0
+    mean_dshot = statistics.mean(dshot for dshot, _ in rates)
+    mean_rate = statistics.mean(rate for _, rate in rates)
+    denominator = sum((dshot - mean_dshot) ** 2 for dshot, _ in rates)
+    if denominator == 0:
+        return max(0.0, mean_rate), 0.0
+    slope = sum(
+        (dshot - mean_dshot) * (rate - mean_rate)
+        for dshot, rate in rates
+    ) / denominator
+    intercept = mean_rate - slope * mean_dshot
+    return max(0.0, intercept), max(0.0, slope)
 
 
 def estimate_current_model(
@@ -564,7 +598,8 @@ class AdaptivePlanner:
         slew_penalty: float,
         k: float,
         sample_seconds: float,
-        consumption_rate: float,
+        consumption_intercept: float,
+        consumption_slope: float,
         battery_capacity_mah: float,
         battery_resistance: float,
         current_intercept: float,
@@ -579,7 +614,8 @@ class AdaptivePlanner:
         self.slew_penalty = slew_penalty
         self.k = k
         self.sample_seconds = sample_seconds
-        self.consumption_rate = consumption_rate
+        self.consumption_intercept = consumption_intercept
+        self.consumption_slope = consumption_slope
         self.battery_capacity_mah = battery_capacity_mah
         self.battery_resistance = battery_resistance
         self.current_intercept = current_intercept
@@ -626,7 +662,10 @@ class AdaptivePlanner:
                 1.0 + DEFAULT_SLEW_TIME_FACTOR * slew
             )
             score = novelty / estimated_seconds - self.slew_penalty * slew * slew
-            estimated_consumption = self.consumption_rate * estimated_seconds
+            estimated_consumption = self.estimate_consumption(
+                dshot,
+                estimated_seconds,
+            )
             if consumed_mah + estimated_consumption > self.battery_capacity_mah:
                 continue
             scores.append(
@@ -646,17 +685,109 @@ class AdaptivePlanner:
         _, selected, predicted, estimated_seconds, estimated_consumption = max(scores)
         return selected, predicted, estimated_seconds, estimated_consumption
 
+    def choose_mpc(
+        self,
+        voltage: float,
+        previous_dshot: int,
+        consumed_mah: float,
+        horizon: int,
+    ) -> tuple[int, float, float, float]:
+        """Choose the first action of a short receding-horizon rollout."""
+        if horizon <= 1:
+            return self.choose(voltage, previous_dshot, consumed_mah)
+        first_choice: tuple[float, int, float, float, float] | None = None
+        scale = max(self.candidates)
+        for dshot in self.candidates:
+            if (
+                previous_dshot != 0
+                and abs(dshot - previous_dshot) > self.max_dshot_change
+            ):
+                continue
+            predicted = self.predicted_voltage(voltage, dshot, previous_dshot)
+            if predicted < base.IMMEDIATE_LOW_VOLTAGE_LIMIT_V:
+                continue
+            seconds, consumption = self.estimate_step(dshot, previous_dshot)
+            if consumed_mah + consumption > self.battery_capacity_mah:
+                continue
+            novelty = self.coverage.novelty(predicted, dshot)
+            score = novelty / seconds
+            simulated = AdaptivePlanner(
+                self.coverage.clone(),
+                self.direction,
+                self.dwell,
+                self.dshot_step,
+                self.slew_penalty,
+                self.k,
+                self.sample_seconds,
+                self.consumption_intercept,
+                self.consumption_slope,
+                self.battery_capacity_mah,
+                self.battery_resistance,
+                self.current_intercept,
+                self.current_slope,
+                self.max_dshot_change,
+            )
+            simulated.coverage.add(predicted, dshot)
+            rollout_voltage = predicted
+            rollout_dshot = dshot
+            rollout_consumed = consumed_mah + consumption
+            for _ in range(horizon - 1):
+                try:
+                    next_dshot, next_voltage, next_seconds, next_consumption = (
+                        simulated.choose(
+                            rollout_voltage,
+                            rollout_dshot,
+                            rollout_consumed,
+                        )
+                    )
+                except ValueError:
+                    break
+                score += simulated.coverage.novelty(
+                    next_voltage,
+                    next_dshot,
+                ) / next_seconds
+                simulated.coverage.add(next_voltage, next_dshot)
+                rollout_voltage = next_voltage
+                rollout_dshot = next_dshot
+                rollout_consumed += next_consumption
+            slew = (
+                0.0
+                if previous_dshot == 0
+                else abs(dshot - previous_dshot) / scale
+            )
+            score -= self.slew_penalty * slew * slew
+            candidate = (score, dshot, predicted, seconds, consumption)
+            if first_choice is None or candidate > first_choice:
+                first_choice = candidate
+        if first_choice is None:
+            raise ValueError(
+                "No safe DShot candidate remains above the "
+                f"{base.IMMEDIATE_LOW_VOLTAGE_LIMIT_V:.1f} V planning floor"
+            )
+        _, dshot, predicted, seconds, consumption = first_choice
+        return dshot, predicted, seconds, consumption
+
     def estimate_step(
         self,
         dshot: int,
         previous_dshot: int,
     ) -> tuple[float, float]:
         if previous_dshot == 0:
-            return self.sample_seconds, self.consumption_rate * self.sample_seconds
+            return self.sample_seconds, self.estimate_consumption(
+                dshot,
+                self.sample_seconds,
+            )
         scale = max(self.candidates)
         slew = abs(dshot - previous_dshot) / scale
         seconds = self.sample_seconds * (1.0 + DEFAULT_SLEW_TIME_FACTOR * slew)
-        return seconds, self.consumption_rate * seconds
+        return seconds, self.estimate_consumption(dshot, seconds)
+
+    def estimate_consumption(self, dshot: int, seconds: float) -> float:
+        effective_dshot = _effective_dshot(dshot, self.direction)
+        rate = self.consumption_intercept + (
+            self.consumption_slope * effective_dshot
+        )
+        return max(0.0, rate * seconds)
 
     def precompute_path(
         self,
@@ -677,7 +808,8 @@ class AdaptivePlanner:
             self.slew_penalty,
             self.k,
             self.sample_seconds,
-            self.consumption_rate,
+            self.consumption_intercept,
+            self.consumption_slope,
             self.battery_capacity_mah,
             self.battery_resistance,
             self.current_intercept,
@@ -704,6 +836,55 @@ class AdaptivePlanner:
         return path
 
 
+class RealtimePathMatcher:
+    """Advance through a plan by nearest voltage/DShot state, not elapsed time."""
+
+    def __init__(
+        self,
+        planned_path: list[tuple[int, float]],
+        voltage_bin: float,
+        dshot_step: int,
+        max_dshot_change: int,
+    ) -> None:
+        self.planned_path = planned_path
+        self.voltage_bin = voltage_bin
+        self.dshot_step = dshot_step
+        self.max_dshot_change = max_dshot_change
+        self.index = 0
+
+    def next(
+        self,
+        voltage: float,
+        previous_dshot: int,
+    ) -> tuple[int, float, int] | None:
+        if self.index >= len(self.planned_path):
+            return None
+        candidates = [
+            index
+            for index in range(self.index, len(self.planned_path))
+            if (
+                previous_dshot == 0
+                or abs(self.planned_path[index][0] - previous_dshot)
+                <= self.max_dshot_change
+            )
+        ]
+        if not candidates:
+            return None
+        best_index = min(
+            candidates,
+            key=lambda index: (
+                abs(self.planned_path[index][1] - voltage) / self.voltage_bin
+                + abs(self.planned_path[index][0] - previous_dshot)
+                / self.dshot_step
+            ),
+        )
+        dshot, predicted = self.planned_path[best_index]
+        return dshot, predicted, best_index
+
+    def advance(self, index: int) -> None:
+        self.index = max(self.index, index + 1)
+
+
 class PlannerPlot:
     """Show historical coverage and the planned/actual adaptive path."""
 
@@ -711,8 +892,10 @@ class PlannerPlot:
         self,
         points: list[HistoricalPoint],
         planned_path: list[tuple[int, float]],
+        stop_event: threading.Event,
     ) -> None:
         self.points = points
+        self.stop_event = stop_event
         self.planned = [(voltage, dshot) for dshot, voltage in planned_path]
         self.actual: list[tuple[float, int]] = []
         self.battery: list[tuple[float, int]] = []
@@ -743,8 +926,18 @@ class PlannerPlot:
         self.axes.set_title("Adaptive voltage/DShot coverage")
         self.axes.legend()
         self.figure.tight_layout()
+        self.figure.canvas.mpl_connect("key_press_event", self._on_key_press)
+        self.figure.canvas.mpl_connect("close_event", self._on_close)
         plt.ion()
         plt.show(block=False)
+
+    def _on_key_press(self, event: object) -> None:
+        key = getattr(event, "key", None)
+        if key in {"ctrl+c", "escape", "q"}:
+            self.stop_event.set()
+
+    def _on_close(self, _event: object) -> None:
+        self.stop_event.set()
 
     def update_plan(
         self,
@@ -839,6 +1032,12 @@ def make_parser() -> argparse.ArgumentParser:
         help="Override estimated battery resistance in ohms",
     )
     parser.add_argument("--plot", action="store_true")
+    parser.add_argument(
+        "--mpc-horizon",
+        type=int,
+        default=DEFAULT_MPC_HORIZON,
+        help="Number of command steps considered by each real-time rollout",
+    )
     return parser
 
 
@@ -853,6 +1052,7 @@ def run(args: argparse.Namespace) -> None:
         or args.max_dshot_change <= 0
         or args.voltage_bin <= 0
         or args.dshot_step <= 0
+        or args.mpc_horizon <= 0
         or args.max_duration < 0
         or args.battery_capacity <= 0
         or args.initial_consumed_mah < 0
@@ -863,12 +1063,17 @@ def run(args: argparse.Namespace) -> None:
             "command-ack-timeout, command-retries, "
             "shutdown-timeout, "
             "max-dshot-change, voltage-bin, dshot-step, and "
+            "mpc-horizon, "
             "battery-capacity must be positive; "
             "max-duration cannot be negative and initial-consumed-mah must be "
             "between zero and battery-capacity"
         )
     points = read_historical_points(args.data_folder)
-    telemetry_seconds, consumption_rate = estimate_timing(points)
+    telemetry_seconds = estimate_timing(points)
+    consumption_intercept, consumption_slope = estimate_consumption_model(
+        points,
+        args.direction,
+    )
     step_seconds = max(args.dwell, args.command_interval)
     coverage = CoverageMap(points, args.voltage_bin, args.dshot_step)
     resistance = (
@@ -891,7 +1096,8 @@ def run(args: argparse.Namespace) -> None:
         args.slew_penalty,
         estimate_k(points, args.direction),
         step_seconds,
-        consumption_rate,
+        consumption_intercept,
+        consumption_slope,
         args.battery_capacity,
         resistance,
         current_intercept,
@@ -899,7 +1105,13 @@ def run(args: argparse.Namespace) -> None:
         args.max_dshot_change,
     )
     available_capacity = args.battery_capacity - args.initial_consumed_mah
-    estimated_steps = int(available_capacity / max(consumption_rate, 1e-9))
+    estimated_step_consumption = planner.estimate_consumption(
+        max(planner.candidates),
+        step_seconds,
+    )
+    estimated_steps = int(
+        available_capacity / max(estimated_step_consumption, 1e-9)
+    )
     if args.max_duration > 0:
         estimated_steps = min(
             estimated_steps,
@@ -995,6 +1207,13 @@ def run(args: argparse.Namespace) -> None:
             initial_voltage,
             initial_current,
         )
+        startup_consumption = initial_telemetry.values.get(
+            "consumption",
+            0.0,
+        )
+        if not math.isfinite(startup_consumption):
+            startup_consumption = 0.0
+        consumption_baseline = startup_consumption
         esc_voltage_filter = ExponentialMovingAverage(
             args.voltage_filter_alpha,
             initial_voltage,
@@ -1032,27 +1251,32 @@ def run(args: argparse.Namespace) -> None:
                 flush=True,
             )
 
-        print(
-            _style(
-                f"Planning path from {initial_voltage:.2f} V "
-                f"({estimated_steps:,} candidate steps)...",
-                "1;33",
-                color_output,
-            ),
-            flush=True,
-        )
-        planned_path = planner.precompute_path(
-            initial_voltage,
-            previous_dshot,
-            max(1, estimated_steps),
-            args.battery_capacity,
-            consumed_mah,
-            report_planning_progress,
+        if args.plot:
+            print(
+                _style(
+                    f"Building MPC preview from {initial_voltage:.2f} V "
+                    f"({estimated_steps:,} candidate steps)...",
+                    "1;33",
+                    color_output,
+                ),
+                flush=True,
+            )
+        planned_path = (
+            planner.precompute_path(
+                initial_voltage,
+                previous_dshot,
+                max(1, estimated_steps),
+                args.battery_capacity,
+                consumed_mah,
+                report_planning_progress,
+            )
+            if args.plot
+            else []
         )
         print(
             "\r"
             + _style(
-                f"Planning complete: {len(planned_path):,} steps in "
+                f"MPC preview complete: {len(planned_path):,} steps in "
                 f"{time.monotonic() - planning_started:.1f}s"
                 + " " * 20,
                 "1;32",
@@ -1060,7 +1284,7 @@ def run(args: argparse.Namespace) -> None:
             )
         )
         plot = (
-            PlannerPlot(points, planned_path)
+            PlannerPlot(points, planned_path, stop_event)
             if args.plot
             else None
         )
@@ -1100,6 +1324,7 @@ def run(args: argparse.Namespace) -> None:
                 "telemetry_format": args.telemetry_format,
                 "validate_telemetry_crc": args.validate_telemetry_crc,
                 "dwell": args.dwell,
+                "mpc_horizon": args.mpc_horizon,
                 "voltage_filter_alpha": args.voltage_filter_alpha,
                 "command_interval_s": args.command_interval,
                 "shutdown_timeout_s": args.shutdown_timeout,
@@ -1113,7 +1338,12 @@ def run(args: argparse.Namespace) -> None:
                 "estimated_k": planner.k,
                 "estimated_telemetry_interval_s": telemetry_seconds,
                 "estimated_seconds_per_command": step_seconds,
-                "estimated_consumption_per_second": consumption_rate,
+                "consumption_model_intercept_mah_per_second": (
+                    consumption_intercept
+                ),
+                "consumption_model_slope_mah_per_second_per_dshot": (
+                    consumption_slope
+                ),
                 "battery_capacity_mah": args.battery_capacity,
                 "initial_consumed_mah": args.initial_consumed_mah,
                 "available_capacity_mah": available_capacity,
@@ -1128,10 +1358,8 @@ def run(args: argparse.Namespace) -> None:
                     "temperature",
                     math.nan,
                 ),
-                "startup_consumption": initial_telemetry.values.get(
-                    "consumption",
-                    math.nan,
-                ),
+                "startup_consumption": startup_consumption,
+                "consumption_baseline": consumption_baseline,
                 "startup_battery_voltage_estimate": initial_battery_voltage,
                 "battery_resistance_ohms": resistance,
                 "current_model_intercept_a": current_intercept,
@@ -1148,7 +1376,10 @@ def run(args: argparse.Namespace) -> None:
             ):
                 if (
                     consumed_mah >= args.battery_capacity
-                    or consumed_mah + planner.consumption_rate * planner.sample_seconds
+                    or consumed_mah + planner.estimate_consumption(
+                        max(planner.candidates),
+                        planner.sample_seconds,
+                    )
                     > args.battery_capacity
                 ):
                     print(
@@ -1165,18 +1396,14 @@ def run(args: argparse.Namespace) -> None:
                     if record_id == 0
                     else esc_voltage_filter.value
                 )
-                if command_id < len(planned_path):
-                    dshot, predicted = planned_path[command_id]
-                    estimated_seconds, estimated_consumption = planner.estimate_step(
-                        dshot,
-                        previous_dshot,
-                    )
-                else:
-                    dshot, predicted, estimated_seconds, estimated_consumption = planner.choose(
+                dshot, predicted, estimated_seconds, estimated_consumption = (
+                    planner.choose_mpc(
                         voltage,
                         previous_dshot,
                         consumed_mah,
+                        args.mpc_horizon,
                     )
+                )
                 wait_seconds = max(0.0, next_command_time - time.monotonic())
                 if wait_seconds > 0:
                     print(
@@ -1313,7 +1540,14 @@ def run(args: argparse.Namespace) -> None:
                         )
                     logger.append(row)
                     if math.isfinite(row["consumption"]):
-                        consumed_mah = max(consumed_mah, row["consumption"])
+                        measured_consumption = max(
+                            0.0,
+                            float(row["consumption"]) - consumption_baseline,
+                        )
+                        consumed_mah = max(
+                            consumed_mah,
+                            args.initial_consumed_mah + measured_consumption,
+                        )
                     else:
                         consumed_mah += estimated_consumption / len(samples)
                     last_voltage = (

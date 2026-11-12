@@ -421,6 +421,20 @@ Current and voltage-drop models use throttle above the direction minimum:
 `1048` is zero relative throttle for direction `-1`, while `48` is zero
 relative throttle for direction `1`. This prevents the negative-direction
 minimum from being modeled as high-load operation.
+Battery budgeting is fitted from historical files using each file's measured
+cumulative-consumption change over elapsed time, with the fitted drain rate
+modeled against effective DShot. This replaces the previous single global
+median rate and records the fitted intercept and slope in the CSV metadata.
+During execution, the planner now behaves as a receding-horizon MPC: after
+each dwell it replans a short rollout from the latest filtered voltage, actual
+DShot, and measured battery budget, then sends only the first command. The
+horizon is three commands by default and can be changed with
+`--mpc-horizon`. The optional plot shows a preview path, but runtime control
+does not follow that preview by elapsed time.
+When the plot window has focus, `Ctrl+C`, `Esc`, or `q` stops the run and
+triggers the safe shutdown sequence. Closing the plot window does the same.
+Runtime ESC consumption is normalized to the startup counter before it is
+compared with the estimated battery budget.
 Telemetry collected during each acknowledged dwell is still written to the
 CSV, but the terminal prints only one summary per command. This prevents
 terminal output from becoming a processing bottleneck and causing stale
