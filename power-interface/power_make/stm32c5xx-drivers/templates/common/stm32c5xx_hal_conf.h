@@ -355,7 +355,7 @@ extern "C" {
 /* ########################## HAL_I2C Config #################################### */
 #define USE_HAL_I2C_MODULE                      1U
 #define USE_HAL_I2C_CLK_ENABLE_MODEL            HAL_CLK_ENABLE_NO
-#define USE_HAL_I2C_REGISTER_CALLBACKS          0U
+#define USE_HAL_I2C_REGISTER_CALLBACKS          1U
 #define USE_HAL_I2C_USER_DATA                   0U
 #define USE_HAL_I2C_GET_LAST_ERRORS             0U
 #define USE_HAL_I2C_DMA                         1U
