@@ -20,6 +20,8 @@ enum FUNCTION_INDICES
 	FI_SPI_INM,
 	FI_SPI_ERR,
 	FI_STICK,
+	FI_I2C_READ,
+	FI_I2C_WRITE,
 };
 
 int push_interrupt(uint8_t type, uint8_t index, void* payload);

@@ -12,5 +12,7 @@ int power_spi_sdmcallback(void* unused);
 int power_spi_inmcallback(void* unused);
 int power_spi_errcallback(void* unused);
 int power_stick_callback(void* stock);
+int power_i2c_readcallback(void* unused);
+int power_i2c_wrotecallback(void* unused);
 
 #endif

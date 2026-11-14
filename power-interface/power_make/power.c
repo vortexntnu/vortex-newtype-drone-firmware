@@ -125,3 +125,15 @@ int power_stick_callback(void* stock)
 	power_can_spong(1, stick);
 	return 0;
 }
+
+int power_i2c_readcallback(void* unused)
+{
+	power_can_spong(1, 0x12c);
+	return 0;
+}
+
+int power_i2c_wrotecallback(void* unused)
+{
+	power_can_spong(1, 0x12d);
+	return 0;
+}

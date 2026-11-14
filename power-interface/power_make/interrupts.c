@@ -21,6 +21,8 @@ static int (*ifns[])(void* payload) =
 	[FI_SPI_INM] = power_spi_inmcallback,
 	[FI_SPI_ERR] = power_spi_errcallback,
 	[FI_STICK] = power_stick_callback,
+	[FI_I2C_READ] = power_i2c_readcallback,
+	[FI_I2C_WRITE] = power_i2c_wrotecallback,
 };
 static int interrupted = 0; // 0 for no interrupt, n for interrupt vector, large n for break (over 0xffff);
 static uint8_t indices[256];
